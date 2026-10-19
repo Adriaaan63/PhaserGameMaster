@@ -1,0 +1,35 @@
+{
+    "name": "plantillaphaser",
+    "version": "1.0.0",
+    "main": "./dist-electron/main.js",
+    "description": "Plantilla para juegos con Phaser",
+    "scripts": {
+        "electron": "npm i && npx vite -c electron.vite.config.js",
+        "build:electron": "npm i && npx vite build -c electron.vite.config.js",
+        "release:electron": "npm i && npm run build:electron && electron-builder --publish never",
+        "start": "npm i && npx vite",
+        "build": "npm i && npx vite build --outDir docs/"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/cleongh/plantillaphaser.git"
+    },
+    "keywords": [],
+    "author": "Carlos León <cleon@ucm.es>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/cleongh/plantillaphaser/issues"
+    },
+    "homepage": "https://github.com/cleongh/plantillaphaser#readme",
+    "type": "module",
+    "devDependencies": {
+        "electron": "^44.4.5",
+        "electron-builder": "^26.15.3",
+        "vite": "^8.3.1",
+        "vite-plugin-electron": "^1.1.2",
+        "vite-plugin-electron-renderer": "^1.0.0"
+    },
+    "dependencies": {
+        "phaser": "^4.2.1"
+    }
+}

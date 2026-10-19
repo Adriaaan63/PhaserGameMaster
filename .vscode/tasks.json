@@ -1,0 +1,83 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "start",
+			"label": "npm: start",
+			"dependsOn": "npm: install",
+			"isBackground": true,
+			"problemMatcher": {
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*",
+					"endsPattern": "ready in"
+				},
+				"pattern": {
+					"regexp": "",
+				}
+			}
+		},
+		{
+			"type": "npm",
+			"script": "electron",
+			"label": "npm: electron",
+			"dependsOn": "npm: install",
+			"options": {
+				"env": {
+					"REMOTE_DEBUGGING_PORT": "9222"
+				}
+			},
+			"isBackground": true,
+			"problemMatcher": {
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*",
+					"endsPattern": "ready in"
+				},
+				"pattern": {
+					"regexp": "",
+				}
+			}
+		},
+		{
+			"type": "npm",
+			"script": "release:electron",
+			"group": "build",
+			"dependsOn": "npm: install",
+			"label": "Construir release con Electron"
+		},
+		{
+			"label": "terminar vite",
+			"type": "process",
+			"command": "echo",
+			"args": [
+				"${input:terminateVite}"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "terminar electron",
+			"type": "process",
+			"command": "echo",
+			"args": [
+				"${input:terminateElectron}"
+			],
+			"problemMatcher": []
+		}
+	],
+	"inputs": [
+		{
+			"id": "terminateVite",
+			"type": "command",
+			"command": "workbench.action.tasks.terminate",
+			"args": "npm: start"
+		},
+		{
+			"id": "terminateElectron",
+			"type": "command",
+			"command": "workbench.action.tasks.terminate",
+			"args": "npm: electron"
+		}
+	]
+}
