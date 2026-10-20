@@ -19,7 +19,7 @@ Sigue estrictamente esta estructura de directorios y modularización para separa
   * `managers/`: Controladores de lógica pura (ej. `GridManager.ts`, `AffinityManager.ts`, `EconomyManager.ts`).
   * `ui/`: Componentes de interfaz gráfica instanciados en la `UIScene` (botones, diálogos, barras de paciencia).
   * `utils/`: Herramientas auxiliares (`EventBus.ts`, constantes, utilidades matemáticas).
-  * `assets/`: Definición de rutas y carga de recursos estáticos.
+
 
 ## 3. Convenciones de Código (TypeScript)
 * **Tipado Estricto:** Prohibido el uso de `any`. Usa interfaces y *types* para estructurar datos (ej. configuraciones de clientes, stats de combate).

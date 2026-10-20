@@ -1,0 +1,811 @@
+{ "compressionlevel":-1,
+ "height":16,
+ "infinite":false,
+ "layers":[
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 37, 1, 1, 1, 1, 1, 1, 38, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 37, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 38, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 37, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 38, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 37, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 25, 25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":1,
+         "name":"suelo",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "data":[2, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
+            7, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 8],
+         "height":16,
+         "id":2,
+         "name":"paredes",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0,
+            0, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 16, 27, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 16, 16, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 21, 0, 0, 0, 0, 0,
+            0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":6,
+         "name":"decoracion",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 9, 9, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 26, 13, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":3,
+         "name":"barra",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+         "height":16,
+         "id":4,
+         "name":"mobiliario",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "data":[0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0],
+         "height":16,
+         "id":5,
+         "name":"puertas",
+         "opacity":1,
+         "type":"tilelayer",
+         "visible":true,
+         "width":20,
+         "x":0,
+         "y":0
+        },
+        {
+         "objects":[
+                {
+                 "height":32,
+                 "id":1,
+                 "name":"spawnWuher",
+                 "rotation":0,
+                 "type":"spawn",
+                 "visible":true,
+                 "width":32,
+                 "x":416,
+                 "y":128,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Punto de aparición de Wuher (dentro de la U de la barra)"
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":2,
+                 "name":"entradaPrincipal",
+                 "rotation":0,
+                 "type":"puerta_entrada",
+                 "visible":true,
+                 "width":32,
+                 "x":192,
+                 "y":0,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Puerta norte con detector de droides. Cola de clientes."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":3,
+                 "name":"salidaTrasera",
+                 "rotation":0,
+                 "type":"puerta_salida",
+                 "visible":true,
+                 "width":32,
+                 "x":576,
+                 "y":480,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Puerta trasera sur-este. Los clientes salen por aquí."
+                        }]
+                },
+                {
+                 "height":64,
+                 "id":4,
+                 "name":"zonaColaEntrada",
+                 "rotation":0,
+                 "type":"cola_entrada",
+                 "visible":true,
+                 "width":96,
+                 "x":160,
+                 "y":32,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Zona donde los clientes esperan en cola tras pasar el detector de droides."
+                        }]
+                },
+                {
+                 "height":96,
+                 "id":5,
+                 "name":"zonaBanda",
+                 "rotation":0,
+                 "type":"zona_banda",
+                 "visible":true,
+                 "width":128,
+                 "x":32,
+                 "y":64,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Tarima del escenario de Figrin D'an y los Modal Nodes."
+                        }]
+                },
+                {
+                 "height":64,
+                 "id":6,
+                 "name":"zonaAlmacen",
+                 "rotation":0,
+                 "type":"zona_almacen",
+                 "visible":true,
+                 "width":64,
+                 "x":416,
+                 "y":224,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Almacén de barriles de repuesto y suministros."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":7,
+                 "name":"zonaCocina",
+                 "rotation":0,
+                 "type":"zona_cocina",
+                 "visible":true,
+                 "width":32,
+                 "x":416,
+                 "y":128,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Parrilla de Fusión donde Wuher prepara brochetas y filetes."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":8,
+                 "name":"zonaAlcoba",
+                 "rotation":0,
+                 "type":"zona_alcoba",
+                 "visible":true,
+                 "width":64,
+                 "x":32,
+                 "y":448,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Alcoba oscura para ocultar clientes buscados por el Imperio."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":9,
+                 "name":"spawnRatas1",
+                 "rotation":0,
+                 "type":"spawn_ratas",
+                 "visible":true,
+                 "width":32,
+                 "x":32,
+                 "y":256,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Rejilla de ventilación por donde salen los Scurriers ladrones."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":10,
+                 "name":"detectorDroides",
+                 "rotation":0,
+                 "type":"detector_droides",
+                 "visible":true,
+                 "width":32,
+                 "x":192,
+                 "y":0,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Detector de droides en el umbral de la puerta principal."
+                        }]
+                },
+                {
+                 "height":32,
+                 "id":11,
+                 "name":"spawnRatas2",
+                 "rotation":0,
+                 "type":"spawn_ratas",
+                 "visible":true,
+                 "width":32,
+                 "x":544,
+                 "y":32,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Segunda rejilla de ventilación para spawns de ratas."
+                        }]
+                }],
+         "draworder":"topdown",
+         "id":7,
+         "name":"objetos",
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }],
+ "nextlayerid":8,
+ "nextobjectid":12,
+ "orientation":"orthogonal",
+ "renderorder":"right-down",
+ "tiledversion":"1.12.2",
+ "tileheight":32,
+ "tilesets":[
+        {
+         "columns":8,
+         "firstgid":1,
+         "image":"..\/images\/cantina_tileset.png",
+         "imageheight":256,
+         "imagewidth":256,
+         "margin":0,
+         "name":"cantina_tileset",
+         "spacing":0,
+         "tilecount":64,
+         "tileheight":32,
+         "tiles":[
+                {
+                 "id":0,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                },
+                {
+                 "id":1,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":2,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":3,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":4,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":5,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":6,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":7,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARED"
+                        }]
+                },
+                {
+                 "id":8,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                },
+                {
+                 "id":9,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                },
+                {
+                 "id":10,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                },
+                {
+                 "id":11,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                },
+                {
+                 "id":12,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                },
+                {
+                 "id":13,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SILLA"
+                        }]
+                },
+                {
+                 "id":14,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"MESA"
+                        }]
+                },
+                {
+                 "id":15,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"ESCENARIO"
+                        }]
+                },
+                {
+                 "id":16,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PUERTA_PRINCIPAL"
+                        }]
+                },
+                {
+                 "id":17,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PUERTA_TRASERA"
+                        }]
+                },
+                {
+                 "id":18,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"DETECTOR_DROIDES"
+                        }]
+                },
+                {
+                 "id":19,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"CILINDRO_BEBIDA"
+                        }]
+                },
+                {
+                 "id":20,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARRILLA"
+                        }]
+                },
+                {
+                 "id":21,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"ALMACEN"
+                        }]
+                },
+                {
+                 "id":22,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"POSTER_BUSCADOS"
+                        }]
+                },
+                {
+                 "id":23,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"REJILLA_VENTILACION"
+                        }]
+                },
+                {
+                 "id":24,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO_ALCOBA"
+                        }]
+                },
+                {
+                 "id":25,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"ENCIMERA"
+                        }]
+                },
+                {
+                 "id":26,
+                 "properties":[
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"ALTAVOZ"
+                        }]
+                },
+                {
+                 "id":27,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BOTE_PROPINAS"
+                        }]
+                },
+                {
+                 "id":28,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"MOBILIARIO_ROTO"
+                        }]
+                },
+                {
+                 "id":29,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"CHARCO"
+                        }]
+                },
+                {
+                 "id":30,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"CREDITOS_SUELO"
+                        }]
+                },
+                {
+                 "id":31,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"MADRIGUERA_RATAS"
+                        }]
+                },
+                {
+                 "id":35,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                },
+                {
+                 "id":36,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                },
+                {
+                 "id":37,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                },
+                {
+                 "id":38,
+                 "properties":[
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }],
+         "tilewidth":32
+        }],
+ "tilewidth":32,
+ "type":"map",
+ "version":"1.10",
+ "width":20
+}
+
+

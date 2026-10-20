@@ -18,6 +18,12 @@ function createGameConfig(): Types.Core.GameConfig {
             mode: Scale.RESIZE,
             autoCenter: Scale.CENTER_BOTH
         },
+        physics: {
+            default: 'arcade',
+            arcade: {
+                debug: false
+            }
+        },
         scene: [BootScene, PreloadScene, NightCantinaScene, UIScene]
     };
 }
