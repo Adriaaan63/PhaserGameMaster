@@ -1,8 +1,8 @@
 {
-    "name": "plantillaphaser",
+    "name": "PhaserGameMaster",
     "version": "1.0.0",
     "main": "./dist-electron/main.js",
-    "description": "Plantilla para juegos con Phaser",
+    "description": "Juegos con Phaser en el Master",
     "scripts": {
         "electron": "npm i && npx vite -c electron.vite.config.js",
         "build:electron": "npm i && npx vite build -c electron.vite.config.js",
@@ -12,15 +12,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/cleongh/plantillaphaser.git"
+        "url": "git+https://github.com/Adriaaan63/PhaserGameMaster.git"
     },
     "keywords": [],
     "author": "Carlos León <cleon@ucm.es>",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/cleongh/plantillaphaser/issues"
+        "url": "https://github.com/Adriaaan63/PhaserGameMaster/issues"
     },
-    "homepage": "https://github.com/cleongh/plantillaphaser#readme",
+    "homepage": "https://github.com/Adriaaan63/PhaserGameMaster#readme",
     "type": "module",
     "devDependencies": {
         "electron": "^44.4.5",
