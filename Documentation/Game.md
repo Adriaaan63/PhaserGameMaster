@@ -1,306 +1,216 @@
-**DOCUMENT: Game Concept**
-
-**AUTHOR:** Equipo de Desarrollo / Gemini
-
-**1. BASIC INFO**
-
-**Title:** Chalmun's Cantina: Mos Eisley Hustle
-
-**Genre:** Gestión de Tiempo / Action-Roguelite
-
-**Platform/s:** PC (Navegador Web - Phaser 4)
-
-**Target Audience:** Jugadores mid-core y fans de Star Wars (12+). Amantes de juegos de gestión caótica y simuladores de restaurantes con progresión.
-
-**2. DESCRIPTION**
-
-*Chalmun's Cantina: Mos Eisley Hustle* es un juego de gestión caótica y acción roguelite desarrollado en Phaser 4, donde tomas el control de Wuher, el malhumorado y xenófobo tabernero de Mos Eisley. El juego divide su núcleo en dos fases complementarias: por el día, abandonas la seguridad de la barra para adentrarte en las afueras de Tatooine en incursiones peligrosas, cazando bestias y recolectando ingredientes y chatarra; por la noche, abres las puertas de la cantina para servir licores exóticos y platos a contrabandistas, cazarrecompensas y matones en turnos frenéticos de 3 minutos, organizando el espacio de tu local mediante un sistema modular de cuadrícula (*grid*).
-
-A diferencia de los simuladores culinarios tradicionales, la supervivencia de este negocio no depende únicamente de la velocidad, sino de gestionar un polvorín social mediante una mecánica de "Afinidad Racial". Sentar juntos a Wookiees y Trandoshanos provocará letales tiroteos que destruirán tu mobiliario y atraerán el escrutinio del Imperio Galáctico. El título combina la tensión logística de *PlateUp!* con el rico submundo criminal de *Star Wars*, obligándote a decidir moral y estratégicamente: ¿delatarás a los fugitivos a los *Sandtroopers* para obtener una recompensa rápida, o los esconderás para forjarte una reputación legendaria en el mercado negro de Jabba el Hutt?
-
-**3. SETTING**
-
-El título recrea la icónica taberna del puerto espacial de Tatooine con una vista *top-down* 2D. La estética resalta un fuerte contraste visual y ambiental: la luminosidad cegadora y la inmensidad hostil de los soles gemelos en el desierto durante el día, frente a la penumbra claustrofóbica, polvorienta y saturada de neón del interior del bar por la noche. Todo esto acompañado por el constante y estridente ritmo del *Jizz* espacial tocado en directo por los músicos Bith.
-
-La narrativa no sigue una campaña lineal, sino que es sistémica y emergente. La historia se escribe a través de las interacciones en el bar: Wuher debe mantener un delicado equilibrio entre las facciones criminales, limpiar los rastros de violencia antes de que las autoridades imperiales clausuren el local, e ir transformando un antro de mala muerte en la cantina de contrabando más infame de la galaxia, sobreviviendo tanto a clientes armados como a las ratas que intentan robar la recaudación.
-
-**4. MAIN GAME MECHANICS**
-
-* **Gestión Espacial por Cuadrícula (*Grid Building*):** En la fase pre-apertura, el jugador distribuye mesas, sillas, y barriles en un mapa basado en *tiles*. Colocar sillas pegadas a la barra permite sentar clientes rápidamente, pero bloquea ese espacio de la encimera para dejar objetos, exigiendo un equilibrio táctico.
-* **Sistema de Afinidad Racial:** Los clientes se dividen en 5 facciones con rivalidades cruzadas (ej. Aqualish vs Ithorianos). Sentar razas enemigas en asientos contiguos duplica la caída de su paciencia, provocando peleas y disparos de bláster.
-* **Servicio Frenético y Ratas Ladronas:** Un bucle nocturno a contrarreloj donde Wuher atiende pedidos, llena vasos en tanques presurizados y espanta a garrotazos a los *Scurriers* (ratas) que salen de las rejillas para robar las monedas que los clientes dejan tiradas en el suelo.
-* **Incursiones de Caza (Action-Roguelite):** Una vez al día, el jugador sale de Mos Eisley al desierto con mecánicas de combate *top-down* (esquiva y golpe). Debe arriesgarse a conseguir suministros y chatarra en campamentos hostiles, perdiendo el botín si muere.
-* **Eventos de Inspección Imperial:** Oficiales *Sandtroopers* irrumpen aleatoriamente buscando fugitivos. El jugador elige entre delatar al objetivo mediante un transmisor oculto (ganando créditos pero perdiendo clientes por ser un soplón) o encubrirlo para subir su reputación criminal.
-* **Consecuencias Letales y Contratación:** Los tiroteos no detenidos a tiempo resultan en sillas destruidas, cadáveres que ahuyentan clientes y cero ganancias. Para escalar, los ingresos permiten contratar NPCs (como el portero Tork o la camarera Ackmena) que automatizan la limpieza y el servicio en días avanzados.
-
-**5. REFERENCES**
-
-1. *Meadgard* (Oddiko, TBA): Inspiración directa para el núcleo dual del juego (caza diurna action-RPG y gestión caótica nocturna), la estructura del pueblo central y las interacciones físicas con clientes furiosos.
-2. *Dave the Diver* (Mintrocket, 2023): Referencia clave para la fusión perfecta entre la exploración arriesgada para obtener ingredientes únicos y el frenesí de administrar un negocio temático al final del día.
-3. *PlateUp!* (It's happening, 2022): Base principal para el sistema modular de posicionamiento de mobiliario y la escalabilidad estratégica del servicio en un entorno restringido por cuadrícula.
+A continuación, se presenta el Documento de Diseño de Juego (Game Design Document - GDD) estructurado según la plantilla solicitada y rellenado exclusivamente con la información extraída de los documentos `GameConcept.md` y `MiniGdd.md`.
 
 ---
 
+# Game Design Document
 
-## 1. Mapa Mental de Arquitectura del Juego (Validación Técnica)
+## 1. Title Page
 
-Para que todos tus sistemas convivan sin abrumar a un solo jugador, el juego se estructura en **3 Escenas/Fases conectadas por un Ciclo Día/Noche**:
+* **1.1. Game Name:** Chalmun's Cantina: Mos Eisley Hustle.
 
-```
-[FASE DIURNA: EXTERIOR (Sin límite de tiempo estresante)]
-   ├── 1. HUB: Plaza de Mos Eisley (Comercio, Misiones, Contratación de Personal)
-   └── 2. INCURSIÓN (1 al día): Desierto de Tatooine (Combate/Recolección de Ingredientes y Chatarra)
-          │
-          ▼ (Al caer los dos soles)
-[FASE PRE-APERTURA: LA CANTINA (Modo Edición / Preparación)]
-   ├── Modo Construcción (Grid Tiled): Mover mesas, sillas, barriles y estaciones
-   └── Libro de Gestión: Elegir menú de la noche según stock y pagar por adelantado (o preparar) mejoras
-          │
-          ▼ (Abrir puertas - Turno de 3 a 4 minutos)
-[FASE NOCTURNA: SERVICIO CAÓTICO]
-   └── Bucle: Entrada (Detector Droides) ➔ Sentar (Cuidar Afinidad Racial) ➔ Atender (Bebida/Comida/Música) ➔ Cobrar (Evitar Ratas) ➔ Eventos (Peleas / Imperio) ➔ Salida
+* **1.2. Team:** Adrian Castellanos.
 
-```
 
----
+## 2. Game Overview
 
-## 2. Validación y Desarrollo de tus Ideas Clave
+* **2.1. Game Concept:** Es un juego de gestión caótica y acción roguelite desarrollado en Phaser 4, en el cual el jugador toma el control de Wuher, el tabernero de Mos Eisley.
 
-### A. Disposición en Cuadrícula (*Tiled*), Mobiliario y Reglas de Sillas
 
-Tu idea del uso de *tiles* para las mesas y la barra es **100% viable y brillante a nivel estratégico** para Phaser 4:
+* **2.2. Target Audience:** Jugadores mid-core, fans de Star Wars (12+) y amantes de los juegos de gestión caótica y simuladores de restaurantes con progresión.
 
-* **Estado Inicial:** El jugador (controlando a **Wuher**) empieza con la barra en "U", **2 mesas y 4 sillas por mesa** (8 asientos en mesa).
 
+* **2.3. Genre(s):** Gestión de Tiempo / Action-Roguelite.
 
-* **Lógica de Validación de Sillas (En código):**
-* Cada *tile* del mapa guarda su estado (`VACIO`, `MESA`, `BARRA`, `SILLA_ACTIVA`, `SILLA_INACTIVA`).
-* **Regla de Mesa:** Una mesa de 1x1 o 2x2 *tiles* solo admite sillas en sus *tiles* ortogonales adyacentes (máximo 4 sillas para mesa pequeña).
 
+* **2.4. Game Flow Summary:** El flujo de juego se divide en 3 fases conectadas por un Ciclo Día/Noche:
 
-* **Regla de Barra (Trade-off estratégico):** Si colocas una silla pegada a un *tile* exterior de la barra en "U", esa silla se vuelve `SILLA_ACTIVA`, pero **bloquea el *tile* correspondiente del mostrador de la barra**. Es decir: ganas un asiento rápido cerca de los barriles, pero pierdes un espacio de encimera donde dejar vasos preparados, platos o máquinas.
 
+* **Fase Diurna:** Sin límite de tiempo, el jugador explora la Plaza de Mos Eisley (Hub) para comerciar y hace una incursión al Desierto para combatir y recolectar ingredientes.
 
-* **Sillas Huérfanas:** Cualquier silla que no tenga una `MESA` o `BARRA` en su *tile* adyacente queda marcada con un icono de advertencia (`SILLA_INACTIVA`) y no permite asignar clientes.
 
+* **Fase Pre-Apertura:** Al caer los soles, se usa un Modo Construcción (Grid Tiled) y un Libro de Gestión para preparar la cantina y el menú.
 
 
+* **Fase Nocturna:** Un turno frenético de 3 a 4 minutos enfocado en sentar clientes, atenderlos, cobrar y evitar eventos como peleas o inspecciones imperiales.
 
-* **Flujo de Puertas (Entrada y Salida):**
-* **Puerta Principal (Norte/Oeste):** Con el **Detector de Droides** en el umbral. Ahí se forma la cola de entrada donde esperan a que Wuher los reciba y les asigne asiento.
 
 
-* **Puerta Trasera / Callejón (Sur/Este):** Una vez que el cliente consume y lanza los créditos al aire, camina directamente hacia la puerta de salida, evitando chocar con los que están entrando y facilitando el *pathfinding* (A* sobre la cuadrícula de *Tiled*).
 
+* **2.5. Look and Feel:** El juego se presenta en una vista *top-down* 2D. Se basa en un fuerte contraste visual: la luminosidad cegadora del desierto durante el día contra la penumbra claustrofóbica, polvorienta y saturada de neón del interior del bar por la noche. Todo esto ocurre con el ritmo estridente del *Jizz* espacial de fondo.
 
 
 
+## 3. Gameplay
 
----
+* **3.1. Objectives:** El objetivo es transformar un antro de mala muerte en la cantina de contrabando más infame de la galaxia, sobreviviendo a clientes armados y ratas. Se debe gestionar un polvorín social equilibrando a las facciones criminales.
 
-### B. ¿Opción de Comida y Bebidas? (Resolución de Investigación)
 
-En tu documento planteas revisar los barriles de bebida y si meter **comida**. Veredicto: SÍ a ambos. Si solo hay bebida y música, a partir del Día 3 el juego se vuelve repetitivo; la comida (como en *Meadgard*) es lo que justifica salir a cazar al desierto por el día.
+* **3.2. Game Progression:** No sigue una campaña lineal; la progresión es sistémica y emergente, forjando reputación en el mercado negro de Jabba el Hutt o consiguiendo recompensas imperiales. Al avanzar los días, los ingresos se pueden usar para comprar mejoras de mobiliario o contratar NPCs que automatizan tareas.
 
-#### 1. Los Barriles de Bebida en la Barra (Torre Dispensadora):
 
-En lugar de barriles de madera vikingos, son **Cilindros Presurizados conectados a la Torre IG** en el centro de la barra:
+* **3.3. Play Flow:** El bucle principal nocturno sigue los siguientes pasos: Entrada (Detector Droides) ➔ Sentar (Cuidar Afinidad Racial) ➔ Atender (Bebida/Comida/Música) ➔ Cobrar (Evitar Ratas) ➔ Eventos (Peleas / Imperio) ➔ Salida.
 
-* **Leche Azul (*Bantha Milk*):** Bebida básica inicial (barata, rápida de servir).
-* **Juri Juice:** Bebida morada espumosa (favorita de alienígenas pacíficos).
-* **Black Fizzer:** Licor oscuro y fuerte (favorito de criminales y cazarrecompensas).
-* **Funcionamiento:** Se sirven en **Vasos Metálicos** manteniendo presionado `Espacio`. Cuando un cilindro se vacía, Wuher debe ir al almacén a cargar un tanque de repuesto (caminando lento) o destilar más con recursos del exterior.
 
+* **3.4. Mission/challenge Structure:** Los retos se presentan a través de las incursiones diarias de caza peligrosas en el exterior. En el interior, los desafíos surgen de eventos sistémicos, como clientes en Busca y Captura (*Wanted*) que el jugador debe decidir si encubrir o delatar al Imperio.
 
 
-#### 2. ¿Qué Comida se sirve en la Cantina de Mos Eisley? (Lore Real de Star Wars):
+* **3.5. Puzzle Structure:** Funciona como un puzle táctico en tiempo real en la fase de sentado, gracias a una "Rueda de Afinidades" donde mezclar razas enemigas duplica la velocidad en la que cae su paciencia.
 
-Aunque la cantina es famosa por sus tragos, en el lore de Tatooine y *Galaxy's Edge* se sirven snacks de cantina que Wuher prepara en una **Parrilla de Fusión / Estación de Corte**:
 
-* **Brochetas de Rata Womp (*Womp Rat Skewers*):** Carne cazada en el exterior + Hongos de vaporizador.
-* **filetes de Bantha Ahumados (*Bantha Steaks*):** Carne pesada de Bantha + Especia del desierto.
-* **Bocadillos de Escarabajo Gorg / Peka Empanada:** Snacks crujientes favoritos de especies como los Rodianos o Chadra-Fan.
-* **Sal Cristalina de Tatooine:** Servida en cuencos (droga legal para los Arcona).
 
----
+## 4. Mechanics (Key Section)
 
-### C. La Rueda de Afinidades Raciales y Consecuencias de las Peleas
+* **4.1. Rules:**
+* Las sillas deben colocarse ortogonalmente adyacentes a una mesa (hasta 4 sillas por mesa pequeña) o pegadas a la barra.
 
-Esta es **la mejor mecánica original de tu documento**. En *Meadgard* puedes sentar a cualquiera con cualquiera, pero meter una **Rueda de Afinidades** convierte el acto de sentar clientes en un puzle táctico en tiempo real.
 
-#### 1. Rueda de Afinidades de Star Wars (5 Arquetipos de Razas):
+* Cualquier silla sin una mesa o barra adyacente queda inactiva (`SILLA_INACTIVA`).
 
-Para que el jugador la memorice fácilmente de un vistazo por el color y forma del sprite, usamos **5 razas icónicas de la Cantina**:
 
-| Raza / Cliente | Se lleva MAL con (Acelera enfado x2)
+* Sentar a una raza junto a su rival (ej. Wookiees y Trandoshanos) en la misma mesa o barra contigua genera un icono de rayos rojos y acelera su enfado.
 
- | Razón en el Lore de Star Wars |
-| --- | --- | --- |
-| **1. Wookiees** (ej. Chewbacca) | **Trandoshanos** (Lagartos tipo Bossk) y **Humanos Contrabandistas** | Los Trandoshanos cazan Wookiees por sus pieles; viejas deudas de juego. |
-| **2. Trandoshanos** | **Wookiees** y **Rodianos** | Rivalidad feroz entre gremios de cazarrecompensas. |
-| **3. Rodianos** (ej. Greedo) | **Humanos Contrabandistas** (ej. Han Solo) y **Aqualish** | Los Rodianos cobran recompensas de Jabba sobre los contrabandistas humanos.
 
- |
-| **4. Aqualish** (ej. Ponda Baba) | **Humanos** y **Ithorianos** | Los Aqualish son matones agresivos que odian a los pacíficos Ithorianos y buscan pelea con humanos. |
-| **5. Ithorianos** (Hammerhead) | **Aqualish** y **Trandoshanos** | Amantes de la paz; se estresan rápidamente si tienen matones agresivos al lado. |
+* Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
-* **Regla en el Grid:** Si sientas a dos razas incompatibles en la **misma mesa** o en **sillas de barra contiguas** (distancia de 1 *tile*), aparece un icono de rayos rojos entre ellos y su temporizador de paciencia baja el doble de rápido.
 
 
 
-#### 2. ¿Qué pasa cuando se agota el tiempo y estalla la pelea?
+* **4.2. Model of the game universe:** Todo el sistema del interior se basa en una distribución por cuadrícula modular (*Grid Building*), donde el jugador coloca mesas, sillas y barriles estratégicamente.
 
 
+* **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
 
-Cuando el reloj llega a cero entre dos razas rivales, se levantan de la silla y entran en estado `PELEA` (nube de golpes o disparos de bláster):
 
-* **Opción 1: Wuher interviene a tiempo:** Te acercas con `Espacio` (dándoles un golpe con el garrote detrás de la barra o gritando *"¡Sin blásters!"*) o activas a la banda de música para calmar el ambiente. Se separan, pero pierdes la propina.
+* **4.4. Economy:**
+* Basada en **Créditos Imperiales** que los clientes lanzan al aire tras consumir.
 
 
-* Opción 2: ¿Qué pasa si NO los paramos y se matan entre sí? (Respuesta a tu pregunta):
-Si dejas que la pelea termine, **uno mata al otro de un disparo de bláster o golpe letal**, generando **4 consecuencias en cadena** muy jugables:
+* Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo.
 
 
-1. **Cero ingresos:** El muerto obviamente no paga, y el asesino huye corriendo por la puerta trasera sin pagar su cuenta.
-2. **Destrozo de mobiliario:** La silla o mesa donde peleaban queda rota (estado `DESTRUIDO`), inutilizando esos asientos por el resto de la noche hasta que los repares con chatarra (*scraps*).
-3. **Charco y Cadáver / Brazo amputado:** Queda un cadáver o un charco de sangre en esos *tiles*. Ningún cliente nuevo querrá sentarse cerca hasta que Wuher (o el conserje) lo limpie, reduciendo el humor de los clientes cercanos.
-4. **Aumento del Nivel de Alerta Imperial (Heat):** Un asesinato con bláster dentro del local sube la barra de alerta del Imperio, provocando una inspección inmediata de *Sandtroopers*.
-*(Toque de humor oscuro del lore: Al limpiar el cadáver de un alienígena, Wuher puede obtener un ingrediente secreto para destilar su famoso "Trago Especial" que se vende al doble de precio).*
+* Las decisiones morales impactan la economía: delatar fugitivos otorga recompensas rápidas; ocultarlos brinda propinas enormes y sube la reputación.
 
 
+* Se pierden ingresos por clientes asesinados en peleas o por monedas robadas por ratas.
 
 
 
----
 
-### D. La Banda Musical, el Cobro y las Ratas Ladronas
+* **4.5. Character movement in the game:** Se realiza con las teclas `W, A, S, D` (movimiento en 8 direcciones) y cuenta con un pequeño *Dash* usando `Shift` para emergencias.
 
-* **La Banda (*Figrin D'an y los Modal Nodes*):** Están en su tarima lateral. Tienen un bote de propinas/pago frente al escenario. Cuando uno o varios clientes piden música (icono de corchea), Wuher va al escenario, **paga una pequeña tarifa en créditos con `Espacio**` y la banda toca su tema clásico durante 20-30 segundos. Mientras suenan:
 
+* **4.6. Objects:** La recolección de objetos (monedas, platos, vasos, barriles) se ejecuta con las manos vacías presionando `Espacio`.
 
-* Se completan automáticamente todos los pedidos de música activos en el bar.
 
+* **4.7. Actions:** El botón `Espacio` es completamente contextual: sirve para llenar bebidas en los cilindros, entregar pedidos, dejar objetos o usar el garrote para detener peleas y ratas. El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
 
-* Se ralentiza un 25% la caída de paciencia de todos los clientes (mitigando las malas afinidades raciales).
 
+* **4.8. Combat:**
+* **En la Cantina:** Si la paciencia entre clientes rivales llega a cero, entran en estado `PELEA`. El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
 
 
+* **En las Afueras:** Las incursiones son combates *top-down* de esquiva y golpe contra bestias o campamentos.
 
-* **El Dinero en el Aire y las Ratas del Planeta:**
-* Al terminar su consumición, el cliente lanza los **Créditos Imperiales** por los aires y caen en un *tile* cercano del suelo.
 
 
-* Si no los recoges en unos segundos, de las rejillas de ventilación o la puerta salen **Scurriers** (las ratas ladronas de Mos Eisley que se ven en las películas) o pequeñas **Ratas Womp**. Corren hacia las monedas brillantes, se las llevan en la boca y huyen a su madriguera si no las golpeas antes.
 
+* **4.9. Screen Flow:** Se navega desde la pantalla exterior (Hub o Incursión), pasando a una pantalla de preparación y finalmente a la pantalla principal de servicio en la taberna.
 
 
+* **4.10. Game Options:** (No aplicable).
+* **4.11. Replaying and saving:** (No aplicable / Roguelite basado en carreras diarias).
+* **4.12. Cheats and Easter Eggs:** El jugador puede obtener un ingrediente secreto al limpiar el cadáver de un alienígena, para así destilar el "Trago Especial" que se vende mucho más caro.
 
 
----
 
-### E. El Imperio: Inspectores, Busca y Captura, y Reputación
+## 5. Story and Narrative
 
-Tus preguntas sobre el Imperio dan pie a una mecánica de **Riesgo / Recompensa moral** buenísima:
+* **5.1. Back story:** El jugador controla a Wuher, el tabernero malhumorado y xenófobo.
 
-1. **Los Inspectores Imperiales (Sandtroopers):**
-* Una o dos veces por noche, entra un oficial de *Sandtroopers* por la puerta principal. Camina inspeccionando las mesas buscando dos cosas: **contrabando/cadáveres sin limpiar** o **clientes en Busca y Captura**.
 
+* **5.2. Plot elements:** Giran en torno a decisiones morales y supervivencia frente a amenazas tanto criminales como imperiales, incluyendo encubrir criminales o delatarlos a los *Sandtroopers*.
 
 
+* **5.3. Game story progression:** La historia progresa al transformar gradualmente el local en un recinto infame en el mercado negro, equilibrando la reputación criminal.
 
-2. **Clientes en Busca y Captura (*Wanted*):**
-* En la pared al lado de la barra tienes un **Póster Holográfico de Buscados** que cambia cada día (ej. *"Hoy se busca a un Rodiano con cicatriz o al Dr. Evazan - Recompensa: 150 Créditos"*).
 
+* **5.4. Cut scenes:** (No aplicable).
 
-* Cuando ese cliente entra al bar, tú decides qué hacer:
+## 6. Game World
 
+* **6.1. General look and feel of world:** La estética transita entre la intensa luz de los soles gemelos en Tatooine durante el día y una taberna llena de humo, neones y oscuridad por la noche.
 
-* **Opción A (Lealtad Criminal):** Lo sientas en una alcoba oscura/alejada para que los *Sandtroopers* no lo vean. Si sobrevive sin ser visto, te deja una **propina enorme** y sube tu **Reputación del Bajo Mundo (Jabba)**.
-* **Opción B (Delatar al Imperio):** Te acercas al *Sandtrooper* (o activas el transmisor de **Garindan**, el espía de trompa larga en la esquina) con `Espacio` para señalar la mesa del fugitivo. Los soldados lo arrestan y te pagan la jugosa recompensa imperial en el acto.
 
+* **6.2. Areas:**
+* **6.2.1-6.2.2. La Calle Comercial de Mos Eisley:** Mapa seguro sin combate para comerciantes como Watto, la Agencia de Mercenarios y el Mercado Negro.
 
 
+* **6.2.1-6.2.2. Desierto de Tatooine:** Mapa de acción para incursiones, habitado por *Banthas*, *Womp Rats*, Jawas y *Tusken*.
 
 
+* **6.2.1-6.2.2. La Cantina:** Estructurada en *tiles*, cuenta con la Barra en "U", una Puerta Principal (con Detector de Droides) para formar la cola, una Puerta Trasera de salida y el Escenario de la Banda.
 
-3. ¿Qué pasa si los demás clientes te ven conspirar con el Imperio? (Respuesta a tu pregunta):
 
 
-* **Consecuencia Inmediata (Si te ven):** Si delatas a alguien mientras hay clientes sentados en un radio de 3 *tiles* mirándote, les sale el icono de **"¡Soplón!"**: se indignan, se levantan de golpe, tiran sus bebidas al suelo y **abandonan el bar sin pagar**.
 
 
-* **Consecuencia a Largo Plazo (Barra de Reputación):** Si abusas de entregar gente al Imperio a la vista de todos, baja tu reputación criminal. Al día siguiente **vienen menos clientes ricos** (los contrabandistas que mejor pagan dejan de ir por miedo) y Jabba el Hutt puede enviarte matones a cobrar "impuestos" o sabotear tus barriles.
+## 7. Characters
 
+* **7.1. For each character / 7.3. Non-combat and Friendly Characters:**
+* **Wuher:** Personaje controlado por el jugador.
 
-* *¿Cómo delatar sin perder clientes?:* Esperar a que las mesas cercanas estén vacías, usar la música de la banda como distracción para que todos miren al escenario, o usar el transmisor oculto detrás de la barra cuando nadie esté sentado en los taburetes de la barra.
 
+* **Tork (Portero):** Empleado contratable que patrulla, detiene peleas y limpia cadáveres automáticamente.
 
 
----
+* **Ackmena (Camarera):** Ayudante que recoge vasos y sirve bebidas.
 
-### F. División del Mundo Exterior y Contratación de Personal
 
-#### 1. ¿Cómo dividimos el mundo de fuera?
+* **Bomo (Chef):** NPC que prepara automáticamente los platos en la estación de comida.
 
 
+* **Garindan:** Espía oculto que el jugador puede usar como transmisor para delatar clientes.
 
-Tu propuesta de dividirlo en dos zonas conectadas es la más limpia y óptima para Phaser 4:
 
-* Zona 1: La Calle Comercial de Mos Eisley (Justo al salir de la puerta de la Cantina):
-Un mapa seguro sin combate donde están los puestos del puerto espacial:
 
 
-* **Chatarra de Watto / Toydariano (Carpintería/Mecánica):** Le entregas chatarra (*scraps*) y créditos para comprar más mesas, sillas, barriles adicionales, la parrilla de comida o mejorar el Detector de Droides.
+* **7.2. Artificial Intelligence Use in Opponent and Enemy:**
+* **Scurriers / Ratas Womp:** Enemigos ladrones que corren desde la ventilación para robar monedas.
 
 
-* **Puesto del Mercado Negro:** Compra de vasos extra, barriles de bebidas exóticas y decoración.
+* **Sandtroopers:** Oficiales que patrullan y buscan criminales o contrabando por el bar.
 
 
-* **Agencia de Mercenarios / Muelle de Embarque:** Donde hablas con NPCs para aceptar misiones o **contratar personal de apoyo** para la cantina.
+* **Clientes (5 Facciones):** Los Wookiees, Trandoshanos, Rodianos, Aqualish e Ithorianos poseen IA basada en la rueda de afinidad. Se enfadan si se sientan cerca de facciones contrarias.
 
 
 
 
-* Zona 2: Las Afueras / Desierto de Tatooine (Saliendo por el arco de la ciudad):
-Al cruzar las puertas de Mos Eisley entras al mapa de acción/recolección (1 incursión por día, igual que en *Meadgard*):
 
+## 8. Levels
 
-* Cazas **Ratas Womp** y **Banthas** (carne y leche), recolectas **Hongos de vaporizadores de humedad** y **Frutas del desierto** (para destilar bebidas), y rompes cajas de **Jawas** o campamentos **Tusken** para obtener piezas mecánicas y objetos de misión.
+* **8.1. / 8.2. For each level:** No existen niveles clásicos, el flujo se basa en un ciclo diario. Cada día, el reto externo es una incursión de 1 al día para cazar recursos, mientras que el reto interno escala con turnos nocturnos más complejos en los que se debe mantener el orden.
 
 
 
+## 9. Interface
 
+* **9.1. Visual System:**
+* **9.1.1. HUD:** Cuenta con iconos sobre las cabezas de los clientes (globos con sus pedidos de comida, música o bebida), un icono de advertencia sobre asientos mal ubicados, temporizadores circulares de paciencia y un icono de "¡Soplón!" si el jugador delata a alguien en público.
 
-#### 2. Contratación de Personal para Días Avanzados
 
+* **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura.
 
 
-Como bien apuntas, al ser un juego para **un solo jugador**, cuando en los días avanzados tengas 4 o 5 mesas llenas y los tiempos de paciencia sean más cortos, necesitarás automatizar tareas contratando personajes míticos del lore (a cambio de un pequeño sueldo diario de tus ganancias):
 
-1. **Tork (El Portero / Bouncer):** Se queda patrullando el salón. Separa peleas automáticamente antes de que se maten, echa a las ratas ladronas de monedas y limpia los cadáveres/charcos.
-2. **Ackmena (Camarera de Apoyo):** Recoge vasos vacíos tirados por el suelo, los lleva a la barra y sirve bebidas automáticamente a las mesas que ya estén sentadas.
-3. **Bomo / Chef Ayudante:** Se queda fijo en la estación de cocina preparando los platos automáticamente para que Wuher solo tenga que recogerlos y entregarlos.
 
----
+* **9.2. Control System:** Teclado (`WASD`, `Shift`, `Espacio`) orientado al movimiento y acciones precisas en tiempo real, junto con el uso del Ratón para organizar la gestión y la construcción en la cuadrícula.
 
-### G. Esquema de Controles Validado (Teclado + Ratón)
 
-El esquema que definiste es sumamente cómodo y evita combinaciones complejas de teclas:
+* **9.3. Audio, music, sound effects:** El juego utiliza la música en vivo (*Jizz*) interpretada por los músicos Bith (*Figrin D'an y los Modal Nodes*). Si se les paga mediante `Espacio`, tocan la música durante 20-30 segundos, mitigando el estrés de los clientes y distrayendo al público.
 
-* **`W, A, S, D`:** Movimiento en 8 direcciones de Wuher (con un pequeño *Dash* opcional con `Shift` para emergencias).
 
+* **9.4. Game Art:** (Estilo visual 2D *top-down* basado en *Tiled* maps).
 
-* **`Espacio` (Contextual en 2 pasos):**
-* **Manos vacías + `Espacio`:** Recoge el objeto frente a ti (vaso, plato, barril, moneda del suelo) o interactúa con un cliente en la puerta para acompañarlo a una silla.
 
-
-* **Con objeto en mano + `Espacio`:** Usa el objeto según lo que tengas enfrente (si estás frente al barril con un vaso, lo llena; si estás frente al cliente que lo pidió, se lo entrega; si estás frente a una encimera vacía, lo deja apoyado).
-
-
-* **Frente a pelea / rata + `Espacio`:** Da un golpe para detener la pelea o espantar a la rata.
-
-
-
-
-* **`Ratón (Clic Izquierdo / Derecho)`:** Exclusivo para la interfaz de usuario (UI), el Libro de Gestión antes de abrir el turno, las tiendas de Mos Eisley y el modo de arrastrar y colocar mesas/sillas en la cuadrícula (*Tiled*).
-
+* **9.5. Help System:** El juego brinda información de apoyo en forma de advertencias visuales dentro del HUD (por ejemplo, rayos rojos entre razas enemigas) que enseñan las reglas del sistema de afinidades.
