@@ -28,7 +28,7 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
          "data":[2, 3, 3, 3, 3, 3, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4,
             5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6,
@@ -55,7 +55,7 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
          "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0,
@@ -82,7 +82,7 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
          "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -109,14 +109,14 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
          "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 15, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 14, 0, 14, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 14, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -136,9 +136,9 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
-         "data":[0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         "data":[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -163,199 +163,210 @@
          "width":20,
          "x":0,
          "y":0
-        },
+        }, 
         {
+         "draworder":"topdown",
+         "id":7,
+         "name":"objetos",
          "objects":[
                 {
                  "height":32,
                  "id":1,
                  "name":"spawnWuher",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Punto de aparici\u00f3n de Wuher (dentro de la U de la barra)"
+                        }],
                  "rotation":0,
                  "type":"spawn",
                  "visible":true,
                  "width":32,
                  "x":416,
-                 "y":128,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Punto de aparición de Wuher (dentro de la U de la barra)"
-                        }]
-                },
+                 "y":128
+                }, 
                 {
                  "height":32,
                  "id":2,
                  "name":"entradaPrincipal",
-                 "rotation":0,
-                 "type":"puerta_entrada",
-                 "visible":true,
-                 "width":32,
-                 "x":192,
-                 "y":0,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Puerta norte con detector de droides. Cola de clientes."
-                        }]
-                },
+                        }],
+                 "rotation":0,
+                 "type":"puerta_entrada",
+                 "visible":true,
+                 "width":32,
+                 "x":192,
+                 "y":0
+                }, 
                 {
                  "height":32,
                  "id":3,
                  "name":"salidaTrasera",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Puerta trasera sur-este. Los clientes salen por aqu\u00ed."
+                        }],
                  "rotation":0,
                  "type":"puerta_salida",
                  "visible":true,
                  "width":32,
                  "x":576,
-                 "y":480,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Puerta trasera sur-este. Los clientes salen por aquí."
-                        }]
-                },
+                 "y":480
+                }, 
                 {
                  "height":64,
                  "id":4,
                  "name":"zonaColaEntrada",
-                 "rotation":0,
-                 "type":"cola_entrada",
-                 "visible":true,
-                 "width":96,
-                 "x":160,
-                 "y":32,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Zona donde los clientes esperan en cola tras pasar el detector de droides."
-                        }]
-                },
+                        }],
+                 "rotation":0,
+                 "type":"cola_entrada",
+                 "visible":true,
+                 "width":96,
+                 "x":160,
+                 "y":32
+                }, 
                 {
                  "height":96,
                  "id":5,
                  "name":"zonaBanda",
-                 "rotation":0,
-                 "type":"zona_banda",
-                 "visible":true,
-                 "width":128,
-                 "x":32,
-                 "y":64,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Tarima del escenario de Figrin D'an y los Modal Nodes."
-                        }]
-                },
+                        }],
+                 "rotation":0,
+                 "type":"zona_banda",
+                 "visible":true,
+                 "width":128,
+                 "x":32,
+                 "y":64
+                }, 
                 {
                  "height":64,
                  "id":6,
                  "name":"zonaAlmacen",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Almac\u00e9n de barriles de repuesto y suministros."
+                        }],
                  "rotation":0,
                  "type":"zona_almacen",
                  "visible":true,
                  "width":64,
                  "x":416,
-                 "y":224,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Almacén de barriles de repuesto y suministros."
-                        }]
-                },
+                 "y":224
+                }, 
                 {
                  "height":32,
                  "id":7,
                  "name":"zonaCocina",
-                 "rotation":0,
-                 "type":"zona_cocina",
-                 "visible":true,
-                 "width":32,
-                 "x":416,
-                 "y":128,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
-                         "value":"Parrilla de Fusión donde Wuher prepara brochetas y filetes."
-                        }]
-                },
+                         "value":"Parrilla de Fusi\u00f3n donde Wuher prepara brochetas y filetes."
+                        }],
+                 "rotation":0,
+                 "type":"zona_cocina",
+                 "visible":true,
+                 "width":32,
+                 "x":350,
+                 "y":319
+                }, 
                 {
                  "height":32,
                  "id":8,
                  "name":"zonaAlcoba",
-                 "rotation":0,
-                 "type":"zona_alcoba",
-                 "visible":true,
-                 "width":64,
-                 "x":32,
-                 "y":448,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Alcoba oscura para ocultar clientes buscados por el Imperio."
-                        }]
-                },
+                        }],
+                 "rotation":0,
+                 "type":"zona_alcoba",
+                 "visible":true,
+                 "width":64,
+                 "x":32,
+                 "y":448
+                }, 
                 {
                  "height":32,
                  "id":9,
                  "name":"spawnRatas1",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Rejilla de ventilaci\u00f3n por donde salen los Scurriers ladrones."
+                        }],
                  "rotation":0,
                  "type":"spawn_ratas",
                  "visible":true,
                  "width":32,
                  "x":32,
-                 "y":256,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Rejilla de ventilación por donde salen los Scurriers ladrones."
-                        }]
-                },
+                 "y":256
+                }, 
                 {
                  "height":32,
                  "id":10,
                  "name":"detectorDroides",
-                 "rotation":0,
-                 "type":"detector_droides",
-                 "visible":true,
-                 "width":32,
-                 "x":192,
-                 "y":0,
+                 "opacity":1,
                  "properties":[
                         {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Detector de droides en el umbral de la puerta principal."
-                        }]
-                },
+                        }],
+                 "rotation":0,
+                 "type":"detector_droides",
+                 "visible":true,
+                 "width":32,
+                 "x":192,
+                 "y":0
+                }, 
                 {
                  "height":32,
                  "id":11,
                  "name":"spawnRatas2",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Segunda rejilla de ventilaci\u00f3n para spawns de ratas."
+                        }],
                  "rotation":0,
                  "type":"spawn_ratas",
                  "visible":true,
                  "width":32,
                  "x":544,
-                 "y":32,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Segunda rejilla de ventilación para spawns de ratas."
-                        }]
+                 "y":32
                 }],
-         "draworder":"topdown",
-         "id":7,
-         "name":"objetos",
          "opacity":1,
          "type":"objectgroup",
          "visible":true,
@@ -373,12 +384,12 @@
          "columns":8,
          "firstgid":1,
          "image":"..\/images\/cantina_tileset.png",
-         "imageheight":256,
+         "imageheight":384,
          "imagewidth":256,
          "margin":0,
          "name":"cantina_tileset",
          "spacing":0,
-         "tilecount":64,
+         "tilecount":96,
          "tileheight":32,
          "tiles":[
                 {
@@ -389,7 +400,7 @@
                          "type":"string",
                          "value":"SUELO"
                         }]
-                },
+                }, 
                 {
                  "id":1,
                  "properties":[
@@ -397,13 +408,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":2,
                  "properties":[
@@ -411,13 +422,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":3,
                  "properties":[
@@ -425,13 +436,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":4,
                  "properties":[
@@ -439,13 +450,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":5,
                  "properties":[
@@ -453,13 +464,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":6,
                  "properties":[
@@ -467,13 +478,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":7,
                  "properties":[
@@ -481,13 +492,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
+                }, 
                 {
                  "id":8,
                  "properties":[
@@ -495,13 +506,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"BARRA"
                         }]
-                },
+                }, 
                 {
                  "id":9,
                  "properties":[
@@ -509,13 +520,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"BARRA"
                         }]
-                },
+                }, 
                 {
                  "id":10,
                  "properties":[
@@ -523,13 +534,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"BARRA"
                         }]
-                },
+                }, 
                 {
                  "id":11,
                  "properties":[
@@ -537,13 +548,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"BARRA"
                         }]
-                },
+                }, 
                 {
                  "id":12,
                  "properties":[
@@ -551,13 +562,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"BARRA"
                         }]
-                },
+                }, 
                 {
                  "id":13,
                  "properties":[
@@ -566,7 +577,7 @@
                          "type":"string",
                          "value":"SILLA"
                         }]
-                },
+                }, 
                 {
                  "id":14,
                  "properties":[
@@ -574,13 +585,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"MESA"
                         }]
-                },
+                }, 
                 {
                  "id":15,
                  "properties":[
@@ -589,7 +600,7 @@
                          "type":"string",
                          "value":"ESCENARIO"
                         }]
-                },
+                }, 
                 {
                  "id":16,
                  "properties":[
@@ -598,7 +609,7 @@
                          "type":"string",
                          "value":"PUERTA_PRINCIPAL"
                         }]
-                },
+                }, 
                 {
                  "id":17,
                  "properties":[
@@ -607,7 +618,7 @@
                          "type":"string",
                          "value":"PUERTA_TRASERA"
                         }]
-                },
+                }, 
                 {
                  "id":18,
                  "properties":[
@@ -616,7 +627,7 @@
                          "type":"string",
                          "value":"DETECTOR_DROIDES"
                         }]
-                },
+                }, 
                 {
                  "id":19,
                  "properties":[
@@ -624,13 +635,14 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"CILINDRO_BEBIDA"
                         }]
                 },
+            
                 {
                  "id":20,
                  "properties":[
@@ -638,13 +650,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"PARRILLA"
                         }]
-                },
+                }, 
                 {
                  "id":21,
                  "properties":[
@@ -652,13 +664,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"ALMACEN"
                         }]
-                },
+                }, 
                 {
                  "id":22,
                  "properties":[
@@ -666,13 +678,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"POSTER_BUSCADOS"
                         }]
-                },
+                }, 
                 {
                  "id":23,
                  "properties":[
@@ -681,7 +693,7 @@
                          "type":"string",
                          "value":"REJILLA_VENTILACION"
                         }]
-                },
+                }, 
                 {
                  "id":24,
                  "properties":[
@@ -690,7 +702,7 @@
                          "type":"string",
                          "value":"SUELO_ALCOBA"
                         }]
-                },
+                }, 
                 {
                  "id":25,
                  "properties":[
@@ -698,13 +710,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"ENCIMERA"
                         }]
-                },
+                }, 
                 {
                  "id":26,
                  "properties":[
@@ -712,13 +724,13 @@
                          "name":"collides",
                          "type":"bool",
                          "value":true
-                        },
+                        }, 
                         {
                          "name":"tipo",
                          "type":"string",
                          "value":"ALTAVOZ"
                         }]
-                },
+                }, 
                 {
                  "id":27,
                  "properties":[
@@ -727,7 +739,7 @@
                          "type":"string",
                          "value":"BOTE_PROPINAS"
                         }]
-                },
+                }, 
                 {
                  "id":28,
                  "properties":[
@@ -736,7 +748,7 @@
                          "type":"string",
                          "value":"MOBILIARIO_ROTO"
                         }]
-                },
+                }, 
                 {
                  "id":29,
                  "properties":[
@@ -745,7 +757,7 @@
                          "type":"string",
                          "value":"CHARCO"
                         }]
-                },
+                }, 
                 {
                  "id":30,
                  "properties":[
@@ -754,7 +766,7 @@
                          "type":"string",
                          "value":"CREDITOS_SUELO"
                         }]
-                },
+                }, 
                 {
                  "id":31,
                  "properties":[
@@ -763,7 +775,7 @@
                          "type":"string",
                          "value":"MADRIGUERA_RATAS"
                         }]
-                },
+                }, 
                 {
                  "id":35,
                  "properties":[
@@ -772,7 +784,7 @@
                          "type":"string",
                          "value":"SUELO"
                         }]
-                },
+                }, 
                 {
                  "id":36,
                  "properties":[
@@ -781,7 +793,7 @@
                          "type":"string",
                          "value":"SUELO"
                         }]
-                },
+                }, 
                 {
                  "id":37,
                  "properties":[
@@ -790,7 +802,7 @@
                          "type":"string",
                          "value":"SUELO"
                         }]
-                },
+                }, 
                 {
                  "id":38,
                  "properties":[
@@ -801,11 +813,13 @@
                         }]
                 }],
          "tilewidth":32
+        }, 
+        {
+         "firstgid":97,
+         "source":"cantina_spritesheet.tsx"
         }],
  "tilewidth":32,
  "type":"map",
  "version":"1.10",
  "width":20
 }
-
-

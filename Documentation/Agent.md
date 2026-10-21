@@ -14,11 +14,12 @@ Sigue estrictamente esta estructura de directorios y modularización para separa
 
 * `src/`
   * `core/`: Configuración principal del juego, punto de entrada (`main.ts`, `Game.ts`).
+  * `data/`: Archivos TypeScript de configuración global y datos del juego (ej. `constants.ts`, tamaños de mapa, stats base, definiciones de áreas).
   * `scenes/`: Clases de escenas aisladas (`BootScene`, `PreloadScene`, `MenuScene`, `DayExplorationScene`, `NightCantinaScene`, `UIScene`).
   * `entities/` (o `gameobjects/`): Clases que heredan de objetos de Phaser (ej. `Player.ts`, `Customer.ts`, `Scurrier.ts`, `BeerKeg.ts`).
   * `managers/`: Controladores de lógica pura (ej. `GridManager.ts`, `AffinityManager.ts`, `EconomyManager.ts`).
   * `ui/`: Componentes de interfaz gráfica instanciados en la `UIScene` (botones, diálogos, barras de paciencia).
-  * `utils/`: Herramientas auxiliares (`EventBus.ts`, constantes, utilidades matemáticas).
+  * `utils/`: Herramientas auxiliares (`EventBus.ts`, utilidades matemáticas).
 
 
 ## 3. Convenciones de Código (TypeScript)

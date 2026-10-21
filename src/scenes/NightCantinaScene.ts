@@ -4,7 +4,7 @@ import { Player } from '../entities/Player';
 import { GridManager } from '../managers/GridManager';
 
 const MAP_KEY = 'cantina';
-const MAP_URL = new URL('../../assets/maps/cantina.tmj', import.meta.url).href;
+const MAP_URL = new URL('../../assets/maps/cantina2.tmj', import.meta.url).href;
 const TILESET_KEY = 'cantina-tileset';
 const TILESET_URL = new URL('../../assets/images/cantina_tileset.png', import.meta.url).href;
 
@@ -98,7 +98,7 @@ export class NightCantinaScene extends Scene {
      * Falls back to the centre of the map if no spawn marker exists.
      */
     private findSpawnPoint(map: Phaser.Tilemaps.Tilemap): { x: number; y: number } {
-        const objectLayer = map.getObjectLayer('objetos');
+         const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
 
         if (objectLayer !== null) {
             const spawnObj = objectLayer.objects.find((obj) => obj.name === 'spawnWuher');

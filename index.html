@@ -3,18 +3,21 @@
 
 <head>
     <meta charset="UTF-8">
-    <link rel="shortcut icon" href="assets/sprites/player.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/game.css">
 
     <title>Chalmun's Cantina: Mos Eisley Hustle</title>
 </head>
 
 <body>
-    <h1>Juego con Phaser</h1>
+    <main class="game-shell">
+        <header class="game-header">
+            <p class="eyebrow">AVENTURA · ACCIÓN · EXPLORACIÓN</p>
+            <h1>Chalmun's Cantina: Mos Eisley Hustle</h1>
+        </header>
+        <div id="juego"></div>
+    </main>
     <script src="./src/core/main.ts" type="module"></script>
-    <!-- El juego irá dentro de este <div> por la propiedad `parent` que pasamos `new Phaser.Game` -->
-    <div id="juego"></div>
 </body>
 
 </html>
