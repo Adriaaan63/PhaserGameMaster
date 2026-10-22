@@ -202,6 +202,29 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura.
 
 
+* **9.1.3. Camera model:** El modelo de cámara de *Chalmun's Cantina: Mos Eisley Hustle* varía dependiendo de la fase de juego (Día/Noche) y la escena activa, adaptándose a las necesidades mecánicas de cada entorno. El juego utiliza un sistema de coordenadas dual: el sistema lógico del mundo (píxeles/tiles) y el "Viewport" (la ventana que renderiza la escena en pantalla), aplicando un escalado general (ej. `ROOM_SCALE = 2`) para la estética *pixel art*.
+    #### A. Interior de la Cantina (`NightCantinaScene`)
+    Durante la fase de gestión y servicio, el jugador necesita tener un control total de la situación espacial, prever por dónde entran los clientes y reaccionar rápidamente a eventos (como un Scurrier robando monedas en la otra punta del local). Por tanto, la cámara ofrece una opcion:
+
+    1. **Cámara Global Fija (Por Defecto):**
+    La cámara, manejada a través de `this.cameras.main`, bloquea su *viewport* para abarcar la totalidad de la cuadrícula jugable de la cantina (ej. los $24 \times 15$ tiles correspondientes a `ROOM_W` y `ROOM_H` definidos en las constantes). El jugador (Wuher) se mueve libremente por el mapa, pero la cámara **no le sigue**. Esta vista es estática, permitiendo observar simultáneamente la puerta de entrada, la barra, el escenario y todas las mesas, emulando la sensación de un tablero de gestión clásico.
+
+    #### B. Mundo Exterior (`DayExplorationScene` / Hub)
+    Para la fase de exploración (tanto en la Calle Comercial como en el Desierto de Tatooine), el juego adopta un **modelo de cámara estática por zonas (o "habitaciones")**, idéntico al analizado en el ejemplo de desarrollo (*Zelda top-down*). El objetivo es crear un mapa continuo, pero segmentando la acción y los enemigos por áreas lógicas para controlar el rendimiento y el ritmo del combate.
+
+    El funcionamiento de este sistema se basa en tres reglas:
+
+    1. **Desvinculación del Jugador:**
+    Al igual que en la cámara fija de la cantina, el método `startFollow()` **no se utiliza**. El jugador se desplaza por un mapa continuo y masivo, pero la cámara se queda fija mostrando una única sección (una "sala" equivalente a `ROOM_PX_W` y `ROOM_PX_H`).
+    2. **Cálculo de Transición por Coordenadas (`updateRoom`):**
+    En cada *frame*, el juego divide la posición global de Wuher (`player.x`, `player.y`) entre el ancho y alto lógico de la sala actual para determinar en qué "columna" o "fila" de sala se encuentra. El cambio de cámara no se dispara tocando un objeto invisible en el suelo, sino al cruzar el umbral matemático que separa dos salas (ej. `Math.floor(player.x / ROOM_PX_W)`).
+    3. **Animación de "Pan" y Bloqueo:**
+    Cuando el sistema detecta que el jugador ha entrado en una sala nueva (por ejemplo, ha salido por el borde derecho de la pantalla):
+        * El motor "congela" a los enemigos y detiene temporalmente la velocidad física del jugador (`player.body.setVelocity(0, 0)`).
+        * La cámara inicia una transición suave hacia el centro lógico de la nueva sala utilizando el método `this.cameras.main.pan(targetX, targetY, duración, 'Sine.easeInOut')`.
+        * Para evitar que el jugador siga moviéndose mientras la cámara viaja, el desbloqueo del movimiento no se hace con un temporizador arbitrario, sino esperando a que se dispare el evento nativo `Phaser.Cameras.Scene2D.Events.PAN_COMPLETE`. Solo entonces, la acción se reanuda en la nueva zona.
+
+    Este modelo exterior obliga al jugador a enfrentarse a las amenazas de "pantalla en pantalla", haciendo que la recolección de chatarra o el combate contra los *Tuskens* requiera dominar el espacio visible de la sala actual antes de transicionar a la siguiente.
 
 
 * **9.2. Control System:** Teclado (`WASD`, `Shift`, `Espacio`) orientado al movimiento y acciones precisas en tiempo real, junto con el uso del Ratón para organizar la gestión y la construcción en la cuadrícula.

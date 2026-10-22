@@ -1,11 +1,17 @@
 export const TILE = 32;
-export const ROOM_W = 24;
-export const ROOM_H = 15;
+export const ROOM_W = 28;
+export const ROOM_H = 28;
 export const VIEW_Y = 64;
-export const ROOM_SCALE = 2;
+export const ROOM_SCALE = 0.9;
 
 export const GAME_WIDTH = ROOM_W * TILE * ROOM_SCALE;
 export const GAME_HEIGHT = (ROOM_H * TILE + VIEW_Y) * ROOM_SCALE;
+
+export const PLAYER_SPRITESHEET_KEY = 'wuher-andar';
+export const PLAYER_FRAME_WIDTH = 150;
+export const PLAYER_FRAME_HEIGHT = 150;
+export const PLAYER_BASE_SPEED = 160;
+export const PLAYER_DASH_SPEED = 240;
 
 export const TILES = {
     SUELO: 1,

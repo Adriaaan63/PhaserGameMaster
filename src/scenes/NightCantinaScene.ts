@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 
 import { Player } from '../entities/Player';
 import { GridManager } from '../managers/GridManager';
+import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
 
 const MAP_KEY = 'cantina';
 const MAP_URL = new URL('../../assets/maps/cantina2.tmj', import.meta.url).href;
@@ -15,8 +16,8 @@ const TILESET_TMJ_NAME = 'cantina_tileset';
 const TILE_LAYER_NAMES: readonly string[] = [
     'suelo',
     'paredes',
-    'decoracion',
     'barra',
+    'decoracion',
     'mobiliario',
     'puertas',
 ] as const;
@@ -86,7 +87,14 @@ export class NightCantinaScene extends Scene {
         }
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-        this.cameras.main.startFollow(this.player, true);
+        this.cameras.main.setViewport(
+            0,
+            VIEW_Y * ROOM_SCALE,
+            ROOM_W * TILE * ROOM_SCALE,
+            ROOM_H * TILE * ROOM_SCALE,
+        );
+        this.cameras.main.setZoom(ROOM_SCALE);
+        this.cameras.main.centerOn(map.widthInPixels / 2, map.heightInPixels / 2);
     }
 
     public update(): void {

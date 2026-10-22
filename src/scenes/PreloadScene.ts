@@ -1,7 +1,12 @@
 import { Scene } from 'phaser';
 
-const PLAYER_TEXTURE_KEY = 'player-placeholder';
-const PLAYER_TEXTURE_URL = new URL('../../assets/sprites/player.png', import.meta.url).href;
+import {
+    PLAYER_FRAME_HEIGHT,
+    PLAYER_FRAME_WIDTH,
+    PLAYER_SPRITESHEET_KEY,
+} from '../data/constants';
+
+const PLAYER_SPRITESHEET_URL = new URL('../../assets/images/WuherAndar.png', import.meta.url).href;
 
 export class PreloadScene extends Scene {
     public constructor() {
@@ -12,7 +17,10 @@ export class PreloadScene extends Scene {
     }
 
     public preload(): void {
-        this.load.image(PLAYER_TEXTURE_KEY, PLAYER_TEXTURE_URL);
+        this.load.spritesheet(PLAYER_SPRITESHEET_KEY, PLAYER_SPRITESHEET_URL, {
+            frameWidth: PLAYER_FRAME_WIDTH,
+            frameHeight: PLAYER_FRAME_HEIGHT,
+        });
     }
 
     public create(): void {
