@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 
 import { Player } from '../entities/Player';
+import { InteractableObject } from '../entities/InteractableObject';
 import { GridManager } from '../managers/GridManager';
 import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
@@ -80,6 +81,7 @@ export class NightCantinaScene extends Scene {
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
         this.player.setDepth(20);
+        this.createTestInteractableObjects();
 
         // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
@@ -137,5 +139,21 @@ export class NightCantinaScene extends Scene {
             x: map.widthInPixels / 2,
             y: map.heightInPixels / 2,
         };
+    }
+
+    private createTestInteractableObjects(): void {
+        InteractableObject.ensureTexture(this);
+
+        const testTiles = [
+            { x: 10, y: 7 },
+            { x: 17, y: 7 },
+        ] as const;
+
+        for (const tile of testTiles) {
+            const object = new InteractableObject(this, tile.x, tile.y);
+            if (!this.gridManager.registerInteractableObject(object, tile.x, tile.y)) {
+                object.destroy();
+            }
+        }
     }
 }

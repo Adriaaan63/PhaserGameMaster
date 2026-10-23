@@ -74,6 +74,10 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * Sentar a una raza junto a su rival (ej. Wookiees y Trandoshanos) en la misma mesa o barra contigua genera un icono de rayos rojos y acelera su enfado.
 
 
+* **Reglas de Manipulación de Objetos (Modo Nocturno / Servicio):**
+    * **Capacidad de Carga:** El jugador (Wuher) tiene una capacidad de carga estrictamente limitada a **un solo objeto a la vez** en sus manos (ej. una jarra de Juri Juice, un plato de comida o una jarra vacía).
+    * **Bloqueo de Interacción:** Si el jugador ya tiene un objeto en las manos, no podrá recoger otro ni interactuar con los dispensadores de bebidas hasta que se deshaga del objeto actual (entregándolo o dejándolo sobre una superficie válida).
+    * **Superficies Válidas:** Los objetos interactuables solo pueden soltarse sobre superficies designadas como "mostradores" (la barra) o "mesas". No se pueden tirar al suelo (intentar hacerlo no ejecutará ninguna acción).
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -111,12 +115,23 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
         3. Arrastra el cursor sobre la cuadrícula del tilemap. El juego ajusta ("*snapping*") la posición del objeto al tile más cercano, mostrando el indicador visual verde/rojo.
         4. Al soltar el *Clic Izquierdo* (`Drag End`), si el indicador es verde, el objeto se fija al suelo y se retira del inventario. Si es rojo, la acción se cancela y el objeto regresa al inventario.
         5. Para quitar un objeto ya colocado, el jugador hace *Clic Izquierdo* sobre él en el mapa para devolverlo al inventario, liberando el tile.
+    * **Objetos Interactuables (Jarras, Comida):** El sistema de físicas y recolección imita el flujo de trabajo de *Overcooked*.
+        * **Coger (Pick up):** Cuando el jugador tiene las manos vacías y se acerca a un objeto apoyado en una superficie (ej. una jarra en la barra), al mirar hacia él y presionar la tecla de Acción (`Espacio`), el objeto desaparece de la cuadrícula del mapa y pasa a renderizarse visualmente en las manos del sprite de Wuher. El estado del jugador cambia a `HOLDING_OBJECT`.
+        * **Mover:** Mientras se sostiene el objeto, este sigue la posición y orientación del jugador en todo momento.
+        * **Soltar / Entregar (Drop / Deliver):** Cuando el jugador lleva un objeto y se acerca a una superficie libre (ej. una mesa vacía) o a un cliente que ha pedido ese ítem exacto, al presionar nuevamente la tecla de Acción (`Espacio`), el objeto se desvincula de las manos del jugador. Si es una mesa, el objeto hace *snap* (se ajusta) al centro del tile de la mesa. Si es un cliente, el objeto se destruye (se consume) y se inicia la lógica de pago.
 
 
-* **4.7. Actions:** El botón `Espacio` es completamente contextual: sirve para llenar bebidas en los cilindros, entregar pedidos, dejar objetos o usar el garrote para detener peleas y ratas. El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
+* **4.7. Actions:** 
     * **Gestión (Modo Día / Pre-Apertura):**
         * `Ratón (Clic / Drag & Drop)`: Herramienta principal. Se utiliza para interactuar con los botones de la interfaz (Abrir Cantina, Libro de Gestión, Inventario) y para el sistema de colocación de mobiliario.
         * `Indicadores Visuales de Comunicación`: El juego comunica las reglas implícitamente al jugador usando colores en tiempo real durante la acción de arrastrar (Verde = Válido / Rojo = Inválido). También comunica errores de silla mediante un icono de exclamación amarillo si se coloca una silla sin mesa adyacente.
+    * **Acción Contextual Principal (Tecla `Espacio`):** El comportamiento de esta tecla depende enteramente de la máquina de estados del jugador (si sus manos están vacías o llenas) y del objeto/tile que tenga justo enfrente (basado en su vector de dirección):
+        * **Con las manos VACÍAS (`State: EMPTY`):**
+        * *Frente a un objeto (Jarra/Plato):* Lo recoge y pasa al estado `HOLDING`.
+        * *Frente al dispensador de bebidas:* Comienza a llenar una jarra nueva (requiere mantener pulsado).
+        * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
+        * *Frente a una pelea / rata:* Usa el garrote para atacar/espantar.
+    * El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
 
 * **4.8. Combat:**
 * **En la Cantina:** Si la paciencia entre clientes rivales llega a cero, entran en estado `PELEA`. El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.

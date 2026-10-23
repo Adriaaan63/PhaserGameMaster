@@ -2,10 +2,14 @@ import { GameObjects, Input, Physics, Scene } from 'phaser';
 
 import {
     PLAYER_BASE_SPEED,
-    PLAYER_DASH_SPEED,
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
-import { GridManager } from '../managers/GridManager';
+import { InteractableObject } from './InteractableObject';
+import {
+    GridManager,
+    TILE_TYPE_BAR,
+    TILE_TYPE_TABLE,
+} from '../managers/GridManager';
 
 /**
  * Claves de animación registradas en el gestor global de animaciones de Phaser.
@@ -41,7 +45,7 @@ const VECTOR_RIGHT: DirectionVector = { x: 1, y: 0 };
 
 /**
  * Clase que representa a Wuher, el tabernero y personaje jugable.
- * Encapsula la física arcade, la máquina de movimiento en 8 direcciones con Dash (Shift),
+ * Encapsula la física arcade y la máquina de movimiento en 8 direcciones,
  * la resolución de animaciones direccionales basadas en spritesheets y la interacción contextual.
  */
 export class Player extends Physics.Arcade.Sprite {
@@ -53,7 +57,7 @@ export class Player extends Physics.Arcade.Sprite {
         readonly right: Input.Keyboard.Key;
     };
     private readonly interactionKey: Input.Keyboard.Key;
-    private readonly dashKey: Input.Keyboard.Key;
+    private heldObject: InteractableObject | null = null;
 
     private facing: FacingDirection = 'down';
     private facingDirection: DirectionVector = VECTOR_DOWN;
@@ -87,7 +91,6 @@ export class Player extends Physics.Arcade.Sprite {
 
         this.movementKeys = keys;
         this.interactionKey = keyboard.addKey(Input.Keyboard.KeyCodes.SPACE);
-        this.dashKey = keyboard.addKey(Input.Keyboard.KeyCodes.SHIFT);
 
         // Integración en escena y sistema de físicas
         scene.add.existing(this);
@@ -178,7 +181,7 @@ export class Player extends Physics.Arcade.Sprite {
 
     /**
      * Bucle principal de actualización del jugador:
-     * - Lee la entrada del teclado (WASD + Shift).
+     * - Lee la entrada del teclado (WASD).
      * - Resuelve dirección y velocidad física.
      * - Actualiza eficientemente la animación y orientación (flipX) sin sobrecoste.
      * - Procesa la acción contextual de interacción con la tecla Espacio.
@@ -194,10 +197,7 @@ export class Player extends Physics.Arcade.Sprite {
             const dirX = horizontal / length;
             const dirY = vertical / length;
 
-            const isDashing = this.dashKey.isDown;
-            const currentSpeed = isDashing ? PLAYER_DASH_SPEED : PLAYER_BASE_SPEED;
-
-            this.setVelocity(dirX * currentSpeed, dirY * currentSpeed);
+            this.setVelocity(dirX * PLAYER_BASE_SPEED, dirY * PLAYER_BASE_SPEED);
 
             this.facing = this.resolveFacing(horizontal, vertical, this.facing);
             this.updateFacingVector(this.facing);
@@ -206,7 +206,7 @@ export class Player extends Physics.Arcade.Sprite {
             this.setFlipX(this.facing === 'left');
 
             // Ajuste dinámico de velocidad de animación si está corriendo
-            this.anims.timeScale = isDashing ? 1.35 : 1.0;
+            this.anims.timeScale = 1.0;
 
             const walkAnimKey = this.getWalkAnimKey(this.facing);
             this.playAnimation(walkAnimKey);
@@ -223,6 +223,8 @@ export class Player extends Physics.Arcade.Sprite {
         if (Input.Keyboard.JustDown(this.interactionKey)) {
             this.interactWithTileInFront();
         }
+
+        this.heldObject?.updateHeldPosition(this.x, this.y);
     }
 
     /**
@@ -317,8 +319,30 @@ export class Player extends Physics.Arcade.Sprite {
         const targetX = originX + this.facingDirection.x * this.gridManager.tilemap.tileWidth;
         const targetY = originY + this.facingDirection.y * this.gridManager.tilemap.tileHeight;
 
-        const tileType = this.gridManager.getTileTypeAtWorldPosition(targetX, targetY);
-        console.log(`Interactuando con: ${tileType}`);
+        const tileX = this.gridManager.tilemap.worldToTileX(targetX);
+        const tileY = this.gridManager.tilemap.worldToTileY(targetY);
+        if (tileX === null || tileY === null) {
+            return;
+        }
+
+        if (this.heldObject === null) {
+            const object = this.gridManager.removeInteractableObject(tileX, tileY);
+            if (object !== null) {
+                this.heldObject = object;
+                object.pickUp();
+            }
+            return;
+        }
+
+        const tileType = this.gridManager.getTileTypeAtGrid(tileX, tileY);
+        const isValidSurface = tileType === TILE_TYPE_TABLE || tileType === TILE_TYPE_BAR;
+        if (isValidSurface && this.gridManager.getInteractableObjectAt(tileX, tileY) === null) {
+            const object = this.heldObject;
+            object.drop(tileX, tileY);
+            if (this.gridManager.registerInteractableObject(object, tileX, tileY)) {
+                this.heldObject = null;
+            }
+        }
     }
 
     /**
@@ -332,7 +356,6 @@ export class Player extends Physics.Arcade.Sprite {
             keyboard.removeKey(this.movementKeys.left);
             keyboard.removeKey(this.movementKeys.right);
             keyboard.removeKey(this.interactionKey);
-            keyboard.removeKey(this.dashKey);
         }
     }
 }
