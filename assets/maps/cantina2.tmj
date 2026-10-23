@@ -248,6 +248,11 @@
                  "opacity":1,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Punto de aparici\u00f3n de Wuher (dentro de la U de la barra)"
@@ -256,8 +261,8 @@
                  "type":"spawn",
                  "visible":true,
                  "width":32,
-                 "x":225.333333333333,
-                 "y":93.333333333333
+                 "x":226.666666666666,
+                 "y":128
                 }, 
                 {
                  "height":32,
@@ -265,6 +270,11 @@
                  "name":"entradaPrincipal",
                  "opacity":1,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"descripcion",
                          "type":"string",
@@ -284,6 +294,11 @@
                  "opacity":1,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Puerta trasera sur-este. Los clientes salen por aqu\u00ed."
@@ -301,6 +316,11 @@
                  "name":"zonaColaEntrada",
                  "opacity":1,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"descripcion",
                          "type":"string",
@@ -320,6 +340,11 @@
                  "opacity":1,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Tarima del escenario de Figrin D'an y los Modal Nodes."
@@ -338,6 +363,11 @@
                  "opacity":1,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Almac\u00e9n de barriles de repuesto y suministros."
@@ -350,11 +380,16 @@
                  "y":64
                 }, 
                 {
-                 "height":190.666666666667,
+                 "height":348,
                  "id":7,
                  "name":"zonaCocina",
                  "opacity":1,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"descripcion",
                          "type":"string",
@@ -363,27 +398,9 @@
                  "rotation":0,
                  "type":"zona_cocina",
                  "visible":true,
-                 "width":64.0000000000001,
-                 "x":414.666666666667,
-                 "y":254.666666666667
-                }, 
-                {
-                 "height":257.333333333333,
-                 "id":8,
-                 "name":"zonaAlcoba",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"descripcion",
-                         "type":"string",
-                         "value":"Alcoba oscura para ocultar clientes buscados por el Imperio."
-                        }],
-                 "rotation":0,
-                 "type":"zona_alcoba",
-                 "visible":true,
-                 "width":128,
-                 "x":736,
-                 "y":192
+                 "width":248,
+                 "x":325.333333333334,
+                 "y":190.666666666667
                 }, 
                 {
                  "height":32,
@@ -391,6 +408,11 @@
                  "name":"spawnRatas1",
                  "opacity":1,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"descripcion",
                          "type":"string",
@@ -410,6 +432,11 @@
                  "opacity":1,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"descripcion",
                          "type":"string",
                          "value":"Detector de droides en el umbral de la puerta principal."
@@ -427,6 +454,11 @@
                  "name":"spawnRatas2",
                  "opacity":1,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"descripcion",
                          "type":"string",
@@ -468,9 +500,14 @@
                  "id":0,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"tipo",
                          "type":"string",
-                         "value":"SUELO"
+                         "value":"EXTERIOR"
                         }]
                 }, 
                 {
@@ -513,6 +550,11 @@
                  "id":5,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"tipo",
                          "type":"string",
                          "value":"ESCENARIO"
@@ -521,6 +563,11 @@
                 {
                  "id":6,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",
@@ -536,6 +583,11 @@
                  "id":7,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"collides",
                          "type":"bool",
                          "value":true
@@ -550,6 +602,11 @@
                  "id":8,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"collides",
                          "type":"bool",
                          "value":true
@@ -563,6 +620,11 @@
                 {
                  "id":9,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",
@@ -610,6 +672,11 @@
                  "id":40,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"collides",
                          "type":"bool",
                          "value":true
@@ -623,6 +690,11 @@
                 {
                  "id":47,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",
@@ -638,6 +710,11 @@
                  "id":48,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"collides",
                          "type":"bool",
                          "value":true
@@ -651,6 +728,11 @@
                 {
                  "id":49,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",
@@ -666,6 +748,11 @@
                  "id":54,
                  "properties":[
                         {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
                          "name":"collides",
                          "type":"bool",
                          "value":true
@@ -679,6 +766,11 @@
                 {
                  "id":55,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",
@@ -791,6 +883,11 @@
                 {
                  "id":73,
                  "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"collides",
                          "type":"bool",

@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 
 import { Player } from '../entities/Player';
 import { GridManager } from '../managers/GridManager';
+import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
 
 const MAP_KEY = 'cantina';
@@ -36,6 +37,7 @@ const COLLISION_LAYER_NAMES: ReadonlySet<string> = new Set([
 export class NightCantinaScene extends Scene {
     private player!: Player;
     private gridManager!: GridManager;
+    private placementManager!: PlacementManager;
 
     public constructor() {
         super('NightCantinaScene');
@@ -71,12 +73,16 @@ export class NightCantinaScene extends Scene {
             }
         }
 
-        // Build the logical grid from all typed layers.
+        // Build the logical grid from all typed layers and restricted zones.
         this.gridManager = new GridManager(map);
 
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
+        this.player.setDepth(20);
+
+        // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
+        this.placementManager = new PlacementManager(this, this.gridManager, this.player);
 
         // Set up collisions between the player and every collision-enabled layer.
         for (const layerName of COLLISION_LAYER_NAMES) {
@@ -99,6 +105,15 @@ export class NightCantinaScene extends Scene {
 
     public update(): void {
         this.player.update();
+        this.placementManager.update();
+    }
+
+    public getGridManager(): GridManager {
+        return this.gridManager;
+    }
+
+    public getPlacementManager(): PlacementManager {
+        return this.placementManager;
     }
 
     /**
@@ -106,7 +121,7 @@ export class NightCantinaScene extends Scene {
      * Falls back to the centre of the map if no spawn marker exists.
      */
     private findSpawnPoint(map: Phaser.Tilemaps.Tilemap): { x: number; y: number } {
-         const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
+        const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
 
         if (objectLayer !== null) {
             const spawnObj = objectLayer.objects.find((obj) => obj.name === 'spawnWuher');

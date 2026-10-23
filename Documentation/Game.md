@@ -61,7 +61,11 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 ## 4. Mechanics (Key Section)
 
 * **4.1. Rules:**
-* Las sillas deben colocarse ortogonalmente adyacentes a una mesa (hasta 4 sillas por mesa pequeña) o pegadas a la barra.
+* **Reglas de Colocación (Modo Pre-Apertura):**
+    * El jugador no puede colocar mesas ni sillas en áreas restringidas del mapa: `zonaBarra/Cocina`, `zonaBanda`, `zonaAlmacen`, `zonaColaEntrada`, ni sobre los `spawns` (de Wuher o de Ratas) ni fuera de las paredes delimitadoras de la cantina.
+    * Una mesa ocupa 1 o 4 *tiles* (dependiendo del tipo). No puede superponerse a otra mesa, pared o bloque sólido.
+    * Al arrastrar un objeto desde el inventario al mapa, se proyecta un "fantasma" (*ghost image*) sobre el tile objetivo. Este se ilumina en **verde** si la colocación es válida (respeta las restricciones zonales y está libre), y en **rojo** si el tile pertenece a una zona restringida o ya está ocupado.
+    * El turno nocturno no puede iniciarse si el jugador no ha colocado el mobiliario necesario según lo dictaminado en el Libro de Gestión (al menos 1 mesa y 2 sillas activas).
 
 
 * Cualquier silla sin una mesa o barra adyacente queda inactiva (`SILLA_INACTIVA`).
@@ -70,12 +74,13 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * Sentar a una raza junto a su rival (ej. Wookiees y Trandoshanos) en la misma mesa o barra contigua genera un icono de rayos rojos y acelera su enfado.
 
 
+
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
 
 
 
-* **4.2. Model of the game universe:** Todo el sistema del interior se basa en una distribución por cuadrícula modular (*Grid Building*), donde el jugador coloca mesas, sillas y barriles estratégicamente.
+* **4.2. Model of the game universe:** El universo se divide mecánicamente en *capas lógicas de cuadrícula*. El interior de la cantina no es solo un suelo plano, sino que cuenta con un mapa de metadatos (zonas) invisible para el jugador pero crítico para el sistema. El `GridManager` clasifica cada tile (ej. Tile 5x8 = "Suelo Libre", Tile 12x4 = "Zona Prohibida: Banda"). Todas las piezas interactúan bajo este modelo: los clientes buscan "Suelos Libres" adyacentes a "Mesas" para caminar, el jugador solo puede colocar muebles en "Suelos Libres", y las ratas generan sus rutas de robo desde los *tiles* catalogados como `spawnRatas`.
 
 
 * **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
@@ -100,10 +105,18 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **4.6. Objects:** La recolección de objetos (monedas, platos, vasos, barriles) se ejecuta con las manos vacías presionando `Espacio`.
+    * **Objetos de Mobiliario (Modo Pre-Apertura):** Se manejan exclusivamente a través de la Interfaz Gráfica de Usuario (GUI) y el ratón. Para mover un objeto (mesa, silla, decoración):
+        1. El jugador abre el Inventario pulsando el botón correspondiente en la interfaz (o mediante el Libro de Gestión).
+        2. Hace *Clic Izquierdo* y mantiene pulsado sobre un objeto del inventario (Mesa, Silla).
+        3. Arrastra el cursor sobre la cuadrícula del tilemap. El juego ajusta ("*snapping*") la posición del objeto al tile más cercano, mostrando el indicador visual verde/rojo.
+        4. Al soltar el *Clic Izquierdo* (`Drag End`), si el indicador es verde, el objeto se fija al suelo y se retira del inventario. Si es rojo, la acción se cancela y el objeto regresa al inventario.
+        5. Para quitar un objeto ya colocado, el jugador hace *Clic Izquierdo* sobre él en el mapa para devolverlo al inventario, liberando el tile.
 
 
 * **4.7. Actions:** El botón `Espacio` es completamente contextual: sirve para llenar bebidas en los cilindros, entregar pedidos, dejar objetos o usar el garrote para detener peleas y ratas. El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
-
+    * **Gestión (Modo Día / Pre-Apertura):**
+        * `Ratón (Clic / Drag & Drop)`: Herramienta principal. Se utiliza para interactuar con los botones de la interfaz (Abrir Cantina, Libro de Gestión, Inventario) y para el sistema de colocación de mobiliario.
+        * `Indicadores Visuales de Comunicación`: El juego comunica las reglas implícitamente al jugador usando colores en tiempo real durante la acción de arrastrar (Verde = Válido / Rojo = Inválido). También comunica errores de silla mediante un icono de exclamación amarillo si se coloca una silla sin mesa adyacente.
 
 * **4.8. Combat:**
 * **En la Cantina:** Si la paciencia entre clientes rivales llega a cero, entran en estado `PELEA`. El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
@@ -157,39 +170,55 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 ## 7. Characters
 
 * **7.1. For each character / 7.3. Non-combat and Friendly Characters:**
-* **Wuher:** Personaje controlado por el jugador.
+    * **Wuher:** Personaje controlado por el jugador.
 
 
-* **Tork (Portero):** Empleado contratable que patrulla, detiene peleas y limpia cadáveres automáticamente.
+    * **Tork (Portero):** Empleado contratable que patrulla, detiene peleas y limpia cadáveres automáticamente.
 
 
-* **Ackmena (Camarera):** Ayudante que recoge vasos y sirve bebidas.
+    * **Ackmena (Camarera):** Ayudante que recoge vasos y sirve bebidas.
 
 
-* **Bomo (Chef):** NPC que prepara automáticamente los platos en la estación de comida.
+    * **Bomo (Chef):** NPC que prepara automáticamente los platos en la estación de comida.
 
 
-* **Garindan:** Espía oculto que el jugador puede usar como transmisor para delatar clientes.
+    * **Garindan:** Espía oculto que el jugador puede usar como transmisor para delatar clientes.
 
 
 
 
 * **7.2. Artificial Intelligence Use in Opponent and Enemy:**
-* **Scurriers / Ratas Womp:** Enemigos ladrones que corren desde la ventilación para robar monedas.
+    * **Scurriers / Ratas Womp:** Enemigos ladrones que corren desde la ventilación para robar monedas.
 
 
-* **Sandtroopers:** Oficiales que patrullan y buscan criminales o contrabando por el bar.
+    * **Sandtroopers:** Oficiales que patrullan y buscan criminales o contrabando por el bar.
 
 
-* **Clientes (5 Facciones):** Los Wookiees, Trandoshanos, Rodianos, Aqualish e Ithorianos poseen IA basada en la rueda de afinidad. Se enfadan si se sientan cerca de facciones contrarias.
+    * **Clientes (5 Facciones):** Los Wookiees, Trandoshanos, Rodianos, Aqualish e Ithorianos poseen IA basada en la rueda de afinidad. Se enfadan si se sientan cerca de facciones contrarias.
 
 
 
 
 
 ## 8. Levels
+**8.1. Training Level**
 
-* **8.1. / 8.2. For each level:** No existen niveles clásicos, el flujo se basa en un ciclo diario. Cada día, el reto externo es una incursión de 1 al día para cazar recursos, mientras que el reto interno escala con turnos nocturnos más complejos en los que se debe mantener el orden.
+* El Día 1 funcionará como un nivel de entrenamiento seguro. El jugador es recibido por un breve cuadro de texto de Chalmun (el dueño) explicando las reglas básicas. En este nivel no hay peleas extremas ni ratas ladronas. El jugador es guiado de la mano para:
+1. Abrir el inventario y colocar obligatoriamente 1 mesa y 2 sillas (verificando que entiende la mecánica de verde/rojo).
+2. Asignar una bebida básica en el Libro de Gestión.
+3. Iniciar el turno (Noche) para servir a un único cliente con paciencia ilimitada.
+
+
+
+**8.2. For each level (El Bucle de Días Sucesivos)**
+
+* **8.2.1. Synopsis:** Cada "nivel" representa un nuevo ciclo de 24 horas (Día y Noche) en Tatooine.
+* **8.2.2. Required introductory material:** Antes de abrir, el jugador revisa su "Libro de Gestión" (Menú) que le informa de las condiciones del día (ej. "Llegan contrabandistas hoy", o "Alta actividad de Sandtroopers").
+* **8.2.3. Objectives:** Sobrevivir al turno nocturno maximizando ganancias, evitando muertes en el local y sin perder la recaudación a manos de los Scurriers.
+* **8.2.4. Details of what happens in the level:**
+* **8.2.4.1. Map:** Exterior (desierto o calle comercial para reabastecimiento) y posteriormente el interior estático de la cantina.
+* **8.2.4.2. Critical path:** Recolectar stock $\rightarrow$ Distribuir mesas $\rightarrow$ Asignar menú $\rightarrow$ Abrir puertas $\rightarrow$ Ciclo rápido de servicio y limpieza $\rightarrow$ Fin del día.
+* **8.2.4.3. Important and incidental encounters:** Encuentros incidentales con clientes marcados como `Wanted` (Busca y Captura) y patrullas de Inspectores Imperiales que modifican drásticamente el comportamiento estándar del servicio.
 
 
 
@@ -197,9 +226,10 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 * **9.1. Visual System:**
 * **9.1.1. HUD:** Cuenta con iconos sobre las cabezas de los clientes (globos con sus pedidos de comida, música o bebida), un icono de advertencia sobre asientos mal ubicados, temporizadores circulares de paciencia y un icono de "¡Soplón!" si el jugador delata a alguien en público.
+    * En modo **Pre-Apertura**: El HUD se transforma. Aparece la "Barra de Herramientas del Inventario" en la parte inferior de la pantalla. Muestra iconos de los muebles disponibles con un número de *stock*. Incluye un gran botón flotante de "Abrir Cantina" en la esquina superior derecha. Durante el arrastre (*Drag & Drop*), el HUD dibuja dinámicamente un cuadrado verde o rojo transparente sobre la celda (*tile*) seleccionada por el puntero.
 
 
-* **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura.
+* **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.
 
 
 * **9.1.3. Camera model:** El modelo de cámara de *Chalmun's Cantina: Mos Eisley Hustle* varía dependiendo de la fase de juego (Día/Noche) y la escena activa, adaptándose a las necesidades mecánicas de cada entorno. El juego utiliza un sistema de coordenadas dual: el sistema lógico del mundo (píxeles/tiles) y el "Viewport" (la ventana que renderiza la escena en pantalla), aplicando un escalado general (ej. `ROOM_SCALE = 2`) para la estética *pixel art*.
