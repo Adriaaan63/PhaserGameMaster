@@ -417,6 +417,11 @@
                          "name":"descripcion",
                          "type":"string",
                          "value":"Rejilla de ventilaci\u00f3n por donde salen los Scurriers ladrones."
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"TORRE_CENTRAL"
                         }],
                  "rotation":0,
                  "type":"spawn_ratas",
@@ -470,6 +475,57 @@
                  "width":32,
                  "x":701.333333333333,
                  "y":66.666666666667
+                }, 
+                {
+                 "height":32,
+                 "id":2,
+                 "name":"torreCentral",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Rejilla de ventilaci\u00f3n por donde salen los Scurriers ladrones."
+                        },
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"PARRILLA"
+                        }],
+                 "rotation":0,
+                 "type":"torre_central",
+                 "visible":true,
+                 "width":61.3333333333333,
+                 "x":417.333333333333,
+                 "y":418.666666666667
+                }, 
+                {
+                 "height":32,
+                 "id":3,
+                 "name":"parrilla",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Rejilla de ventilaci\u00f3n por donde salen los Scurriers ladrones."
+                        }],
+                 "rotation":0,
+                 "type":"parrilla",
+                 "visible":true,
+                 "width":61.3333,
+                 "x":416.000016666667,
+                 "y":258.666666666667
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -478,7 +534,7 @@
          "y":0
         }],
  "nextlayerid":9,
- "nextobjectid":2,
+ "nextobjectid":4,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

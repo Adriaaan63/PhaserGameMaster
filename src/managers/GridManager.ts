@@ -1,6 +1,7 @@
 import { Tilemaps } from 'phaser';
 
 import type { InteractableObject } from '../entities/InteractableObject';
+import type { Station } from '../entities/stations/Station';
 
 export const TILE_TYPE_EMPTY = 'VACIO';
 export const TILE_TYPE_TABLE = 'MESA';
@@ -131,6 +132,7 @@ export class GridManager {
     private readonly furnitureTypes: Map<string, FurnitureTileType> = new Map();
     private readonly placedFurniture: Map<string, FurnitureTileType> = new Map();
     private readonly interactableObjects: Map<string, InteractableObject> = new Map();
+    private readonly stations: Map<string, Station> = new Map();
     private readonly restrictedTiles: Set<string> = new Set();
 
     public constructor(tilemap: Tilemaps.Tilemap) {
@@ -274,6 +276,16 @@ export class GridManager {
         return this.placedFurniture.get(this.getTileKey(tileX, tileY)) ?? null;
     }
 
+    public getPlacedFurnitureCount(type: FurnitureTileType): number {
+        let count = 0;
+        for (const placedType of this.placedFurniture.values()) {
+            if (placedType === type) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public registerInteractableObject(
         object: InteractableObject,
         tileX: number,
@@ -299,6 +311,18 @@ export class GridManager {
             this.interactableObjects.delete(key);
         }
         return object;
+    }
+
+    public registerStation(station: Station): void {
+        this.registerStationAt(station, station.tileX, station.tileY);
+    }
+
+    public registerStationAt(station: Station, tileX: number, tileY: number): void {
+        this.stations.set(this.getTileKey(tileX, tileY), station);
+    }
+
+    public getStationAt(tileX: number, tileY: number): Station | null {
+        return this.stations.get(this.getTileKey(tileX, tileY)) ?? null;
     }
 
     /**

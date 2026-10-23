@@ -2,9 +2,20 @@ import { Scene } from 'phaser';
 
 import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
+import { BeverageTower } from '../entities/stations/BeverageTower';
+import { Grill } from '../entities/stations/Grill';
 import { GridManager } from '../managers/GridManager';
 import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
+import {
+    EVENT_CANTINA_OPEN,
+    EVENT_GAME_MODE_CHANGED,
+    EVENT_GAME_WARNING,
+    eventBus,
+    GAME_MODE_NIGHT,
+    GAME_MODE_PRE_OPENING,
+    type GameModeChangedData,
+} from '../utils/EventBus';
 
 const MAP_KEY = 'cantina';
 const MAP_URL = new URL('../../assets/maps/cantina2.tmj', import.meta.url).href;
@@ -53,6 +64,11 @@ export class NightCantinaScene extends Scene {
     }
 
     public create(): void {
+        this.registry.set('gameMode', GAME_MODE_PRE_OPENING);
+        eventBus.on(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
+        this.events.once('shutdown', this.cleanupModeEvents, this);
+        this.events.once('destroy', this.cleanupModeEvents, this);
+
         const map = this.make.tilemap({ key: MAP_KEY });
         const tileset = map.addTilesetImage(TILESET_TMJ_NAME, TILESET_KEY);
 
@@ -76,12 +92,14 @@ export class NightCantinaScene extends Scene {
 
         // Build the logical grid from all typed layers and restricted zones.
         this.gridManager = new GridManager(map);
+        this.registry.set('foodStock', 5);
 
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
         this.player.setDepth(20);
         this.createTestInteractableObjects();
+        this.createServiceStations(map);
 
         // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
@@ -105,8 +123,8 @@ export class NightCantinaScene extends Scene {
         this.cameras.main.centerOn(map.widthInPixels / 2, map.heightInPixels / 2);
     }
 
-    public update(): void {
-        this.player.update();
+    public update(_time: number, delta: number): void {
+        this.player.update(delta);
         this.placementManager.update();
     }
 
@@ -155,5 +173,65 @@ export class NightCantinaScene extends Scene {
                 object.destroy();
             }
         }
+    }
+
+    private createServiceStations(map: Phaser.Tilemaps.Tilemap): void {
+        const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
+        if (objectLayer === null) {
+            return;
+        }
+
+        for (const object of objectLayer.objects) {
+            const objectType = object.type?.toLowerCase();
+            const objectName = object.name?.toLowerCase();
+            const tileX = Math.floor((object.x ?? 0) / TILE);
+            const tileY = Math.floor((object.y ?? 0) / TILE);
+            const tileWidth = Math.max(1, Math.ceil((object.width ?? TILE) / TILE));
+            const tileHeight = Math.max(1, Math.ceil((object.height ?? TILE) / TILE));
+
+            if (objectName === 'torrecentral' || objectType === 'torre_central') {
+                const station = new BeverageTower(this, tileX, tileY);
+                this.registerStationTiles(station, tileX, tileY, tileWidth, tileHeight);
+            } else if (objectName === 'parrilla' || objectType === 'parrilla') {
+                const station = new Grill(this, tileX, tileY);
+                this.registerStationTiles(station, tileX, tileY, tileWidth, tileHeight);
+            }
+        }
+    }
+
+    private registerStationTiles(
+        station: BeverageTower | Grill,
+        tileX: number,
+        tileY: number,
+        width: number,
+        height: number,
+    ): void {
+        for (let offsetX = 0; offsetX < width; offsetX++) {
+            for (let offsetY = 0; offsetY < height; offsetY++) {
+                this.gridManager.registerStationAt(station, tileX + offsetX, tileY + offsetY);
+            }
+        }
+    }
+
+    private handleOpenCantina(): void {
+        const tableCount = this.gridManager.getPlacedFurnitureCount('MESA');
+        const chairCount = this.gridManager.getPlacedFurnitureCount('SILLA');
+
+        if (tableCount < 1 || chairCount < 2) {
+            eventBus.emit(EVENT_GAME_WARNING, {
+                message: 'Necesitas 1 mesa y 2 sillas para abrir.',
+            });
+            return;
+        }
+
+        this.registry.set('gameMode', GAME_MODE_NIGHT);
+        this.placementManager.setEnabled(false);
+
+        const modeData: GameModeChangedData = { mode: GAME_MODE_NIGHT };
+        eventBus.emit(EVENT_GAME_MODE_CHANGED, modeData);
+    }
+
+    private cleanupModeEvents(): void {
+        eventBus.off(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
     }
 }

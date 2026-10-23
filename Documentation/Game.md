@@ -79,6 +79,11 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * **Bloqueo de Interacción:** Si el jugador ya tiene un objeto en las manos, no podrá recoger otro ni interactuar con los dispensadores de bebidas hasta que se deshaga del objeto actual (entregándolo o dejándolo sobre una superficie válida).
     * **Superficies Válidas:** Los objetos interactuables solo pueden soltarse sobre superficies designadas como "mostradores" (la barra) o "mesas". No se pueden tirar al suelo (intentar hacerlo no ejecutará ninguna acción).
 
+* **Reglas de Suministro y Preparación:**
+    * **Bebidas (Torre Central):** Para servir una bebida, Wuher debe coger un vaso vacío y colocarse frente a la Torre Central (situada en la `zonaCocina`). El llenado no es instantáneo; requiere mantener presionada la tecla de Acción (`Espacio`) durante un tiempo determinado (ej. 2 segundos). Si se suelta la tecla antes de tiempo, el llenado se cancela.
+    * **Comida (Parrilla):** La cantidad de comida disponible durante la noche depende estrictamente de lo que el jugador haya conseguido (o se le haya otorgado) en la Fase Diurna exterior. Los clientes solo pedirán comida si hay unidades en el HUD; una vez que el contador llegue a cero, ningún cliente nuevo pedirá platos esa noche.
+    * **Estaciones Fijas:** La Torre Central y la Parrilla son inamovibles. El jugador debe acercarse a sus *tiles* específicos para interactuar con ellas.
+
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
 
@@ -119,6 +124,9 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
         * **Coger (Pick up):** Cuando el jugador tiene las manos vacías y se acerca a un objeto apoyado en una superficie (ej. una jarra en la barra), al mirar hacia él y presionar la tecla de Acción (`Espacio`), el objeto desaparece de la cuadrícula del mapa y pasa a renderizarse visualmente en las manos del sprite de Wuher. El estado del jugador cambia a `HOLDING_OBJECT`.
         * **Mover:** Mientras se sostiene el objeto, este sigue la posición y orientación del jugador en todo momento.
         * **Soltar / Entregar (Drop / Deliver):** Cuando el jugador lleva un objeto y se acerca a una superficie libre (ej. una mesa vacía) o a un cliente que ha pedido ese ítem exacto, al presionar nuevamente la tecla de Acción (`Espacio`), el objeto se desvincula de las manos del jugador. Si es una mesa, el objeto hace *snap* (se ajusta) al centro del tile de la mesa. Si es un cliente, el objeto se destruye (se consume) y se inicia la lógica de pago.
+    * **Gestión de Estaciones de Servicio:**
+        * **Interactuar con la Torre Central:** Wuher debe estar en estado `HOLDING` con un "vaso vacío". Al mirar hacia la Torre Central, mantener `Espacio` transforma el "vaso vacío" en "vaso lleno" (Juri Juice, Leche Azul, etc., dependiendo del dispensador o menú activo) tras completar una pequeña barra de progreso.
+        * **Recoger de la Parrilla:** Cuando un cliente pide comida, Wuher se acerca a la Parrilla con las manos vacías (estado `EMPTY`). Al pulsar `Espacio`, se resta una unidad del inventario global de comida de esa noche, y Wuher pasa al estado `HOLDING` con un "Plato de Comida" en las manos, listo para ser entregado.
 
 
 * **4.7. Actions:** 
@@ -127,10 +135,14 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
         * `Indicadores Visuales de Comunicación`: El juego comunica las reglas implícitamente al jugador usando colores en tiempo real durante la acción de arrastrar (Verde = Válido / Rojo = Inválido). También comunica errores de silla mediante un icono de exclamación amarillo si se coloca una silla sin mesa adyacente.
     * **Acción Contextual Principal (Tecla `Espacio`):** El comportamiento de esta tecla depende enteramente de la máquina de estados del jugador (si sus manos están vacías o llenas) y del objeto/tile que tenga justo enfrente (basado en su vector de dirección):
         * **Con las manos VACÍAS (`State: EMPTY`):**
-        * *Frente a un objeto (Jarra/Plato):* Lo recoge y pasa al estado `HOLDING`.
-        * *Frente al dispensador de bebidas:* Comienza a llenar una jarra nueva (requiere mantener pulsado).
-        * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
-        * *Frente a una pelea / rata:* Usa el garrote para atacar/espantar.
+            * *Frente a la Parrilla:* Si hay comida disponible en el inventario del HUD, recoge un plato de comida (pasa a estado `HOLDING`). Si el inventario es 0, no ocurre nada o suena un error.
+            * *Frente a un vaso vacío:* Lo recoge (pasa a `HOLDING`).
+            * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
+            * *Frente a una pelea / rata:* Usa el garrote para atacar/espantar.
+        * **Con las manos OCUPADAS (`State: HOLDING`):**
+            * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
+            * *Frente al Cliente / Mesa:* Entrega o apoya el objeto.
+        
     * El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
 
 * **4.8. Combat:**
@@ -242,7 +254,9 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **9.1. Visual System:**
 * **9.1.1. HUD:** Cuenta con iconos sobre las cabezas de los clientes (globos con sus pedidos de comida, música o bebida), un icono de advertencia sobre asientos mal ubicados, temporizadores circulares de paciencia y un icono de "¡Soplón!" si el jugador delata a alguien en público.
     * En modo **Pre-Apertura**: El HUD se transforma. Aparece la "Barra de Herramientas del Inventario" en la parte inferior de la pantalla. Muestra iconos de los muebles disponibles con un número de *stock*. Incluye un gran botón flotante de "Abrir Cantina" en la esquina superior derecha. Durante el arrastre (*Drag & Drop*), el HUD dibuja dinámicamente un cuadrado verde o rojo transparente sobre la celda (*tile*) seleccionada por el puntero.
-
+    * En modo **Nocturno (Apertura)**:
+        * **Inventario Dinámico de Suministros:** Durante el servicio nocturno, se mostrará en una esquina de la pantalla (ej. superior izquierda) un contador visual de los suministros de comida conseguidos en el exterior (ej. icono de un filete de Bantha: "x5"). Este número disminuye en tiempo real cada vez que Wuher saca un plato de la Parrilla. Si llega a 0, el icono se vuelve gris o muestra un aspa roja para indicar agotamiento.
+        * **Barra de Progreso de Interacción:** Al mantener pulsado `Espacio` en la Torre Central, aparecerá una pequeña barra de carga (progress bar) flotando justo encima de Wuher o del surtidor, llenándose de izquierda a derecha. Se vacía inmediatamente si el jugador suelta el botón antes de tiempo.
 
 * **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.
 

@@ -5,11 +5,15 @@ import {
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
 import { InteractableObject } from './InteractableObject';
+import { BeverageTower } from './stations/BeverageTower';
+import { Grill } from './stations/Grill';
+import type { Station } from './stations/Station';
 import {
     GridManager,
     TILE_TYPE_BAR,
     TILE_TYPE_TABLE,
 } from '../managers/GridManager';
+import { GAME_MODE_NIGHT } from '../utils/EventBus';
 
 /**
  * Claves de animación registradas en el gestor global de animaciones de Phaser.
@@ -58,6 +62,7 @@ export class Player extends Physics.Arcade.Sprite {
     };
     private readonly interactionKey: Input.Keyboard.Key;
     private heldObject: InteractableObject | null = null;
+    private fillingStation: BeverageTower | null = null;
 
     private facing: FacingDirection = 'down';
     private facingDirection: DirectionVector = VECTOR_DOWN;
@@ -186,7 +191,7 @@ export class Player extends Physics.Arcade.Sprite {
      * - Actualiza eficientemente la animación y orientación (flipX) sin sobrecoste.
      * - Procesa la acción contextual de interacción con la tecla Espacio.
      */
-    public update(): void {
+    public update(delta: number): void {
         const horizontal = Number(this.movementKeys.right.isDown) - Number(this.movementKeys.left.isDown);
         const vertical = Number(this.movementKeys.down.isDown) - Number(this.movementKeys.up.isDown);
 
@@ -220,11 +225,39 @@ export class Player extends Physics.Arcade.Sprite {
             this.playAnimation(idleAnimKey);
         }
 
-        if (Input.Keyboard.JustDown(this.interactionKey)) {
-            this.interactWithTileInFront();
+        const frontTile = this.getFrontTile();
+        if (this.scene.registry.get('gameMode') !== GAME_MODE_NIGHT) {
+            this.cancelFilling();
+            this.heldObject?.updateHeldPosition(this.x, this.y);
+            return;
+        }
+        if (frontTile !== null) {
+            const station = this.gridManager.getStationAt(frontTile.tileX, frontTile.tileY);
+            if (this.heldObject !== null && station instanceof BeverageTower) {
+                if (this.interactionKey.isDown && !station.isFilling(this.heldObject)) {
+                    station.startFilling(this.heldObject);
+                }
+                station.updateFilling(delta, this.interactionKey.isDown);
+                this.fillingStation = station;
+            } else if (Input.Keyboard.JustDown(this.interactionKey)) {
+                this.interactWithTileInFront(frontTile.tileX, frontTile.tileY, station);
+            } else if (this.fillingStation !== null) {
+                this.fillingStation.cancelFilling();
+                this.fillingStation = null;
+            }
+        } else if (this.fillingStation !== null) {
+            this.fillingStation.cancelFilling();
+            this.fillingStation = null;
         }
 
         this.heldObject?.updateHeldPosition(this.x, this.y);
+    }
+
+    private cancelFilling(): void {
+        if (this.fillingStation !== null) {
+            this.fillingStation.cancelFilling();
+            this.fillingStation = null;
+        }
     }
 
     /**
@@ -312,16 +345,13 @@ export class Player extends Physics.Arcade.Sprite {
     /**
      * Comprueba e interactúa con el tile situado inmediatamente delante de los pies del jugador.
      */
-    private interactWithTileInFront(): void {
-        const originX = this.body !== null ? this.body.center.x : this.x;
-        const originY = this.body !== null ? this.body.center.y : this.y;
-
-        const targetX = originX + this.facingDirection.x * this.gridManager.tilemap.tileWidth;
-        const targetY = originY + this.facingDirection.y * this.gridManager.tilemap.tileHeight;
-
-        const tileX = this.gridManager.tilemap.worldToTileX(targetX);
-        const tileY = this.gridManager.tilemap.worldToTileY(targetY);
-        if (tileX === null || tileY === null) {
+    private interactWithTileInFront(tileX: number, tileY: number, station: Station | null): void {
+        if (this.heldObject === null && station instanceof Grill) {
+            const object = station.takeFood();
+            if (object !== null) {
+                this.heldObject = object;
+                object.pickUp();
+            }
             return;
         }
 
@@ -343,6 +373,21 @@ export class Player extends Physics.Arcade.Sprite {
                 this.heldObject = null;
             }
         }
+    }
+
+    private getFrontTile(): { tileX: number; tileY: number } | null {
+        const originX = this.body !== null ? this.body.center.x : this.x;
+        const originY = this.body !== null ? this.body.center.y : this.y;
+
+        const targetX = originX + this.facingDirection.x * this.gridManager.tilemap.tileWidth;
+        const targetY = originY + this.facingDirection.y * this.gridManager.tilemap.tileHeight;
+
+        const tileX = this.gridManager.tilemap.worldToTileX(targetX);
+        const tileY = this.gridManager.tilemap.worldToTileY(targetY);
+        if (tileX === null || tileY === null) {
+            return null;
+        }
+        return { tileX, tileY };
     }
 
     /**

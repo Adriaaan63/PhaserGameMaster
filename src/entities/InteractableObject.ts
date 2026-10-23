@@ -5,6 +5,8 @@ import { TILE } from '../data/constants';
 const TEXTURE_KEY = 'interactable-jar';
 const OBJECT_SIZE = 16;
 
+export type InteractableObjectType = 'EMPTY_CUP' | 'FILLED_CUP' | 'FOOD_PLATE';
+
 /**
  * Represents an object that can be picked up and placed on a valid surface.
  * Its map registration is managed by GridManager; this class owns only its
@@ -15,8 +17,14 @@ export class InteractableObject extends GameObjects.Image {
     private held: boolean = false;
     private tileX: number;
     private tileY: number;
+    private objectType: InteractableObjectType;
 
-    public constructor(scene: Scene, tileX: number, tileY: number) {
+    public constructor(
+        scene: Scene,
+        tileX: number,
+        tileY: number,
+        objectType: InteractableObjectType = 'EMPTY_CUP',
+    ) {
         InteractableObject.ensureTexture(scene);
 
         super(
@@ -29,8 +37,24 @@ export class InteractableObject extends GameObjects.Image {
         this.tileSize = TILE;
         this.tileX = tileX;
         this.tileY = tileY;
+        this.objectType = objectType;
         this.setDepth(10);
         scene.add.existing(this);
+    }
+
+    public static createFoodPlate(scene: Scene): InteractableObject {
+        const object = new InteractableObject(scene, -1, -1, 'FOOD_PLATE');
+        object.setTint(0xf5f5f5);
+        return object;
+    }
+
+    public fillBeverage(): void {
+        this.objectType = 'FILLED_CUP';
+        this.setTint(0x27ae60);
+    }
+
+    public isEmptyCup(): boolean {
+        return this.objectType === 'EMPTY_CUP';
     }
 
     public static ensureTexture(scene: Scene): void {

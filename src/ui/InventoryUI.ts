@@ -6,10 +6,12 @@ import {
     EVENT_DRAG_MOVE,
     EVENT_FURNITURE_PLACED,
     EVENT_FURNITURE_REMOVED,
+    EVENT_GAME_MODE_CHANGED,
     EVENT_START_PLACEMENT,
     eventBus,
     type FurniturePlacedData,
     type FurnitureRemovedData,
+    type GameModeChangedData,
     type FurnitureType,
     type PlacementEndData,
     type PlacementMoveData,
@@ -47,6 +49,12 @@ export class InventoryUI {
 
     private readonly onFurnitureRemovedBound = (data: FurnitureRemovedData): void => {
         this.addItem(data.type);
+    };
+
+    private readonly onGameModeChangedBound = (data: GameModeChangedData): void => {
+        const preOpening = data.mode === 'PRE_APERTURA';
+        this.barContainer.setVisible(preOpening);
+        this.openButtonContainer.setVisible(preOpening);
     };
 
     public constructor(scene: Scene) {
@@ -110,6 +118,7 @@ export class InventoryUI {
     public destroy(): void {
         eventBus.off(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
+        eventBus.off(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
 
         this.scene.scale.off('resize', this.reposition, this);
         this.scene.input.off('pointermove', this.handleScenePointerMove, this);
@@ -287,6 +296,7 @@ export class InventoryUI {
     private setupEventListeners(): void {
         eventBus.on(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
+        eventBus.on(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
 
         this.scene.scale.on('resize', this.reposition, this);
 
@@ -321,4 +331,3 @@ export class InventoryUI {
         eventBus.emit(EVENT_DRAG_END, endData);
     }
 }
-

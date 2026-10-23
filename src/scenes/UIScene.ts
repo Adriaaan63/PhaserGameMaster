@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 
 import { InventoryUI } from '../ui/InventoryUI';
+import { HUD } from '../ui/HUD';
 
 /**
  * Scene dedicated exclusively to HUD, overlay dialogs, and UI elements.
@@ -9,6 +10,7 @@ import { InventoryUI } from '../ui/InventoryUI';
  */
 export class UIScene extends Scene {
     private inventoryUI!: InventoryUI;
+    private hud!: HUD;
 
     public constructor() {
         super('UIScene');
@@ -16,6 +18,7 @@ export class UIScene extends Scene {
 
     public create(): void {
         this.inventoryUI = new InventoryUI(this);
+        this.hud = new HUD(this);
     }
 
     public getInventoryUI(): InventoryUI {

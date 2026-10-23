@@ -47,6 +47,7 @@ export class PlacementManager {
     private readonly player: Player;
 
     private isDragging: boolean = false;
+    private isEnabled: boolean = true;
     private currentType: FurnitureType | null = null;
     private currentTileX: number = -1;
     private currentTileY: number = -1;
@@ -86,13 +87,20 @@ export class PlacementManager {
      * Optional update hook called from NightCantinaScene.update() if continuous checks are desired.
      */
     public update(): void {
-        if (!this.isDragging) {
+        if (!this.isEnabled || !this.isDragging) {
             return;
         }
 
         const pointer = this.scene.input.activePointer;
         if (pointer.isDown) {
             this.updateDragPosition(pointer.x, pointer.y);
+        }
+    }
+
+    public setEnabled(enabled: boolean): void {
+        this.isEnabled = enabled;
+        if (!enabled) {
+            this.cancelDrag();
         }
     }
 
@@ -151,6 +159,9 @@ export class PlacementManager {
      * Begins dragging a ghost item corresponding to the chosen furniture type.
      */
     private startDrag(type: FurnitureType, screenX?: number, screenY?: number): void {
+        if (!this.isEnabled) {
+            return;
+        }
         this.isDragging = true;
         this.currentType = type;
 
@@ -384,7 +395,7 @@ export class PlacementManager {
     }
 
     private handleScenePointerDown(pointer: Input.Pointer): void {
-        if (this.isDragging || !pointer.leftButtonDown()) {
+        if (!this.isEnabled || this.isDragging || !pointer.leftButtonDown()) {
             return;
         }
 
