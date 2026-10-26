@@ -1,8 +1,8 @@
 export const TILE = 32;
-export const ROOM_W = 28;
-export const ROOM_H = 28;
+export const ROOM_W = 24;
+export const ROOM_H = 24;
 export const VIEW_Y = 64;
-export const ROOM_SCALE = 0.9;
+export const ROOM_SCALE = 1.0;
 
 export const GAME_WIDTH = ROOM_W * TILE * ROOM_SCALE;
 export const GAME_HEIGHT = (ROOM_H * TILE + VIEW_Y) * ROOM_SCALE;

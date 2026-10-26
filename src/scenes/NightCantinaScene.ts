@@ -163,8 +163,8 @@ export class NightCantinaScene extends Scene {
         InteractableObject.ensureTexture(this);
 
         const testTiles = [
-            { x: 10, y: 7 },
-            { x: 17, y: 7 },
+            { x: 8, y: 7 },
+            { x: 15, y: 7 },
         ] as const;
 
         for (const tile of testTiles) {
