@@ -19,13 +19,39 @@ import {
 
 const MAP_KEY = 'cantina';
 const MAP_URL = new URL('../../assets/maps/cantina2.tmj', import.meta.url).href;
-const TILESET_KEY = 'cantina-tileset';
-const TILESET_URL = new URL('../../assets/images/cantina_tileset.png', import.meta.url).href;
+const TILESETS = [
+    {
+        key: 'cantina-tileset',
+        name: 'cantina_tileset',
+        url: new URL('../../assets/images/cantina_tileset.png', import.meta.url).href,
+    },
+    {
+        key: 'interiors-tilesets',
+        name: 'Interiors_tilesets',
+        url: new URL('../../assets/images/Interiors_tilesets.png', import.meta.url).href,
+    },
+    {
+        key: 'windows-and-doors',
+        name: 'windows_and_doors2',
+        url: new URL('../../assets/images/windows_and_doors2.png', import.meta.url).href,
+    },
+    {
+        key: 'furniture-and-props',
+        name: 'furniture_and_props',
+        url: new URL('../../assets/images/furniture_and_props.png', import.meta.url).href,
+    },
+] as const;
 
-/** Name used inside the TMJ file for the tileset (`"name"` field). */
-const TILESET_TMJ_NAME = 'cantina_tileset';
+const TILE_LAYER_DEPTHS: Readonly<Record<string, number>> = {
+    suelo: 0,
+    paredes: 0,
+    barra: 0,
+    decoracion: 0,
+    mobiliario: 0,
+    puertas: 0,
+};
 
-/** Ordered list of tile layers to create and render (bottom → top). */
+/** Ordered list of tile layers to create and render (bottom → top) - 3/4 perspective. */
 const TILE_LAYER_NAMES: readonly string[] = [
     'suelo',
     'paredes',
@@ -60,7 +86,9 @@ export class NightCantinaScene extends Scene {
 
     public preload(): void {
         this.load.tilemapTiledJSON(MAP_KEY, MAP_URL);
-        this.load.image(TILESET_KEY, TILESET_URL);
+        for (const tileset of TILESETS) {
+            this.load.image(tileset.key, tileset.url);
+        }
     }
 
     public create(): void {
@@ -70,25 +98,37 @@ export class NightCantinaScene extends Scene {
         this.events.once('destroy', this.cleanupModeEvents, this);
 
         const map = this.make.tilemap({ key: MAP_KEY });
-        const tileset = map.addTilesetImage(TILESET_TMJ_NAME, TILESET_KEY);
-
-        if (tileset === null) {
-            throw new Error(`No se pudo cargar el tileset "${TILESET_TMJ_NAME}" del mapa de la cantina.`);
+        const tilesets = TILESETS.map((tileset) => map.addTilesetImage(tileset.name, tileset.key));
+        if (tilesets.some((tileset) => tileset === null)) {
+            const missingTilesets = TILESETS
+                .filter((_tileset, index) => tilesets[index] === null)
+                .map((tileset) => tileset.name)
+                .join(', ');
+            throw new Error(`No se pudieron cargar los tilesets de la cantina: ${missingTilesets}.`);
         }
+        const tilemapTilesets = tilesets.filter((tileset): tileset is Phaser.Tilemaps.Tileset => tileset !== null);
 
         // Create every tile layer in render order and configure collisions.
         for (const layerName of TILE_LAYER_NAMES) {
-            const layer = map.createLayer(layerName, tileset, 0, 0);
+            const layer = map.createLayer(layerName, tilemapTilesets, 0, 0);
 
             if (layer === null) {
                 console.warn(`Capa "${layerName}" no encontrada en el mapa; se omite.`);
                 continue;
             }
 
+            layer.setDepth(TILE_LAYER_DEPTHS[layerName] ?? 0);
+
             if (COLLISION_LAYER_NAMES.has(layerName)) {
                 layer.setCollisionByProperty({ collides: true });
             }
         }
+
+        const paredesAltasLayer = map.createLayer('paredes_altas', tilemapTilesets, 0, 0);
+        if (paredesAltasLayer === null) {
+            throw new Error('No se pudo crear la capa "paredes_altas" del mapa.');
+        }
+        this.createYSortedHighWalls(paredesAltasLayer, map);
 
         // Build the logical grid from all typed layers and restricted zones.
         this.gridManager = new GridManager(map);
@@ -97,7 +137,7 @@ export class NightCantinaScene extends Scene {
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
-        this.player.setDepth(20);
+        this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
 
@@ -125,6 +165,7 @@ export class NightCantinaScene extends Scene {
 
     public update(_time: number, delta: number): void {
         this.player.update(delta);
+        this.updatePlayerDepth();
         this.placementManager.update();
     }
 
@@ -134,6 +175,63 @@ export class NightCantinaScene extends Scene {
 
     public getPlacementManager(): PlacementManager {
         return this.placementManager;
+    }
+
+    private updatePlayerDepth(): void {
+        this.player.setDepth(this.player.body?.bottom ?? this.player.y);
+    }
+    
+    private createYSortedHighWalls(
+        tileLayer: Phaser.Tilemaps.TilemapLayerBase,
+        map: Phaser.Tilemaps.Tilemap,
+    ): void {
+        const paredesLayer = map.getLayer('paredes')?.tilemapLayer;
+
+        tileLayer.forEachTile((tile) => {
+            if (tile.index < 0 || tile.tileset === null || tile.tileset.image === null) {
+                return;
+            }
+
+            const coordinates = tile.tileset.getTileTextureCoordinates(tile.index) as {
+                x: number;
+                y: number;
+            } | null;
+
+            if (coordinates === null) {
+                return;
+            }
+
+            const textureKey = tile.tileset.image.key;
+            const texture = this.textures.get(textureKey);
+            const frameName = `tile_${tile.index}`;
+
+            if (!texture.has(frameName)) {
+                texture.add(frameName, 0, coordinates.x, coordinates.y, TILE, TILE);
+            }
+
+            const wall = this.add.image(
+                tile.pixelX + TILE / 2,
+                tile.pixelY + TILE / 2,
+                textureKey,
+                frameName,
+            );
+
+            let gridBaseY = tile.y;
+            const maxSearch = 10;
+
+            if (paredesLayer !== null && paredesLayer !== undefined) {
+                for (let offsetY = 1; offsetY <= maxSearch; offsetY++) {
+                    if (paredesLayer.hasTileAt(tile.x, tile.y + offsetY)) {
+                        gridBaseY = tile.y + offsetY;
+                        break;
+                    }
+                }
+            }
+
+            wall.setDepth(gridBaseY * TILE + TILE);
+        });
+
+        tileLayer.setVisible(false);
     }
 
     /**

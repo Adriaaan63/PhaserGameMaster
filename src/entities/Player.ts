@@ -100,12 +100,10 @@ export class Player extends Physics.Arcade.Sprite {
         // Integración en escena y sistema de físicas
         scene.add.existing(this);
         scene.physics.add.existing(this);
-        this.setCollideWorldBounds(true);
+this.setCollideWorldBounds(true);
 
         // 2. ESCALADO VISUAL EXACTO A 32x32 (o similar)
-        // Asumiendo que el frame original es de 48x48.
-        // Si quieres que visualmente ocupe exactamente 32x32: 32 / 48 = ~0.66
-        // Puedes ajustar el 48 si tu spritesheet tiene otro tamaño por frame.
+        // Asumiendo que el frame original es de 64x64.
         const FRAME_ORIGINAL_SIZE = 64;
         const TILE_TARGET_SIZE = 32;
         const scaleFactor = TILE_TARGET_SIZE / FRAME_ORIGINAL_SIZE;
@@ -115,6 +113,7 @@ export class Player extends Physics.Arcade.Sprite {
         // Offset Y = 139 - 24 = 115 (la suela de las botas de Wuher está en Y=139)
         this.setSize(28, 24);
         this.setOffset(61, 115);
+
 
         // Estado inicial de animación
         this.playAnimation(PLAYER_ANIM_KEYS.IDLE_DOWN);

@@ -276,7 +276,7 @@ export class PlacementManager {
 
         const sprite = this.scene.physics.add.staticImage(snappedX, snappedY, textureKey);
         sprite.setOrigin(0.5, 0.5);
-        sprite.setDepth(5);
+        sprite.setDepth(snappedY + TILE / 2);
         sprite.clearTint();
         sprite.setInteractive({ useHandCursor: true });
         const collider = this.scene.physics.add.collider(this.player, sprite);

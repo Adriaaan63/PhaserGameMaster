@@ -38,7 +38,7 @@ export class InteractableObject extends GameObjects.Image {
         this.tileX = tileX;
         this.tileY = tileY;
         this.objectType = objectType;
-        this.setDepth(10);
+        this.setDepth(this.y);
         scene.add.existing(this);
     }
 
@@ -74,7 +74,7 @@ export class InteractableObject extends GameObjects.Image {
     /** Makes the object follow the player's hands above the character. */
     public pickUp(): void {
         this.held = true;
-        this.setDepth(25);
+        this.setDepth(this.y + this.tileSize);
     }
 
     /** Places the object at the centre of the supplied tile. */
@@ -86,12 +86,13 @@ export class InteractableObject extends GameObjects.Image {
             (tileX + 0.5) * this.tileSize,
             (tileY + 0.5) * this.tileSize,
         );
-        this.setDepth(10);
+        this.setDepth(this.y);
     }
 
     public updateHeldPosition(playerX: number, playerY: number): void {
         if (this.held) {
             this.setPosition(playerX, playerY - this.tileSize * 0.75);
+            this.setDepth(playerY);
         }
     }
 

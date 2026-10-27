@@ -1,63 +1,38 @@
-¡Perfecto! Este sistema es clave porque introduce la presión de tiempo (mantener pulsado para llenar) y la gestión de inventario limitado (la comida obtenida en el exterior).
+Aquí tienes la redacción detallada y técnica para actualizar tu Documento de Diseño (GDD). Al adoptar una perspectiva 3/4 en un motor 2D, es altamente recomendable añadir una breve nota sobre el **Y-Sorting (Ordenación de Profundidad)** en el apartado mecánico, por lo que he incluido también un pequeño añadido para la sección 4.3.
 
-Aquí tienes el texto redactado de forma precisa para actualizar tu `Game_4.md`. Como siempre, puedes copiar y pegar estos bloques directamente en tu documento para mantener la coherencia del GDD.
+Puedes integrar estos bloques directamente en tu documento:
 
 ---
 
 ### Inserciones para el Game Design Document (GDD)
 
-#### 4. Mechanics (Key Section)
+#### 2. Game Overview
 
-**4.1. Rules – What are the rules to the game, both implicit and explicit.**
-*(Añadir a las reglas del Modo Nocturno / Servicio)*
+**2.5. Look and Feel – What is the basic look and feel of the game? What is the visual style?**
+*(Reemplazar la descripción actual por esta versión ampliada)*
+El juego se presenta en un estilo visual *pixel art* 2D que adopta una **perspectiva top-down (cenital) de tipo 3/4**. Este ángulo ligeramente inclinado permite visualizar tanto la parte superior como el frente de los objetos y personajes, otorgando una gran sensación de profundidad, volumen y tridimensionalidad al entorno.
 
-* **Reglas de Suministro y Preparación:**
-* **Bebidas (Torre Central):** Para servir una bebida, Wuher debe coger un vaso vacío y colocarse frente a la Torre Central (situada en la `zonaCocina`). El llenado no es instantáneo; requiere mantener presionada la tecla de Acción (`Espacio`) durante un tiempo determinado (ej. 2 segundos). Si se suelta la tecla antes de tiempo, el llenado se cancela.
-* **Comida (Parrilla):** La cantidad de comida disponible durante la noche depende estrictamente de lo que el jugador haya conseguido (o se le haya otorgado) en la Fase Diurna exterior. Los clientes solo pedirán comida si hay unidades en el HUD; una vez que el contador llegue a cero, ningún cliente nuevo pedirá platos esa noche.
-* **Estaciones Fijas:** La Torre Central y la Parrilla son inamovibles. El jugador debe acercarse a sus *tiles* específicos para interactuar con ellas.
+La paleta de colores y la atmósfera beben directamente de la estética de "universo usado" de Mos Eisley:
 
-
-
-**4.6. Objects – how to pick them up and move them**
-*(Añadir al final de la sección "Objetos Interactuables")*
-
-* **Gestión de Estaciones de Servicio:**
-* **Interactuar con la Torre Central:** Wuher debe estar en estado `HOLDING` con un "vaso vacío". Al mirar hacia la Torre Central, mantener `Espacio` transforma el "vaso vacío" en "vaso lleno" (Juri Juice, Leche Azul, etc., dependiendo del dispensador o menú activo) tras completar una pequeña barra de progreso.
-* **Recoger de la Parrilla:** Cuando un cliente pide comida, Wuher se acerca a la Parrilla con las manos vacías (estado `EMPTY`). Al pulsar `Espacio`, se resta una unidad del inventario global de comida de esa noche, y Wuher pasa al estado `HOLDING` con un "Plato de Comida" en las manos, listo para ser entregado.
-
-
-
-**4.7. Actions, including whatever switches and buttons are used, interacting with objects...**
-*(Actualizar la lista de acciones de la tecla Espacio)*
-
-* **Acción Contextual Principal (Tecla `Espacio`):** El comportamiento depende del estado del jugador y del tile/objeto objetivo:
-* **Con las manos VACÍAS (`State: EMPTY`):**
-* *Frente a la Parrilla:* Si hay comida disponible en el inventario del HUD, recoge un plato de comida (pasa a estado `HOLDING`). Si el inventario es 0, no ocurre nada o suena un error.
-* *Frente a un vaso vacío:* Lo recoge (pasa a `HOLDING`).
-* *(... resto de acciones: saludar cliente, usar garrote ...)*
-
-
-* **Con las manos OCUPADAS (`State: HOLDING`):**
-* *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
-* *Frente al Cliente / Mesa:* Entrega o apoya el objeto.
-
-
-
-
+* **Contraste Lumínico:** La luminosidad cegadora y cálida del desierto de Tatooine durante el día contrasta fuertemente con la penumbra claustrofóbica, polvorienta y saturada de neón del interior del bar por la noche.
+* **Texturas y Desgaste:** Todo el mobiliario, los recipientes y las estaciones de servicio utilizan tonos apagados y sucios (grises, blancos amarillentos, marrones y verdes militares). Los objetos tienen contornos integrados (sin usar negro puro) y muestran signos de desgaste, óxido y "mugre espacial". Todo esto ocurre con el ritmo estridente del *Jizz* espacial sonando de fondo.
 
 #### 9. Interface
 
-**9.1. Visual System**
+**9.4. Game Art – intended style**
+*(Añadir esta nueva sección que estaba vacía/sin detalle)*
+El estilo artístico está diseñado para equilibrar la densidad visual de un juego de gestión con la claridad necesaria para la acción, tomando inspiraciones de títulos como *Stardew Valley*:
 
-* **9.1.1. HUD:**
-*(Añadir a la descripción del HUD en Modo Nocturno)*
-* **Inventario Dinámico de Suministros:** Durante el servicio nocturno, se mostrará en una esquina de la pantalla (ej. superior izquierda) un contador visual de los suministros de comida conseguidos en el exterior (ej. icono de un filete de Bantha: "x5"). Este número disminuye en tiempo real cada vez que Wuher saca un plato de la Parrilla. Si llega a 0, el icono se vuelve gris o muestra un aspa roja para indicar agotamiento.
-* **Barra de Progreso de Interacción:** Al mantener pulsado `Espacio` en la Torre Central, aparecerá una pequeña barra de carga (progress bar) flotando justo encima de Wuher o del surtidor, llenándose de izquierda a derecha. Se vacía inmediatamente si el jugador suelta el botón antes de tiempo.
+* **Tamaño Base de Cuadrícula:** El mundo se construye sobre una rejilla de *tiles* estándar de **32x32 píxeles** para la estructura del suelo, paredes y cuadrículas de colisión.
+* **Proporciones de Personajes:** Los personajes principales (como Wuher y los clientes) tienen un diseño alargado. Su proporción es el doble de alto que un *tile* estándar de ancho (ocupando un espacio visual aproximado de 32x64 píxeles). Esto les otorga mayor legibilidad anatómica y presencia en pantalla frente al mobiliario.
+* **Escala Asimétrica de Objetos:** Aunque la cuadrícula lógica es de 32x32, los elementos clave del entorno (como la gran Barra en "U", la Torre Central de bebidas, la parrilla o grandes rocas en el exterior) rompen esta escala estricta. Son dibujados como piezas mucho más grandes que abarcan múltiples *tiles* para ganar detalle y presencia visual sin romper la armonía del *pixel art*.
+* **Vistas Direccionales:** Debido a la perspectiva 3/4, todos los *sprites* móviles y el mobiliario interactuable están compuestos obligatoriamente por sus 4 vistas cardinales (frente, espalda, y perfiles laterales) para mantener la coherencia geométrica cuando el jugador se mueva alrededor de ellos.
 
+#### Sugerencia de Adición: 4. Mechanics (Key Section)
 
+*Si usamos perspectiva 3/4 y personajes más altos que los tiles, es obligatorio que el motor sepa qué dibujar delante y qué detrás para mantener la ilusión de 3D. Te recomiendo añadir esta breve nota en el apartado de físicas.*
 
----
+**4.3. Physics**
+*(Añadir esta línea al final del apartado 4.3)*
 
-Con esta redacción, el GDD ahora refleja claramente cómo el botín de la aventura (Fase Diurna) impacta directamente en las mecánicas de gestión de tiempo (Fase Nocturna).
-
-¿Deseas que preparemos el prompt para que el agente empiece a implementar la lógica de la Torre Central y la Parrilla en el código?
+* **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de la barra, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente al mueble.

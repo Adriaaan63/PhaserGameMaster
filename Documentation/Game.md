@@ -36,7 +36,13 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 
-* **2.5. Look and Feel:** El juego se presenta en una vista *top-down* 2D. Se basa en un fuerte contraste visual: la luminosidad cegadora del desierto durante el día contra la penumbra claustrofóbica, polvorienta y saturada de neón del interior del bar por la noche. Todo esto ocurre con el ritmo estridente del *Jizz* espacial de fondo.
+* **2.5. Look and Feel:** El juego se presenta en un estilo visual *pixel art* 2D que adopta una **perspectiva top-down (cenital) de tipo 3/4**. Este ángulo ligeramente inclinado permite visualizar tanto la parte superior como el frente de los objetos y personajes, otorgando una gran sensación de profundidad, volumen y tridimensionalidad al entorno.
+
+    La paleta de colores y la atmósfera beben directamente de la estética de "universo usado" de Mos Eisley:
+
+    * **Contraste Lumínico:** La luminosidad cegadora y cálida del desierto de Tatooine durante el día contrasta fuertemente con la penumbra claustrofóbica, polvorienta y saturada de neón del interior del bar por la noche.
+    * **Texturas y Desgaste:** Todo el mobiliario, los recipientes y las estaciones de servicio utilizan tonos apagados y sucios (grises, blancos amarillentos, marrones y verdes militares). Los objetos tienen contornos integrados (sin usar negro puro) y muestran signos de desgaste, óxido y "mugre espacial". Todo esto ocurre con el ritmo estridente del *Jizz* espacial sonando de fondo.
+
 
 
 
@@ -93,6 +99,7 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
+    * **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de la barra, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente al mueble.
 
 
 * **4.4. Economy:**
@@ -292,7 +299,12 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **9.3. Audio, music, sound effects:** El juego utiliza la música en vivo (*Jizz*) interpretada por los músicos Bith (*Figrin D'an y los Modal Nodes*). Si se les paga mediante `Espacio`, tocan la música durante 20-30 segundos, mitigando el estrés de los clientes y distrayendo al público.
 
 
-* **9.4. Game Art:** (Estilo visual 2D *top-down* basado en *Tiled* maps).
+* **9.4. Game Art:** El estilo artístico está diseñado para equilibrar la densidad visual de un juego de gestión con la claridad necesaria para la acción, tomando inspiraciones de títulos como *Stardew Valley*:
+
+    * **Tamaño Base de Cuadrícula:** El mundo se construye sobre una rejilla de *tiles* estándar de **32x32 píxeles** para la estructura del suelo, paredes y cuadrículas de colisión.
+    * **Proporciones de Personajes:** Los personajes principales (como Wuher y los clientes) tienen un diseño alargado. Su proporción es el doble de alto que un *tile* estándar de ancho (ocupando un espacio visual aproximado de 32x64 píxeles). Esto les otorga mayor legibilidad anatómica y presencia en pantalla frente al mobiliario.
+    * **Escala Asimétrica de Objetos:** Aunque la cuadrícula lógica es de 32x32, los elementos clave del entorno (como la gran Barra en "U", la Torre Central de bebidas, la parrilla o grandes rocas en el exterior) rompen esta escala estricta. Son dibujados como piezas mucho más grandes que abarcan múltiples *tiles* para ganar detalle y presencia visual sin romper la armonía del *pixel art*.
+    * **Vistas Direccionales:** Debido a la perspectiva 3/4, todos los *sprites* móviles y el mobiliario interactuable están compuestos obligatoriamente por sus 4 vistas cardinales (frente, espalda, y perfiles laterales) para mantener la coherencia geométrica cuando el jugador se mueva alrededor de ellos.
 
 
 * **9.5. Help System:** El juego brinda información de apoyo en forma de advertencias visuales dentro del HUD (por ejemplo, rayos rojos entre razas enemigas) que enseñan las reglas del sistema de afinidades.
