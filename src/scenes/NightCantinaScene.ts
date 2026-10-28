@@ -4,7 +4,7 @@ import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
-import { GridManager } from '../managers/GridManager';
+import { GridManager, TILE_TYPE_TABLE, TILE_TYPE_CHAIR } from '../managers/GridManager';
 import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
 import {
@@ -324,8 +324,8 @@ export class NightCantinaScene extends Scene {
     }
 
     private handleOpenCantina(): void {
-        const tableCount = this.gridManager.getPlacedFurnitureCount('MESA');
-        const chairCount = this.gridManager.getPlacedFurnitureCount('SILLA');
+        const tableCount = this.gridManager.getPlacedFurnitureCount(TILE_TYPE_TABLE);
+        const chairCount = this.gridManager.getPlacedFurnitureCount(TILE_TYPE_CHAIR);
 
         if (tableCount < 1 || chairCount < 2) {
             eventBus.emit(EVENT_GAME_WARNING, {

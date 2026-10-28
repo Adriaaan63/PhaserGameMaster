@@ -120,6 +120,26 @@ function isFurnitureTileType(value: TilePropertyValue | undefined): value is Fur
 }
 
 /**
+ * Record stored for every dynamically placed multi-tile furniture piece.
+ * Every tile occupied by the piece references the same record so that
+ * removal from any cell correctly frees the entire footprint.
+ */
+interface PlacedFurnitureEntry {
+    /** Registry ID of the furniture config (e.g. `mesa_redonda_0`). */
+    readonly furnitureId: string;
+    /** Tile type written to the semantic map (e.g. `MESA`). */
+    readonly tileType: FurnitureTileType;
+    /** Root (top-left) tile X coordinate. */
+    readonly rootX: number;
+    /** Root (top-left) tile Y coordinate. */
+    readonly rootY: number;
+    /** Footprint width in tiles. */
+    readonly width: number;
+    /** Footprint height in tiles. */
+    readonly height: number;
+}
+
+/**
  * Manages the tile-based grid that defines furniture placement,
  * interactable objects, and walkable zones in the cantina.
  *
@@ -130,7 +150,7 @@ function isFurnitureTileType(value: TilePropertyValue | undefined): value is Fur
 export class GridManager {
     public readonly tilemap: Tilemaps.Tilemap;
     private readonly furnitureTypes: Map<string, FurnitureTileType> = new Map();
-    private readonly placedFurniture: Map<string, FurnitureTileType> = new Map();
+    private readonly placedFurniture: Map<string, PlacedFurnitureEntry> = new Map();
     private readonly interactableObjects: Map<string, InteractableObject> = new Map();
     private readonly stations: Map<string, Station> = new Map();
     private readonly restrictedTiles: Set<string> = new Set();
@@ -156,22 +176,200 @@ export class GridManager {
     /** Returns the semantic tile type at grid coordinates. */
     public getTileTypeAtGrid(tileX: number, tileY: number): FurnitureTileType {
         const key = this.getTileKey(tileX, tileY);
-        return this.placedFurniture.get(key) ?? this.furnitureTypes.get(key) ?? TILE_TYPE_EMPTY;
+        const placed = this.placedFurniture.get(key);
+        if (placed !== undefined) {
+            return placed.tileType;
+        }
+        return this.furnitureTypes.get(key) ?? TILE_TYPE_EMPTY;
     }
 
     /**
-     * Determines whether a specific tile coordinate is eligible for furniture placement.
-     * Returns true only if:
-     * 1. The tile is within map bounds.
-     * 2. It has an interior floor tile (not void, not exterior, and not marked buildable: false).
-     * 3. It does not collide with walls, bar counters, decorations, or doors.
-     * 4. It does not lie inside a restricted zone (band stage, kitchen, storage, queue, spawns).
-     * 5. It is not currently occupied by placed or static furniture.
+     * Determines whether every tile in a rectangular footprint is eligible
+     * for furniture placement.
      *
-     * @param tileX Grid X coordinate.
-     * @param tileY Grid Y coordinate.
+     * Returns true only if **all** cells satisfy:
+     * 1. Within map bounds.
+     * 2. Has an interior floor tile (not void, not exterior, not `buildable: false`).
+     * 3. No collision with walls, bar counters, decorations, or doors.
+     * 4. Not inside a restricted zone (band stage, kitchen, storage, queue, spawns).
+     * 5. Not currently occupied by placed or static furniture.
+     *
+     * @param tileX Root (top-left) grid X coordinate.
+     * @param tileY Root (top-left) grid Y coordinate.
+     * @param width Footprint width in tiles (defaults to 1).
+     * @param height Footprint height in tiles (defaults to 1).
      */
-    public isTileBuildable(tileX: number, tileY: number): boolean {
+    public isTileBuildable(
+        tileX: number,
+        tileY: number,
+        width: number = 1,
+        height: number = 1,
+    ): boolean {
+        for (let offsetX = 0; offsetX < width; offsetX++) {
+            for (let offsetY = 0; offsetY < height; offsetY++) {
+                if (!this.isSingleTileBuildable(tileX + offsetX, tileY + offsetY)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Registers a multi-tile furniture item placed dynamically onto the grid.
+     *
+     * @param tileX Root (top-left) grid X coordinate.
+     * @param tileY Root (top-left) grid Y coordinate.
+     * @param tileType Semantic tile type (e.g. `MESA` / `SILLA`).
+     * @param furnitureId Registry ID of the furniture config.
+     * @param width Footprint width in tiles.
+     * @param height Footprint height in tiles.
+     * @returns True if placement succeeded, false if any cell was unbuildable.
+     */
+    public placeFurniture(
+        tileX: number,
+        tileY: number,
+        tileType: FurnitureTileType,
+        furnitureId: string,
+        width: number = 1,
+        height: number = 1,
+    ): boolean {
+        if (!this.isTileBuildable(tileX, tileY, width, height)) {
+            return false;
+        }
+
+        const entry: PlacedFurnitureEntry = {
+            furnitureId,
+            tileType,
+            rootX: tileX,
+            rootY: tileY,
+            width,
+            height,
+        };
+
+        for (let offsetX = 0; offsetX < width; offsetX++) {
+            for (let offsetY = 0; offsetY < height; offsetY++) {
+                const key = this.getTileKey(tileX + offsetX, tileY + offsetY);
+                this.placedFurniture.set(key, entry);
+                this.furnitureTypes.set(key, tileType);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Removes all tiles belonging to the multi-tile furniture piece that
+     * occupies the given grid cell.
+     *
+     * @param tileX Grid X coordinate (can be any cell of the piece).
+     * @param tileY Grid Y coordinate.
+     * @returns The entry of the removed furniture, or `null` if none existed.
+     */
+    public removeFurniture(tileX: number, tileY: number): PlacedFurnitureEntry | null {
+        const key = this.getTileKey(tileX, tileY);
+        const entry = this.placedFurniture.get(key) ?? null;
+
+        if (entry === null) {
+            return null;
+        }
+
+        // Free every cell covered by this furniture piece.
+        for (let offsetX = 0; offsetX < entry.width; offsetX++) {
+            for (let offsetY = 0; offsetY < entry.height; offsetY++) {
+                const cellKey = this.getTileKey(entry.rootX + offsetX, entry.rootY + offsetY);
+                this.placedFurniture.delete(cellKey);
+                this.furnitureTypes.delete(cellKey);
+            }
+        }
+
+        return entry;
+    }
+
+    /**
+     * Checks if a tile is currently occupied by dynamically placed furniture.
+     */
+    public hasFurnitureAt(tileX: number, tileY: number): boolean {
+        return this.placedFurniture.has(this.getTileKey(tileX, tileY));
+    }
+
+    /**
+     * Gets the dynamically placed furniture entry at the given grid coordinates.
+     */
+    public getFurnitureAt(tileX: number, tileY: number): PlacedFurnitureEntry | null {
+        return this.placedFurniture.get(this.getTileKey(tileX, tileY)) ?? null;
+    }
+
+    /**
+     * Counts how many distinct furniture pieces of a given tile type are
+     * currently placed on the grid.
+     *
+     * Because multi-tile pieces share the same `PlacedFurnitureEntry`
+     * reference across all their cells, we collect unique entries before
+     * counting to avoid inflating the total.
+     */
+    public getPlacedFurnitureCount(type: FurnitureTileType): number {
+        const seen = new Set<PlacedFurnitureEntry>();
+        for (const entry of this.placedFurniture.values()) {
+            if (entry.tileType === type && !seen.has(entry)) {
+                seen.add(entry);
+            }
+        }
+        return seen.size;
+    }
+
+    public registerInteractableObject(
+        object: InteractableObject,
+        tileX: number,
+        tileY: number,
+    ): boolean {
+        const key = this.getTileKey(tileX, tileY);
+        if (this.interactableObjects.has(key)) {
+            return false;
+        }
+
+        this.interactableObjects.set(key, object);
+        return true;
+    }
+
+    public getInteractableObjectAt(tileX: number, tileY: number): InteractableObject | null {
+        return this.interactableObjects.get(this.getTileKey(tileX, tileY)) ?? null;
+    }
+
+    public removeInteractableObject(tileX: number, tileY: number): InteractableObject | null {
+        const key = this.getTileKey(tileX, tileY);
+        const object = this.interactableObjects.get(key) ?? null;
+        if (object !== null) {
+            this.interactableObjects.delete(key);
+        }
+        return object;
+    }
+
+    public registerStation(station: Station): void {
+        this.registerStationAt(station, station.tileX, station.tileY);
+    }
+
+    public registerStationAt(station: Station, tileX: number, tileY: number): void {
+        this.stations.set(this.getTileKey(tileX, tileY), station);
+    }
+
+    public getStationAt(tileX: number, tileY: number): Station | null {
+        return this.stations.get(this.getTileKey(tileX, tileY)) ?? null;
+    }
+
+    /**
+     * Checks whether a tile belongs to an invalid or restricted zone.
+     */
+    public isTileRestricted(tileX: number, tileY: number): boolean {
+        return this.restrictedTiles.has(this.getTileKey(tileX, tileY));
+    }
+
+    /**
+     * Checks whether a **single** tile coordinate is eligible for furniture.
+     * This is the atomic building block used by the area-based
+     * `isTileBuildable(x, y, w, h)`.
+     */
+    private isSingleTileBuildable(tileX: number, tileY: number): boolean {
         // 1. Map boundaries
         if (tileX < 0 || tileX >= this.tilemap.width || tileY < 0 || tileY >= this.tilemap.height) {
             return false;
@@ -222,114 +420,6 @@ export class GridManager {
         }
 
         return true;
-    }
-
-    /**
-     * Registers a furniture item placed dynamically onto the grid.
-     *
-     * @param tileX Grid X coordinate.
-     * @param tileY Grid Y coordinate.
-     * @param type Furniture type (e.g. TILE_TYPE_TABLE or TILE_TYPE_CHAIR).
-     * @returns True if placement succeeded, false if tile was unbuildable.
-     */
-    public placeFurniture(tileX: number, tileY: number, type: FurnitureTileType): boolean {
-        if (!this.isTileBuildable(tileX, tileY)) {
-            return false;
-        }
-
-        const key = this.getTileKey(tileX, tileY);
-        this.placedFurniture.set(key, type);
-        this.furnitureTypes.set(key, type);
-        return true;
-    }
-
-    /**
-     * Removes dynamically placed furniture at grid coordinates.
-     *
-     * @param tileX Grid X coordinate.
-     * @param tileY Grid Y coordinate.
-     * @returns The removed FurnitureTileType, or null if none existed.
-     */
-    public removeFurniture(tileX: number, tileY: number): FurnitureTileType | null {
-        const key = this.getTileKey(tileX, tileY);
-        const removed = this.placedFurniture.get(key) ?? null;
-
-        if (removed !== null) {
-            this.placedFurniture.delete(key);
-            this.furnitureTypes.delete(key);
-        }
-
-        return removed;
-    }
-
-    /**
-     * Checks if a tile is currently occupied by dynamically placed furniture.
-     */
-    public hasFurnitureAt(tileX: number, tileY: number): boolean {
-        return this.placedFurniture.has(this.getTileKey(tileX, tileY));
-    }
-
-    /**
-     * Gets the dynamically placed furniture type at the given grid coordinates, if any.
-     */
-    public getFurnitureAt(tileX: number, tileY: number): FurnitureTileType | null {
-        return this.placedFurniture.get(this.getTileKey(tileX, tileY)) ?? null;
-    }
-
-    public getPlacedFurnitureCount(type: FurnitureTileType): number {
-        let count = 0;
-        for (const placedType of this.placedFurniture.values()) {
-            if (placedType === type) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    public registerInteractableObject(
-        object: InteractableObject,
-        tileX: number,
-        tileY: number,
-    ): boolean {
-        const key = this.getTileKey(tileX, tileY);
-        if (this.interactableObjects.has(key)) {
-            return false;
-        }
-
-        this.interactableObjects.set(key, object);
-        return true;
-    }
-
-    public getInteractableObjectAt(tileX: number, tileY: number): InteractableObject | null {
-        return this.interactableObjects.get(this.getTileKey(tileX, tileY)) ?? null;
-    }
-
-    public removeInteractableObject(tileX: number, tileY: number): InteractableObject | null {
-        const key = this.getTileKey(tileX, tileY);
-        const object = this.interactableObjects.get(key) ?? null;
-        if (object !== null) {
-            this.interactableObjects.delete(key);
-        }
-        return object;
-    }
-
-    public registerStation(station: Station): void {
-        this.registerStationAt(station, station.tileX, station.tileY);
-    }
-
-    public registerStationAt(station: Station, tileX: number, tileY: number): void {
-        this.stations.set(this.getTileKey(tileX, tileY), station);
-    }
-
-    public getStationAt(tileX: number, tileY: number): Station | null {
-        return this.stations.get(this.getTileKey(tileX, tileY)) ?? null;
-    }
-
-    /**
-     * Checks whether a tile belongs to an invalid or restricted zone.
-     */
-    public isTileRestricted(tileX: number, tileY: number): boolean {
-        return this.restrictedTiles.has(this.getTileKey(tileX, tileY));
     }
 
     /**

@@ -1,5 +1,7 @@
 import { Events } from 'phaser';
 
+import type { FurnitureCategory } from '../data/FurnitureRegistry';
+
 export const EVENT_GAME_READY = 'game-ready';
 
 // Pre-Apertura (Construcción) / Placement events
@@ -14,7 +16,12 @@ export const EVENT_GAME_WARNING = 'game:warning';
 export const EVENT_BEVERAGE_FILL_PROGRESS = 'station:beverage-fill-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 
-export type FurnitureType = 'MESA' | 'SILLA';
+/**
+ * @deprecated Use `FurnitureCategory` from `FurnitureRegistry` instead.
+ * Kept temporarily for backward-compatible tile-type checks.
+ */
+export type FurnitureType = FurnitureCategory;
+
 export type GameMode = 'PRE_APERTURA' | 'NOCHE';
 export const GAME_MODE_PRE_OPENING: GameMode = 'PRE_APERTURA';
 export const GAME_MODE_NIGHT: GameMode = 'NOCHE';
@@ -27,8 +34,14 @@ export interface GameWarningData {
     readonly message: string;
 }
 
+/**
+ * Emitted when the player starts dragging a furniture item from inventory.
+ * Now carries the specific `furnitureId` from the registry instead of a
+ * generic type string.
+ */
 export interface PlacementStartData {
-    readonly type: FurnitureType;
+    /** ID of the furniture config (e.g. `mesa_redonda_0`). */
+    readonly furnitureId: string;
     readonly screenX?: number;
     readonly screenY?: number;
 }
@@ -43,14 +56,22 @@ export interface PlacementEndData {
     readonly screenY: number;
 }
 
+/**
+ * Emitted when a piece of furniture is successfully placed on the grid.
+ * Carries the specific `furnitureId` and the root tile coordinates.
+ */
 export interface FurniturePlacedData {
-    readonly type: FurnitureType;
+    readonly furnitureId: string;
     readonly tileX: number;
     readonly tileY: number;
 }
 
+/**
+ * Emitted when a piece of placed furniture is removed from the grid.
+ * Carries the specific `furnitureId` and the root tile coordinates.
+ */
 export interface FurnitureRemovedData {
-    readonly type: FurnitureType;
+    readonly furnitureId: string;
     readonly tileX: number;
     readonly tileY: number;
 }

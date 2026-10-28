@@ -1,6 +1,12 @@
 import { GameObjects, Input, Scene } from 'phaser';
 
 import {
+    FURNITURE_REGISTRY,
+    UNLOCKED_FURNITURE_IDS,
+    getFurnitureConfig,
+    type FurnitureConfig,
+} from '../data/FurnitureRegistry';
+import {
     EVENT_CANTINA_OPEN,
     EVENT_DRAG_END,
     EVENT_DRAG_MOVE,
@@ -12,43 +18,66 @@ import {
     type FurniturePlacedData,
     type FurnitureRemovedData,
     type GameModeChangedData,
-    type FurnitureType,
     type PlacementEndData,
     type PlacementMoveData,
     type PlacementStartData,
 } from '../utils/EventBus';
 
+/** Visual elements that make up a single inventory slot. */
 interface SlotElements {
     readonly container: GameObjects.Container;
     readonly background: GameObjects.Rectangle;
     readonly countText: GameObjects.Text;
 }
 
+/** Slot width / height used for layout calculations. */
+const SLOT_WIDTH = 120;
+const SLOT_HEIGHT = 36;
+/** Size of the preview icon inside each slot (square). */
+const ICON_DISPLAY_SIZE = 22;
+const BAR_WIDTH = 320;
+const BAR_HEIGHT = 56;
+const OPEN_BUTTON_WIDTH = 150;
+const OPEN_BUTTON_HEIGHT = 34;
+
+/** Border colour used for the default (non-hovered) slot state. */
+const SLOT_BORDER_COLOR = 0xd4a359;
+
+/**
+ * Starting stock keyed by furniture config ID.
+ * These initial values can later be driven by save-data or shop state.
+ */
+const INITIAL_STOCK: Readonly<Record<string, number>> = {
+    mesa_redonda_0: 5,
+    silla_estandar_0: 10,
+} as const;
+
 /**
  * HUD component responsible for the Pre-Opening inventory toolbar.
- * Displays available furniture stock (Mesa and Silla) in a responsive
- * bottom bar and provides an "Abrir Cantina" action button in the top-right.
+ * Displays available furniture stock in a responsive bottom bar and
+ * provides an "Abrir Cantina" action button in the top-right.
+ *
+ * Fully data-driven: slots are generated from `UNLOCKED_FURNITURE_IDS`
+ * and the `FurnitureRegistry`, so adding new furniture only requires
+ * updating the registry and adding an entry to the unlocked list.
  */
 export class InventoryUI {
     private readonly scene: Scene;
-    private readonly stock: Record<FurnitureType, number> = {
-        MESA: 5,
-        SILLA: 10,
-    };
+    private readonly stock: Map<string, number> = new Map();
 
     private isDragging: boolean = false;
-    private activeDragType: FurnitureType | null = null;
+    private activeDragId: string | null = null;
 
     private readonly barContainer: GameObjects.Container;
     private readonly openButtonContainer: GameObjects.Container;
-    private readonly slots: Map<FurnitureType, SlotElements> = new Map();
+    private readonly slots: Map<string, SlotElements> = new Map();
 
     private readonly onFurniturePlacedBound = (data: FurniturePlacedData): void => {
-        this.deductItem(data.type);
+        this.deductItem(data.furnitureId);
     };
 
     private readonly onFurnitureRemovedBound = (data: FurnitureRemovedData): void => {
-        this.addItem(data.type);
+        this.addItem(data.furnitureId);
     };
 
     private readonly onGameModeChangedBound = (data: GameModeChangedData): void => {
@@ -59,6 +88,11 @@ export class InventoryUI {
 
     public constructor(scene: Scene) {
         this.scene = scene;
+
+        // Initialise stock from static defaults
+        for (const [id, quantity] of Object.entries(INITIAL_STOCK)) {
+            this.stock.set(id, quantity);
+        }
 
         this.barContainer = this.scene.add.container(0, 0);
         this.openButtonContainer = this.scene.add.container(0, 0);
@@ -76,29 +110,31 @@ export class InventoryUI {
     /**
      * Deducts one unit of the specified furniture from inventory.
      */
-    public deductItem(type: FurnitureType): boolean {
-        if (this.stock[type] <= 0) {
+    public deductItem(furnitureId: string): boolean {
+        const current = this.stock.get(furnitureId) ?? 0;
+        if (current <= 0) {
             return false;
         }
 
-        this.stock[type]--;
-        this.updateSlotDisplay(type);
+        this.stock.set(furnitureId, current - 1);
+        this.updateSlotDisplay(furnitureId);
         return true;
     }
 
     /**
      * Adds one unit of the specified furniture back into inventory.
      */
-    public addItem(type: FurnitureType): void {
-        this.stock[type]++;
-        this.updateSlotDisplay(type);
+    public addItem(furnitureId: string): void {
+        const current = this.stock.get(furnitureId) ?? 0;
+        this.stock.set(furnitureId, current + 1);
+        this.updateSlotDisplay(furnitureId);
     }
 
     /**
-     * Gets current quantity of a specific furniture type.
+     * Gets current quantity of a specific furniture by its registry ID.
      */
-    public getQuantity(type: FurnitureType): number {
-        return this.stock[type];
+    public getQuantity(furnitureId: string): number {
+        return this.stock.get(furnitureId) ?? 0;
     }
 
     /**
@@ -130,18 +166,16 @@ export class InventoryUI {
     }
 
     /**
-     * Builds the bottom toolbar containing the Mesa and Silla item slots.
+     * Builds the bottom toolbar containing the furniture item slots.
+     * Slots are generated dynamically from `UNLOCKED_FURNITURE_IDS`.
      */
     private createBottomBar(): void {
-        const barWidth = 320;
-        const barHeight = 56;
-
         // Background panel
-        const bg = this.scene.add.rectangle(0, 0, barWidth, barHeight, 0x14110e, 0.9);
-        bg.setStrokeStyle(1.5, 0xd4a359, 0.85);
+        const bg = this.scene.add.rectangle(0, 0, BAR_WIDTH, BAR_HEIGHT, 0x14110e, 0.9);
+        bg.setStrokeStyle(1.5, SLOT_BORDER_COLOR, 0.85);
 
         // Header label
-        const titleText = this.scene.add.text(0, -barHeight / 2 + 7, 'INVENTARIO - PRE-APERTURA', {
+        const titleText = this.scene.add.text(0, -BAR_HEIGHT / 2 + 7, 'INVENTARIO - PRE-APERTURA', {
             fontFamily: 'monospace',
             fontSize: '9px',
             color: '#bfa068',
@@ -151,49 +185,61 @@ export class InventoryUI {
 
         this.barContainer.add([bg, titleText]);
 
-        // Slot 1: Mesa
-        const mesaSlot = this.createItemSlot('MESA', 'Mesa', 0x8c5828, 0xd4ac0d, -75, 7);
-        // Slot 2: Silla
-        const sillaSlot = this.createItemSlot('SILLA', 'Silla', 0x2980b9, 0x5dade2, 75, 7);
+        // Dynamically create a slot for each unlocked furniture
+        const totalSlots = UNLOCKED_FURNITURE_IDS.length;
+        const slotSpacing = SLOT_WIDTH + 10;
+        const totalWidth = totalSlots * slotSpacing - 10;
+        const startX = -totalWidth / 2 + SLOT_WIDTH / 2;
 
-        this.slots.set('MESA', mesaSlot);
-        this.slots.set('SILLA', sillaSlot);
+        for (let index = 0; index < UNLOCKED_FURNITURE_IDS.length; index++) {
+            const furnitureId = UNLOCKED_FURNITURE_IDS[index];
+            const config = getFurnitureConfig(furnitureId);
+            if (config === undefined) {
+                continue;
+            }
 
-        this.barContainer.add([mesaSlot.container, sillaSlot.container]);
+            const offsetX = startX + index * slotSpacing;
+            const offsetY = 7;
+
+            const slot = this.createItemSlot(config, offsetX, offsetY);
+            this.slots.set(furnitureId, slot);
+            this.barContainer.add(slot.container);
+        }
     }
 
     /**
-     * Creates an interactive inventory slot with an icon, title, and quantity text.
+     * Creates an interactive inventory slot with a sprite preview icon,
+     * title label, and quantity text.
+     *
+     * @param config Furniture configuration from the registry.
+     * @param offsetX Horizontal offset within the bar container.
+     * @param offsetY Vertical offset within the bar container.
      */
     private createItemSlot(
-        type: FurnitureType,
-        label: string,
-        fillColor: number,
-        borderColor: number,
+        config: FurnitureConfig,
         offsetX: number,
         offsetY: number,
     ): SlotElements {
         const slotContainer = this.scene.add.container(offsetX, offsetY);
-        const slotWidth = 120;
-        const slotHeight = 36;
 
-        const slotBg = this.scene.add.rectangle(0, 0, slotWidth, slotHeight, 0x241e18, 0.95);
-        slotBg.setStrokeStyle(1, borderColor, 0.6);
+        const slotBg = this.scene.add.rectangle(0, 0, SLOT_WIDTH, SLOT_HEIGHT, 0x241e18, 0.95);
+        slotBg.setStrokeStyle(1, SLOT_BORDER_COLOR, 0.6);
         slotBg.setInteractive({ useHandCursor: true });
 
-        // Furniture preview icon
-        const icon = this.scene.add.rectangle(-slotWidth / 2 + 20, 0, 22, 22, fillColor);
-        icon.setStrokeStyle(1.5, borderColor, 1);
+        // Furniture preview icon — real sprite from the registry texture
+        const icon = this.scene.add.image(-SLOT_WIDTH / 2 + 20, 0, config.texture);
+        icon.setDisplaySize(ICON_DISPLAY_SIZE, ICON_DISPLAY_SIZE);
 
         // Item label
-        const itemLabel = this.scene.add.text(-slotWidth / 2 + 36, -6, label, {
+        const itemLabel = this.scene.add.text(-SLOT_WIDTH / 2 + 36, -6, config.name, {
             fontFamily: 'sans-serif',
             fontSize: '11px',
             color: '#f4ede2',
         });
 
         // Stock counter text
-        const countText = this.scene.add.text(-slotWidth / 2 + 36, 6, `x${this.stock[type]}`, {
+        const currentStock = this.stock.get(config.id) ?? 0;
+        const countText = this.scene.add.text(-SLOT_WIDTH / 2 + 36, 6, `x${currentStock}`, {
             fontFamily: 'monospace',
             fontSize: '11px',
             color: '#ffd166',
@@ -203,25 +249,25 @@ export class InventoryUI {
 
         // Slot interactions: hover and drag start
         slotBg.on('pointerover', () => {
-            if (this.stock[type] > 0) {
+            if ((this.stock.get(config.id) ?? 0) > 0) {
                 slotBg.setStrokeStyle(1.5, 0xffffff, 1);
             }
         });
 
         slotBg.on('pointerout', () => {
-            slotBg.setStrokeStyle(1, borderColor, 0.6);
+            slotBg.setStrokeStyle(1, SLOT_BORDER_COLOR, 0.6);
         });
 
         slotBg.on('pointerdown', (pointer: Input.Pointer) => {
-            if (this.stock[type] <= 0) {
+            if ((this.stock.get(config.id) ?? 0) <= 0) {
                 return;
             }
 
             this.isDragging = true;
-            this.activeDragType = type;
+            this.activeDragId = config.id;
 
             const startData: PlacementStartData = {
-                type,
+                furnitureId: config.id,
                 screenX: pointer.x,
                 screenY: pointer.y,
             };
@@ -239,10 +285,7 @@ export class InventoryUI {
      * Builds the "Abrir Cantina" visual button placed at the top-right of the screen.
      */
     private createOpenButton(): void {
-        const btnWidth = 150;
-        const btnHeight = 34;
-
-        const btnBg = this.scene.add.rectangle(0, 0, btnWidth, btnHeight, 0xd35400, 0.95);
+        const btnBg = this.scene.add.rectangle(0, 0, OPEN_BUTTON_WIDTH, OPEN_BUTTON_HEIGHT, 0xd35400, 0.95);
         btnBg.setStrokeStyle(1.5, 0xf39c12, 1);
         btnBg.setInteractive({ useHandCursor: true });
 
@@ -270,15 +313,15 @@ export class InventoryUI {
     }
 
     /**
-     * Updates visual display (count text and dimming) for a given slot.
+     * Updates visual display (count text and dimming) for a given furniture ID slot.
      */
-    private updateSlotDisplay(type: FurnitureType): void {
-        const slot = this.slots.get(type);
+    private updateSlotDisplay(furnitureId: string): void {
+        const slot = this.slots.get(furnitureId);
         if (slot === undefined) {
             return;
         }
 
-        const count = this.stock[type];
+        const count = this.stock.get(furnitureId) ?? 0;
         slot.countText.setText(`x${count}`);
 
         if (count <= 0) {
@@ -322,7 +365,7 @@ export class InventoryUI {
         }
 
         this.isDragging = false;
-        this.activeDragType = null;
+        this.activeDragId = null;
 
         const endData: PlacementEndData = {
             screenX: pointer.x,

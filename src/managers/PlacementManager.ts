@@ -1,6 +1,7 @@
 import { GameObjects, Input, Physics, Scene, Types } from 'phaser';
 
 import { TILE } from '../data/constants';
+import { getFurnitureConfig, type FurnitureConfig } from '../data/FurnitureRegistry';
 import { Player } from '../entities/Player';
 import {
     EVENT_DRAG_END,
@@ -9,30 +10,53 @@ import {
     EVENT_FURNITURE_REMOVED,
     EVENT_START_PLACEMENT,
     eventBus,
-    type FurnitureType,
     type PlacementEndData,
     type PlacementMoveData,
     type PlacementStartData,
 } from '../utils/EventBus';
-import { GridManager } from './GridManager';
+import { GridManager, TILE_TYPE_CHAIR, TILE_TYPE_TABLE, type FurnitureTileType } from './GridManager';
 
+/** Internal record for every placed furniture sprite. Keyed by root tile. */
 interface PlacedFurnitureRecord {
     readonly sprite: Types.Physics.Arcade.ImageWithStaticBody;
     readonly collider: Physics.Arcade.Collider;
-    readonly type: FurnitureType;
-    readonly tileX: number;
-    readonly tileY: number;
+    readonly furnitureId: string;
+    readonly config: FurnitureConfig;
+    readonly rootTileX: number;
+    readonly rootTileY: number;
 }
-
-const TEXTURE_MESA = 'furniture_mesa';
-const TEXTURE_SILLA = 'furniture_silla';
 
 const TINT_VALID = 0x00ff00;
 const TINT_INVALID = 0xff0000;
+const GHOST_ALPHA = 0.75;
+const HIGHLIGHT_FILL_ALPHA = 0.35;
+const HIGHLIGHT_STROKE_ALPHA = 0.9;
+const HIGHLIGHT_STROKE_WIDTH = 1.5;
+const GHOST_DEPTH = 16;
+const HIGHLIGHT_DEPTH = 15;
+
+/**
+ * Maps a `FurnitureCategory` to its semantic `FurnitureTileType`
+ * so the `GridManager` tile map stays consistent.
+ */
+function categoryToTileType(category: string): FurnitureTileType {
+    switch (category) {
+        case 'MESA':
+            return TILE_TYPE_TABLE;
+        case 'SILLA':
+            return TILE_TYPE_CHAIR;
+        default:
+            return TILE_TYPE_TABLE;
+    }
+}
 
 /**
  * Handles the Drag & Drop placement and removal of cantina furniture
  * (Mesas and Sillas) during the Pre-Opening Construction phase.
+ *
+ * Now fully data-driven: every drag operation resolves its dimensions,
+ * texture, and grid footprint from the `FurnitureRegistry` instead of
+ * hardcoded 1×1 procedural textures.
  *
  * Responsibilities:
  * - Listens to inventory drag events from EventBus.
@@ -48,7 +72,7 @@ export class PlacementManager {
 
     private isDragging: boolean = false;
     private isEnabled: boolean = true;
-    private currentType: FurnitureType | null = null;
+    private currentConfig: FurnitureConfig | null = null;
     private currentTileX: number = -1;
     private currentTileY: number = -1;
     private isCurrentValid: boolean = false;
@@ -56,10 +80,11 @@ export class PlacementManager {
     private ghostSprite: GameObjects.Image | null = null;
     private tileHighlight: GameObjects.Rectangle | null = null;
 
+    /** Keyed by root tile key (`rootX:rootY`). */
     private readonly placedFurnitureMap: Map<string, PlacedFurnitureRecord> = new Map();
 
     private readonly onStartPlacementBound = (data: PlacementStartData): void => {
-        this.startDrag(data.type, data.screenX, data.screenY);
+        this.startDrag(data.furnitureId, data.screenX, data.screenY);
     };
 
     private readonly onDragMoveBound = (data: PlacementMoveData): void => {
@@ -75,7 +100,6 @@ export class PlacementManager {
         this.gridManager = gridManager;
         this.player = player;
 
-        this.ensureTextures();
         this.createVisualIndicators();
         this.setupEventListeners();
 
@@ -105,15 +129,22 @@ export class PlacementManager {
     }
 
     /**
-     * Removes dynamically placed furniture at grid coordinates and returns it to inventory.
+     * Removes dynamically placed furniture whose footprint includes the
+     * given grid coordinates and returns it to inventory.
      *
-     * @param tileX Grid X coordinate.
+     * @param tileX Grid X coordinate (any cell of the piece).
      * @param tileY Grid Y coordinate.
      * @returns True if furniture was removed, false if none existed at those coordinates.
      */
     public removeFurnitureAt(tileX: number, tileY: number): boolean {
-        const key = this.getTileKey(tileX, tileY);
-        const record = this.placedFurnitureMap.get(key);
+        // The GridManager entry knows the root tile; look it up.
+        const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
+        if (gridEntry === null) {
+            return false;
+        }
+
+        const rootKey = this.getTileKey(gridEntry.rootX, gridEntry.rootY);
+        const record = this.placedFurnitureMap.get(rootKey);
 
         if (record === undefined) {
             return false;
@@ -121,13 +152,13 @@ export class PlacementManager {
 
         record.collider.destroy();
         record.sprite.destroy();
-        this.placedFurnitureMap.delete(key);
+        this.placedFurnitureMap.delete(rootKey);
         this.gridManager.removeFurniture(tileX, tileY);
 
         eventBus.emit(EVENT_FURNITURE_REMOVED, {
-            type: record.type,
-            tileX,
-            tileY,
+            furnitureId: record.furnitureId,
+            tileX: record.rootTileX,
+            tileY: record.rootTileY,
         });
 
         return true;
@@ -156,23 +187,36 @@ export class PlacementManager {
     }
 
     /**
-     * Begins dragging a ghost item corresponding to the chosen furniture type.
+     * Begins dragging a ghost item corresponding to the chosen furniture ID.
+     * Looks up the `FurnitureConfig` from the registry and adjusts the
+     * ghost sprite texture and highlight dimensions dynamically.
      */
-    private startDrag(type: FurnitureType, screenX?: number, screenY?: number): void {
+    private startDrag(furnitureId: string, screenX?: number, screenY?: number): void {
         if (!this.isEnabled) {
             return;
         }
-        this.isDragging = true;
-        this.currentType = type;
 
-        const textureKey = type === 'MESA' ? TEXTURE_MESA : TEXTURE_SILLA;
+        const config = getFurnitureConfig(furnitureId);
+        if (config === undefined) {
+            console.warn(`PlacementManager: unknown furniture ID "${furnitureId}".`);
+            return;
+        }
+
+        this.isDragging = true;
+        this.currentConfig = config;
+
+        const pixelWidth = config.widthTiles * TILE;
+        const pixelHeight = config.heightTiles * TILE;
+
         if (this.ghostSprite !== null) {
-            this.ghostSprite.setTexture(textureKey);
+            this.ghostSprite.setTexture(config.texture);
+            this.ghostSprite.setDisplaySize(pixelWidth, pixelHeight);
             this.ghostSprite.setVisible(true);
-            this.ghostSprite.setAlpha(0.75);
+            this.ghostSprite.setAlpha(GHOST_ALPHA);
         }
 
         if (this.tileHighlight !== null) {
+            this.tileHighlight.setSize(pixelWidth, pixelHeight);
             this.tileHighlight.setVisible(true);
         }
 
@@ -185,11 +229,17 @@ export class PlacementManager {
 
     /**
      * Updates ghost position with grid snapping and visual feedback (green/red).
+     *
+     * The ghost and highlight are centred over the multi-tile footprint:
+     *   `centreX = rootTileX * TILE + (widthTiles * TILE) / 2`
+     *   `centreY = rootTileY * TILE + (heightTiles * TILE) / 2`
      */
     private updateDragPosition(screenX: number, screenY: number): void {
-        if (!this.isDragging || this.ghostSprite === null || this.tileHighlight === null) {
+        if (!this.isDragging || this.ghostSprite === null || this.tileHighlight === null || this.currentConfig === null) {
             return;
         }
+
+        const config = this.currentConfig;
 
         // Convert screen coordinates through camera viewport/zoom into cantina world pixels
         const worldPoint = this.scene.cameras.main.getWorldPoint(screenX, screenY);
@@ -199,25 +249,30 @@ export class PlacementManager {
         this.currentTileX = tileX;
         this.currentTileY = tileY;
 
-        // Snapping: position center of the 32x32 grid tile
-        const snappedX = (tileX + 0.5) * TILE;
-        const snappedY = (tileY + 0.5) * TILE;
+        // Snapping: centre the ghost over the multi-tile footprint
+        const snappedX = tileX * TILE + (config.widthTiles * TILE) / 2;
+        const snappedY = tileY * TILE + (config.heightTiles * TILE) / 2;
 
         this.ghostSprite.setPosition(snappedX, snappedY);
         this.tileHighlight.setPosition(snappedX, snappedY);
 
-        // Check buildability through GridManager
-        const buildable = this.gridManager.isTileBuildable(tileX, tileY);
+        // Check buildability for the entire footprint through GridManager
+        const buildable = this.gridManager.isTileBuildable(
+            tileX,
+            tileY,
+            config.widthTiles,
+            config.heightTiles,
+        );
         this.isCurrentValid = buildable;
 
         if (buildable) {
             this.ghostSprite.setTint(TINT_VALID);
-            this.tileHighlight.setFillStyle(TINT_VALID, 0.35);
-            this.tileHighlight.setStrokeStyle(1.5, TINT_VALID, 0.9);
+            this.tileHighlight.setFillStyle(TINT_VALID, HIGHLIGHT_FILL_ALPHA);
+            this.tileHighlight.setStrokeStyle(HIGHLIGHT_STROKE_WIDTH, TINT_VALID, HIGHLIGHT_STROKE_ALPHA);
         } else {
             this.ghostSprite.setTint(TINT_INVALID);
-            this.tileHighlight.setFillStyle(TINT_INVALID, 0.35);
-            this.tileHighlight.setStrokeStyle(1.5, TINT_INVALID, 0.9);
+            this.tileHighlight.setFillStyle(TINT_INVALID, HIGHLIGHT_FILL_ALPHA);
+            this.tileHighlight.setStrokeStyle(HIGHLIGHT_STROKE_WIDTH, TINT_INVALID, HIGHLIGHT_STROKE_ALPHA);
         }
     }
 
@@ -232,17 +287,23 @@ export class PlacementManager {
         // Perform final check at drop coordinates
         this.updateDragPosition(screenX, screenY);
 
-        if (this.isCurrentValid && this.currentType !== null) {
+        if (this.isCurrentValid && this.currentConfig !== null) {
+            const config = this.currentConfig;
+            const tileType = categoryToTileType(config.type);
+
             const placed = this.gridManager.placeFurniture(
                 this.currentTileX,
                 this.currentTileY,
-                this.currentType,
+                tileType,
+                config.id,
+                config.widthTiles,
+                config.heightTiles,
             );
 
             if (placed) {
-                this.spawnPlacedFurniture(this.currentTileX, this.currentTileY, this.currentType);
+                this.spawnPlacedFurniture(this.currentTileX, this.currentTileY, config);
                 eventBus.emit(EVENT_FURNITURE_PLACED, {
-                    type: this.currentType,
+                    furnitureId: config.id,
                     tileX: this.currentTileX,
                     tileY: this.currentTileY,
                 });
@@ -257,7 +318,7 @@ export class PlacementManager {
      */
     private cancelDrag(): void {
         this.isDragging = false;
-        this.currentType = null;
+        this.currentConfig = null;
         this.currentTileX = -1;
         this.currentTileY = -1;
         this.isCurrentValid = false;
@@ -267,18 +328,33 @@ export class PlacementManager {
     }
 
     /**
-     * Instantiates real, interactive furniture on the map at the given grid coordinates.
+     * Instantiates a real, interactive furniture sprite on the map at the
+     * given grid coordinates. The sprite is sized to match the furniture
+     * config's tile footprint and its Y-depth is calculated from the
+     * **bottom edge** of the piece to ensure correct Y-sorting.
      */
-    private spawnPlacedFurniture(tileX: number, tileY: number, type: FurnitureType): void {
-        const textureKey = type === 'MESA' ? TEXTURE_MESA : TEXTURE_SILLA;
-        const snappedX = (tileX + 0.5) * TILE;
-        const snappedY = (tileY + 0.5) * TILE;
+    private spawnPlacedFurniture(rootTileX: number, rootTileY: number, config: FurnitureConfig): void {
+        const pixelWidth = config.widthTiles * TILE;
+        const pixelHeight = config.heightTiles * TILE;
 
-        const sprite = this.scene.physics.add.staticImage(snappedX, snappedY, textureKey);
+        const snappedX = rootTileX * TILE + pixelWidth / 2;
+        const snappedY = rootTileY * TILE + pixelHeight / 2;
+
+        const sprite = this.scene.physics.add.staticImage(snappedX, snappedY, config.texture);
         sprite.setOrigin(0.5, 0.5);
-        sprite.setDepth(snappedY + TILE / 2);
+        sprite.setDisplaySize(pixelWidth, pixelHeight);
+
+        // Resize the physics body to cover the full footprint
+        sprite.body?.setSize(pixelWidth, pixelHeight);
+        sprite.body?.setOffset(0, 0);
+
+        // Y-Sorting depth uses the bottom edge of the furniture piece
+        const bottomEdgeY = snappedY + pixelHeight / 2;
+        sprite.setDepth(bottomEdgeY);
+
         sprite.clearTint();
         sprite.setInteractive({ useHandCursor: true });
+
         const collider = this.scene.physics.add.collider(this.player, sprite);
 
         // Left click on placed furniture removes it and returns it to inventory
@@ -288,83 +364,36 @@ export class PlacementManager {
             }
 
             if (pointer.leftButtonDown()) {
-                this.removeFurnitureAt(tileX, tileY);
+                this.removeFurnitureAt(rootTileX, rootTileY);
             }
         });
 
-        this.placedFurnitureMap.set(this.getTileKey(tileX, tileY), {
+        this.placedFurnitureMap.set(this.getTileKey(rootTileX, rootTileY), {
             sprite,
             collider,
-            type,
-            tileX,
-            tileY,
+            furnitureId: config.id,
+            config,
+            rootTileX,
+            rootTileY,
         });
     }
 
     /**
-     * Creates the ghost image and 32x32 cell highlight game objects.
+     * Creates the ghost image and cell highlight game objects.
+     * Initial size is 1×1 tile; `startDrag` resizes dynamically.
      */
     private createVisualIndicators(): void {
-        this.tileHighlight = this.scene.add.rectangle(0, 0, TILE, TILE, TINT_VALID, 0.35);
-        this.tileHighlight.setStrokeStyle(1.5, TINT_VALID, 0.9);
-        this.tileHighlight.setDepth(15);
+        this.tileHighlight = this.scene.add.rectangle(0, 0, TILE, TILE, TINT_VALID, HIGHLIGHT_FILL_ALPHA);
+        this.tileHighlight.setStrokeStyle(HIGHLIGHT_STROKE_WIDTH, TINT_VALID, HIGHLIGHT_STROKE_ALPHA);
+        this.tileHighlight.setDepth(HIGHLIGHT_DEPTH);
         this.tileHighlight.setVisible(false);
 
-        this.ghostSprite = this.scene.add.image(0, 0, TEXTURE_MESA);
+        // Use a 1×1 transparent placeholder; startDrag sets the real texture
+        this.ghostSprite = this.scene.add.image(0, 0, '__DEFAULT');
         this.ghostSprite.setOrigin(0.5, 0.5);
-        this.ghostSprite.setDepth(16);
-        this.ghostSprite.setAlpha(0.75);
+        this.ghostSprite.setDepth(GHOST_DEPTH);
+        this.ghostSprite.setAlpha(GHOST_ALPHA);
         this.ghostSprite.setVisible(false);
-    }
-
-    /**
-     * Generates clean procedural textures for Mesa and Silla if they don't already exist.
-     */
-    private ensureTextures(): void {
-        if (!this.scene.textures.exists(TEXTURE_MESA)) {
-            const graphics = this.scene.make.graphics({ x: 0, y: 0 });
-
-            // Table base & surface
-            graphics.fillStyle(0x784212);
-            graphics.fillCircle(16, 16, 14);
-            graphics.lineStyle(2, 0xd4ac0d, 1);
-            graphics.strokeCircle(16, 16, 14);
-
-            // Inner wood disc
-            graphics.fillStyle(0xa0522d);
-            graphics.fillCircle(16, 16, 11);
-
-            // Central metal bolt / plate
-            graphics.fillStyle(0x2c3e50);
-            graphics.fillCircle(16, 16, 4);
-            graphics.lineStyle(1, 0xbdc3c7, 1);
-            graphics.strokeCircle(16, 16, 4);
-
-            graphics.generateTexture(TEXTURE_MESA, 32, 32);
-            graphics.destroy();
-        }
-
-        if (!this.scene.textures.exists(TEXTURE_SILLA)) {
-            const graphics = this.scene.make.graphics({ x: 0, y: 0 });
-
-            // Cantina stool legs
-            graphics.lineStyle(2, 0x34495e, 1);
-            graphics.lineBetween(8, 8, 24, 24);
-            graphics.lineBetween(8, 24, 24, 8);
-
-            // Seat cushion
-            graphics.fillStyle(0x2980b9);
-            graphics.fillCircle(16, 16, 9);
-            graphics.lineStyle(2, 0x5dade2, 1);
-            graphics.strokeCircle(16, 16, 9);
-
-            // Center rivet
-            graphics.fillStyle(0x1f618d);
-            graphics.fillCircle(16, 16, 4);
-
-            graphics.generateTexture(TEXTURE_SILLA, 32, 32);
-            graphics.destroy();
-        }
     }
 
     /**
