@@ -44,17 +44,15 @@ const TILESETS = [
 
 const TILE_LAYER_DEPTHS: Readonly<Record<string, number>> = {
     suelo: 0,
-    paredes: 0,
-    barra: 0,
     decoracion: 0,
     mobiliario: 0,
-    puertas: 0,
 };
 
 /** Ordered list of tile layers to create and render (bottom → top) - 3/4 perspective. */
 const TILE_LAYER_NAMES: readonly string[] = [
     'suelo',
     'paredes',
+    'paredes_altas',
     'barra',
     'decoracion',
     'mobiliario',
@@ -71,6 +69,8 @@ const COLLISION_LAYER_NAMES: ReadonlySet<string> = new Set([
     'decoracion',
     'mobiliario',
 ]);
+
+const VOLUMETRIC_LAYERS = ['paredes', 'puertas', 'paredes_altas'];
 
 export class NightCantinaScene extends Scene {
     private player!: Player;
@@ -117,18 +117,17 @@ export class NightCantinaScene extends Scene {
                 continue;
             }
 
-            layer.setDepth(TILE_LAYER_DEPTHS[layerName] ?? 0);
-
             if (COLLISION_LAYER_NAMES.has(layerName)) {
                 layer.setCollisionByProperty({ collides: true });
             }
-        }
 
-        const paredesAltasLayer = map.createLayer('paredes_altas', tilemapTilesets, 0, 0);
-        if (paredesAltasLayer === null) {
-            throw new Error('No se pudo crear la capa "paredes_altas" del mapa.');
+            // Procesamos Y-Sorting para las volumétricas, o dejamos depth 0 para las planas
+            if (VOLUMETRIC_LAYERS.includes(layerName)) {
+                this.createYSortedLayer(layer, map, layerName);
+            } else {
+                layer.setDepth(TILE_LAYER_DEPTHS[layerName] ?? 0);
+            }
         }
-        this.createYSortedHighWalls(paredesAltasLayer, map);
 
         // Build the logical grid from all typed layers and restricted zones.
         this.gridManager = new GridManager(map);
@@ -181,25 +180,18 @@ export class NightCantinaScene extends Scene {
         this.player.setDepth(this.player.body?.bottom ?? this.player.y);
     }
     
-    private createYSortedHighWalls(
+    private createYSortedLayer(
         tileLayer: Phaser.Tilemaps.TilemapLayerBase,
         map: Phaser.Tilemaps.Tilemap,
+        layerName: string
     ): void {
         const paredesLayer = map.getLayer('paredes')?.tilemapLayer;
 
         tileLayer.forEachTile((tile) => {
-            if (tile.index < 0 || tile.tileset === null || tile.tileset.image === null) {
-                return;
-            }
+            if (tile.index < 0 || tile.tileset === null || tile.tileset.image === null) return;
 
-            const coordinates = tile.tileset.getTileTextureCoordinates(tile.index) as {
-                x: number;
-                y: number;
-            } | null;
-
-            if (coordinates === null) {
-                return;
-            }
+            const coordinates = tile.tileset.getTileTextureCoordinates(tile.index) as { x: number; y: number } | null;
+            if (coordinates === null) return;
 
             const textureKey = tile.tileset.image.key;
             const texture = this.textures.get(textureKey);
@@ -209,7 +201,7 @@ export class NightCantinaScene extends Scene {
                 texture.add(frameName, 0, coordinates.x, coordinates.y, TILE, TILE);
             }
 
-            const wall = this.add.image(
+            const sprite = this.add.image(
                 tile.pixelX + TILE / 2,
                 tile.pixelY + TILE / 2,
                 textureKey,
@@ -217,20 +209,40 @@ export class NightCantinaScene extends Scene {
             );
 
             let gridBaseY = tile.y;
-            const maxSearch = 10;
+            const maxSearch = 15;
 
-            if (paredesLayer !== null && paredesLayer !== undefined) {
+            if (layerName === 'paredes_altas' && paredesLayer !== null && paredesLayer !== undefined) {
+                // Paredes altas: Buscan su base física en la capa de colisión 'paredes'
                 for (let offsetY = 1; offsetY <= maxSearch; offsetY++) {
                     if (paredesLayer.hasTileAt(tile.x, tile.y + offsetY)) {
                         gridBaseY = tile.y + offsetY;
                         break;
                     }
                 }
+            } else {
+                // Demás capas volumétricas (barra, paredes, puertas): 
+                // Escanean su PROPIA capa hacia abajo para agrupar las columnas verticales en un solo bloque 3D.
+                for (let offsetY = 1; offsetY <= maxSearch; offsetY++) {
+                    if (tileLayer.hasTileAt(tile.x, tile.y + offsetY)) {
+                        gridBaseY = tile.y + offsetY;
+                    } else {
+                        break; // Rompemos el bucle al encontrar el final de la estructura
+                    }
+                }
             }
 
-            wall.setDepth(gridBaseY * TILE + TILE);
+            // Pequeño offset para evitar Z-fighting en la misma coordenada Y
+            const zOffsets: Record<string, number> = {
+                'paredes': 0,
+                'paredes_altas': 1,
+                'puertas': 2
+            };
+            
+            const baseDepth = gridBaseY * TILE + TILE;
+            sprite.setDepth(baseDepth + (zOffsets[layerName] ?? 0));
         });
 
+        // Ocultamos la capa visualmente pero mantenemos intactas las colisiones
         tileLayer.setVisible(false);
     }
 
