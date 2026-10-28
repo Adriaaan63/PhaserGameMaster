@@ -108,15 +108,15 @@
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 7, 7, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 7, 7, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4920, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4920, 0, 7, 7, 0, 4925, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4963, 0, 7, 7, 0, 4968, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 5006, 0, 7, 7, 0, 5011, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 7, 7, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 50, 50, 50, 50, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4920, 0, 0, 0, 0, 4925, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4920, 0, 0, 0, 0, 4925, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 4963, 4964, 4965, 4964, 4965, 4968, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 5006, 5007, 5008, 5007, 5008, 5011, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -331,7 +331,7 @@
                  "y":96
                 }, 
                 {
-                 "height":219.666666666667,
+                 "height":264.666666666667,
                  "id":7,
                  "name":"zonaCocina",
                  "opacity":1,
@@ -350,8 +350,8 @@
                  "type":"zona_cocina",
                  "visible":true,
                  "width":191,
-                 "x":288.333333333334,
-                 "y":191.666666666667
+                 "x":288.833333333334,
+                 "y":191.166666666667
                 }, 
                 {
                  "height":32,
@@ -4438,6 +4438,349 @@
          "spacing":0,
          "tilecount":1677,
          "tileheight":32,
+         "tiles":[
+                {
+                 "id":407,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":408,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":409,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":410,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":411,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":412,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":450,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":451,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":452,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":453,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":454,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":455,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":493,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":494,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":495,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":496,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":497,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }, 
+                {
+                 "id":498,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"collides",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"BARRA"
+                        }]
+                }],
          "tilewidth":32
         }],
  "tilewidth":32,
