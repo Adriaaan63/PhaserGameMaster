@@ -9,7 +9,9 @@ import {
     EVENT_FURNITURE_PLACED,
     EVENT_FURNITURE_REMOVED,
     EVENT_START_PLACEMENT,
+    EVENT_TOGGLE_BUILD_MODE,
     eventBus,
+    type BuildModeToggledData,
     type PlacementEndData,
     type PlacementMoveData,
     type PlacementStartData,
@@ -95,6 +97,10 @@ export class PlacementManager {
         this.endDrag(data.screenX, data.screenY);
     };
 
+    private readonly onBuildModeToggledBound = (data: BuildModeToggledData): void => {
+        this.setEnabled(data.enabled);
+    };
+
     public constructor(scene: Scene, gridManager: GridManager, player: Player) {
         this.scene = scene;
         this.gridManager = gridManager;
@@ -171,6 +177,7 @@ export class PlacementManager {
         eventBus.off(EVENT_START_PLACEMENT, this.onStartPlacementBound);
         eventBus.off(EVENT_DRAG_MOVE, this.onDragMoveBound);
         eventBus.off(EVENT_DRAG_END, this.onDragEndBound);
+        eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.onBuildModeToggledBound);
 
         this.scene.input.off('pointermove', this.handleScenePointerMove, this);
         this.scene.input.off('pointerup', this.handleScenePointerUp, this);
@@ -235,7 +242,7 @@ export class PlacementManager {
      *   `centreY = rootTileY * TILE + (heightTiles * TILE) / 2`
      */
     private updateDragPosition(screenX: number, screenY: number): void {
-        if (!this.isDragging || this.ghostSprite === null || this.tileHighlight === null || this.currentConfig === null) {
+        if (!this.isEnabled || !this.isDragging || this.ghostSprite === null || this.tileHighlight === null || this.currentConfig === null) {
             return;
         }
 
@@ -280,7 +287,7 @@ export class PlacementManager {
      * Finishes drag action on pointer release: places furniture if valid, cancels if invalid.
      */
     private endDrag(screenX: number, screenY: number): void {
-        if (!this.isDragging) {
+        if (!this.isEnabled || !this.isDragging) {
             return;
         }
 
@@ -359,7 +366,7 @@ export class PlacementManager {
 
         // Left click on placed furniture removes it and returns it to inventory
         sprite.on('pointerdown', (pointer: Input.Pointer) => {
-            if (this.isDragging) {
+            if (!this.isEnabled || this.isDragging) {
                 return;
             }
 
@@ -403,6 +410,7 @@ export class PlacementManager {
         eventBus.on(EVENT_START_PLACEMENT, this.onStartPlacementBound);
         eventBus.on(EVENT_DRAG_MOVE, this.onDragMoveBound);
         eventBus.on(EVENT_DRAG_END, this.onDragEndBound);
+        eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.onBuildModeToggledBound);
 
         this.scene.input.on('pointermove', this.handleScenePointerMove, this);
         this.scene.input.on('pointerup', this.handleScenePointerUp, this);
@@ -410,14 +418,14 @@ export class PlacementManager {
     }
 
     private handleScenePointerMove(pointer: Input.Pointer): void {
-        if (!this.isDragging) {
+        if (!this.isEnabled || !this.isDragging) {
             return;
         }
         this.updateDragPosition(pointer.x, pointer.y);
     }
 
     private handleScenePointerUp(pointer: Input.Pointer): void {
-        if (!this.isDragging) {
+        if (!this.isEnabled || !this.isDragging) {
             return;
         }
         this.endDrag(pointer.x, pointer.y);

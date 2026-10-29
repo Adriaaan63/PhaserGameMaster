@@ -29,6 +29,21 @@ export const COOKING_ALPHA_MAX = 0.85;
 export const COOKING_PULSE_DURATION_MS = 450;
 export const BEVERAGE_FILL_DURATION_MS = 2000;
 
+/** Night customer flow tuning. */
+export const CLIENT_PATIENCE_MS = 30000;
+export const CLIENT_SPAWN_INTERVAL_MS = 8000;
+export const CLIENT_MAX_WAITING = 4;
+export const CLIENT_MOVE_SPEED = 72;
+export const CLIENT_LEAVE_FADE_MS = 350;
+export const CLIENT_PATIENCE_WARNING_RATIO = 0.6;
+export const CLIENT_PATIENCE_CRITICAL_RATIO = 0.25;
+export const CLIENT_PATIENCE_HEALTHY_COLOR = 0x00ff00;
+export const CLIENT_PATIENCE_WARNING_COLOR = 0xffb000;
+export const CLIENT_PATIENCE_CRITICAL_COLOR = 0xff2020;
+export const CHAIR_HIGHLIGHT_COLOR = 0x70ff80;
+export const ORPHAN_CHAIR_COLOR = 0xff3030;
+export const CLIENT_BODY_COLOR = 0x8b6f47;
+
 export const TILES = {
     SUELO: 1,
     PARED: 2,

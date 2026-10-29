@@ -14,7 +14,9 @@ import {
     EVENT_FURNITURE_REMOVED,
     EVENT_GAME_MODE_CHANGED,
     EVENT_START_PLACEMENT,
+    EVENT_TOGGLE_BUILD_MODE,
     eventBus,
+    type BuildModeToggledData,
     type FurniturePlacedData,
     type FurnitureRemovedData,
     type GameModeChangedData,
@@ -39,6 +41,9 @@ const BAR_WIDTH = 320;
 const BAR_HEIGHT = 56;
 const OPEN_BUTTON_WIDTH = 150;
 const OPEN_BUTTON_HEIGHT = 34;
+const BUILD_MODE_BUTTON_WIDTH = 172;
+const BUILD_MODE_BUTTON_HEIGHT = 32;
+const BUILD_MODE_BUTTON_Y = 72;
 
 /** Border colour used for the default (non-hovered) slot state. */
 const SLOT_BORDER_COLOR = 0xd4a359;
@@ -70,7 +75,10 @@ export class InventoryUI {
 
     private readonly barContainer: GameObjects.Container;
     private readonly openButtonContainer: GameObjects.Container;
+    private readonly buildModeButtonContainer: GameObjects.Container;
     private readonly slots: Map<string, SlotElements> = new Map();
+    private isBuildModeEnabled = true;
+    private buildModeButtonText!: GameObjects.Text;
 
     private readonly onFurniturePlacedBound = (data: FurniturePlacedData): void => {
         this.deductItem(data.furnitureId);
@@ -82,7 +90,8 @@ export class InventoryUI {
 
     private readonly onGameModeChangedBound = (data: GameModeChangedData): void => {
         const preOpening = data.mode === 'PRE_APERTURA';
-        this.barContainer.setVisible(preOpening);
+        this.setBuildModeEnabled(preOpening);
+        this.buildModeButtonContainer.setVisible(true);
         this.openButtonContainer.setVisible(preOpening);
     };
 
@@ -96,9 +105,12 @@ export class InventoryUI {
 
         this.barContainer = this.scene.add.container(0, 0);
         this.openButtonContainer = this.scene.add.container(0, 0);
+        this.buildModeButtonContainer = this.scene.add.container(0, 0);
 
         this.createBottomBar();
         this.createOpenButton();
+        this.createBuildModeButton();
+        this.barContainer.setVisible(this.isBuildModeEnabled);
         this.reposition();
 
         this.setupEventListeners();
@@ -146,6 +158,7 @@ export class InventoryUI {
 
         this.barContainer.setPosition(width / 2, height - 38);
         this.openButtonContainer.setPosition(width - 92, 28);
+        this.buildModeButtonContainer.setPosition(width - 102, BUILD_MODE_BUTTON_Y);
     }
 
     /**
@@ -162,6 +175,7 @@ export class InventoryUI {
 
         this.barContainer.destroy(true);
         this.openButtonContainer.destroy(true);
+        this.buildModeButtonContainer.destroy(true);
         this.slots.clear();
     }
 
@@ -259,7 +273,7 @@ export class InventoryUI {
         });
 
         slotBg.on('pointerdown', (pointer: Input.Pointer) => {
-            if ((this.stock.get(config.id) ?? 0) <= 0) {
+            if (!this.isBuildModeEnabled || (this.stock.get(config.id) ?? 0) <= 0) {
                 return;
             }
 
@@ -308,8 +322,49 @@ export class InventoryUI {
 
         btnBg.on('pointerdown', () => {
             console.log('Abrir Cantina pulsado...');
+            this.setBuildModeEnabled(false);
             eventBus.emit(EVENT_CANTINA_OPEN);
         });
+    }
+
+    /** Creates the HUD toggle that controls furniture placement and removal. */
+    private createBuildModeButton(): void {
+        const background = this.scene.add.rectangle(
+            0, 0, BUILD_MODE_BUTTON_WIDTH, BUILD_MODE_BUTTON_HEIGHT, 0x355e3b, 0.95,
+        );
+        background.setStrokeStyle(1.5, 0xa8d08d, 1);
+        background.setInteractive({ useHandCursor: true });
+        this.buildModeButtonText = this.scene.add.text(0, 0, '', {
+            fontFamily: 'sans-serif',
+            fontSize: '11px',
+            color: '#ffffff',
+        }).setOrigin(0.5);
+        this.buildModeButtonContainer.add([background, this.buildModeButtonText]);
+        background.on('pointerdown', () => this.setBuildModeEnabled(!this.isBuildModeEnabled));
+        this.refreshBuildModeButton();
+    }
+
+    private setBuildModeEnabled(enabled: boolean): void {
+        if (this.isBuildModeEnabled === enabled) {
+            this.barContainer.setVisible(enabled);
+            this.refreshBuildModeButton();
+            return;
+        }
+        this.isBuildModeEnabled = enabled;
+        this.barContainer.setVisible(enabled);
+        if (!enabled) {
+            this.isDragging = false;
+            this.activeDragId = null;
+        }
+        this.refreshBuildModeButton();
+        const data: BuildModeToggledData = { enabled };
+        eventBus.emit(EVENT_TOGGLE_BUILD_MODE, data);
+    }
+
+    private refreshBuildModeButton(): void {
+        this.buildModeButtonText?.setText(
+            `MODO CONSTRUCCIÓN: ${this.isBuildModeEnabled ? 'ON' : 'OFF'}`,
+        );
     }
 
     /**
@@ -348,7 +403,7 @@ export class InventoryUI {
     }
 
     private handleScenePointerMove(pointer: Input.Pointer): void {
-        if (!this.isDragging) {
+        if (!this.isBuildModeEnabled || !this.isDragging) {
             return;
         }
 
@@ -360,7 +415,7 @@ export class InventoryUI {
     }
 
     private handleScenePointerUp(pointer: Input.Pointer): void {
-        if (!this.isDragging) {
+        if (!this.isBuildModeEnabled || !this.isDragging) {
             return;
         }
 

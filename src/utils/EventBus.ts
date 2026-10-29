@@ -15,6 +15,16 @@ export const EVENT_GAME_MODE_CHANGED = 'game:mode-changed';
 export const EVENT_GAME_WARNING = 'game:warning';
 export const EVENT_BEVERAGE_FILL_PROGRESS = 'station:beverage-fill-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
+export const EVENT_CLIENT_SELECTED = 'client:selected';
+export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
+export const EVENT_CLIENT_SEATED = 'client:seated';
+export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
+
+export interface BuildModeToggledData { readonly enabled: boolean; }
+
+export interface ClientSelectedData { readonly clientId: number; }
+export interface ChairAssignedData { readonly clientId: number; readonly tileX: number; readonly tileY: number; }
+export interface ClientSeatedData { readonly clientId: number; }
 
 /**
  * @deprecated Use `FurnitureCategory` from `FurnitureRegistry` instead.

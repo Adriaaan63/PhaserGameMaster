@@ -89,6 +89,12 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * **Bebidas (Torre Central):** Para servir una bebida, Wuher debe coger un vaso vacío y colocarse frente a la Torre Central (situada en la `zonaCocina`). El llenado no es instantáneo; requiere mantener presionada la tecla de Acción (`Espacio`) durante un tiempo determinado (ej. 2 segundos). Si se suelta la tecla antes de tiempo, el llenado se cancela.
     * **Comida (Parrilla):** La cantidad de comida disponible durante la noche depende estrictamente de lo que el jugador haya conseguido (o se le haya otorgado) en la Fase Diurna exterior. Los clientes solo pedirán comida si hay unidades en el HUD; una vez que el contador llegue a cero, ningún cliente nuevo pedirá platos esa noche.
     * **Estaciones Fijas:** La Torre Central y la Parrilla son inamovibles. El jugador debe acercarse a sus *tiles* específicos para interactuar con ellas.
+    
+* **Reglas del Flujo de Clientes y Asignación:**
+    * **Spawn de Clientes:** Los clientes se generan dinámicamente en los tiles etiquetados mecánicamente como `zonaColaEntrada`. La tasa de aparición (frecuencia) es dictada por un sistema de dificultad procedural que escala con el paso de los días dentro de la partida, aumentando la cantidad y el ritmo de llegada de los clientes.
+    * **Sistema de Paciencia (Cola):** Nada más generarse en la entrada, cada cliente inicia con una "Barra de Paciencia" (o medidor de estado). Este valor disminuye gradualmente mientras el cliente espera de pie. Si no es atendido (asignado a una silla) antes de que la paciencia llegue a cero, el cliente abandonará la cantina por la puerta, penalizando la reputación del jugador.
+    * **Regla de Sillas Huérfanas (Restricción de Asignación):** El jugador solo puede sentar clientes en sillas operativas. Cualquier silla en el mapa que no tenga al menos una MESA o una BARRA en sus tiles ortogonalmente adyacentes se considera una **Silla Huérfana**. Estas sillas reciben un identificador de estado `SILLA_INACTIVA` y no se pueden seleccionar como destino para ningún cliente.
+    * **Restricción de Ocupación:** Un cliente solo puede ser asignado a un tile de Silla que actualmente se encuentre libre (sin otro cliente ni evento de destrucción).
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -96,10 +102,14 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **4.2. Model of the game universe:** El universo se divide mecánicamente en *capas lógicas de cuadrícula*. El interior de la cantina no es solo un suelo plano, sino que cuenta con un mapa de metadatos (zonas) invisible para el jugador pero crítico para el sistema. El `GridManager` clasifica cada tile (ej. Tile 5x8 = "Suelo Libre", Tile 12x4 = "Zona Prohibida: Banda"). Todas las piezas interactúan bajo este modelo: los clientes buscan "Suelos Libres" adyacentes a "Mesas" para caminar, el jugador solo puede colocar muebles en "Suelos Libres", y las ratas generan sus rutas de robo desde los *tiles* catalogados como `spawnRatas`.
+El universo de la cantina modela a los clientes no como simples *sprites*, sino como **Agentes Estatales Dinámicos** vinculados al `GridManager`.
+    1. **Fase Espera:** El cliente existe en un tile de la `zonaColaEntrada`. El universo verifica por cada cliente su "paciencia", siendo un temporizador que decae.
+    2. **Fase Asignación (Jugador):** El universo entra en un modo de "selección". El jugador, al interactuar con el cliente, habilita un sub-sistema que escanea todas las sillas del `GridManager`. Filtra y resalta únicamente aquellas que tienen el estado `ACTIVA` (conectadas a mesa/barra y libres).
+    3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* (A*) para trazar la ruta más corta desde la entrada hasta el tile de la silla, esquivando muros y otros clientes estáticos. Al llegar, el cliente se ancla al tile de la silla, cambiando su animación a "Sentado".
 
 
 * **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
-    * **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de la barra, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente al mueble.
+    * **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de paredes, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente.
 
 
 * **4.4. Economy:**
@@ -121,12 +131,12 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **4.6. Objects:** La recolección de objetos (monedas, platos, vasos, barriles) se ejecuta con las manos vacías presionando `Espacio`.
-    * **Objetos de Mobiliario (Modo Pre-Apertura):** Se manejan exclusivamente a través de la Interfaz Gráfica de Usuario (GUI) y el ratón. Para mover un objeto (mesa, silla, decoración):
+    * **Objetos de Mobiliario (Modo Pre-Apertura):** Se manejan exclusivamente a través de la Interfaz Gráfica de Usuario (GUI) y el ratón, **solo cuando el "Modo Construcción" está activado**. Para mover un objeto (mesa, silla, decoración):
         1. El jugador abre el Inventario pulsando el botón correspondiente en la interfaz (o mediante el Libro de Gestión).
         2. Hace *Clic Izquierdo* y mantiene pulsado sobre un objeto del inventario (Mesa, Silla).
         3. Arrastra el cursor sobre la cuadrícula del tilemap. El juego ajusta ("*snapping*") la posición del objeto al tile más cercano, mostrando el indicador visual verde/rojo.
         4. Al soltar el *Clic Izquierdo* (`Drag End`), si el indicador es verde, el objeto se fija al suelo y se retira del inventario. Si es rojo, la acción se cancela y el objeto regresa al inventario.
-        5. Para quitar un objeto ya colocado, el jugador hace *Clic Izquierdo* sobre él en el mapa para devolverlo al inventario, liberando el tile.
+        5. **Para quitar un objeto ya colocado:** El jugador hace *Clic Izquierdo* sobre el mueble en el mapa para devolverlo al inventario, liberando el tile. **Importante:** Esta acción está estrictamente deshabilitada si el "Modo Construcción" está inactivo, previniendo que el jugador borre mesas por accidente durante el servicio nocturno.
     * **Objetos Interactuables (Jarras, Comida):** El sistema de físicas y recolección imita el flujo de trabajo de *Overcooked*.
         * **Coger (Pick up):** Cuando el jugador tiene las manos vacías y se acerca a un objeto apoyado en una superficie (ej. una jarra en la barra), al mirar hacia él y presionar la tecla de Acción (`Espacio`), el objeto desaparece de la cuadrícula del mapa y pasa a renderizarse visualmente en las manos del sprite de Wuher. El estado del jugador cambia a `HOLDING_OBJECT`.
         * **Mover:** Mientras se sostiene el objeto, este sigue la posición y orientación del jugador en todo momento.
@@ -137,8 +147,13 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **4.7. Actions:** 
+* **Ratón (Clic Izquierdo):** Su función principal es sensible al contexto y se divide en dos estados controlados por un "Botón de Modo Construcción" en el HUD:
+  * **Con Modo Construcción ACTIVADO:** El clic izquierdo sirve exclusivamente para arrastrar muebles desde el inventario al mapa (Drag & Drop) y para hacer clic sobre muebles ya colocados para devolverlos al inventario.
+  * **Con Modo Construcción DESACTIVADO (Modo Servicio):** El clic izquierdo ignora el mobiliario. Se utiliza para la mecánica de Asignación de Clientes: al tener un cliente seleccionado, hacer clic izquierdo sobre una silla válida le asigna esa ruta.
+
     * **Gestión (Modo Día / Pre-Apertura):**
         * `Ratón (Clic / Drag & Drop)`: Herramienta principal. Se utiliza para interactuar con los botones de la interfaz (Abrir Cantina, Libro de Gestión, Inventario) y para el sistema de colocación de mobiliario.
+            * **Con Modo Construcción ACTIVADO:** El clic izquierdo sirve exclusivamente para arrastrar muebles desde el inventario al mapa (Drag & Drop) y para hacer clic sobre muebles ya colocados para devolverlos al inventario.
         * `Indicadores Visuales de Comunicación`: El juego comunica las reglas implícitamente al jugador usando colores en tiempo real durante la acción de arrastrar (Verde = Válido / Rojo = Inválido). También comunica errores de silla mediante un icono de exclamación amarillo si se coloca una silla sin mesa adyacente.
     * **Acción Contextual Principal (Tecla `Espacio`):** El comportamiento de esta tecla depende enteramente de la máquina de estados del jugador (si sus manos están vacías o llenas) y del objeto/tile que tenga justo enfrente (basado en su vector de dirección):
         * **Con las manos VACÍAS (`State: EMPTY`):**
@@ -151,6 +166,12 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
             * *Frente al Cliente / Mesa:* Entrega o apoya el objeto.
         
     * El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
+
+    * **Acción Contextual de Sentar al Cliente:** El jugador realiza la asignación en dos pasos para mantener el dinamismo y evitar interfaces intrusivas que pausen el juego (manteniendo el tono de *Time Management* frenético):
+        1. **Selección del Cliente:** Wuher debe acercarse al cliente que está esperando en la cola y presionar la Tecla de Acción (`Espacio`). En este momento, el cliente pasa a un estado visual de "Seleccionado" (ej. un brillo en su contorno).
+        2. **Selección del Destino (Asignación):** Con el cliente seleccionado, el jugador con Modo Construcción DESACTIVADO (Modo Servicio), el clic izquierdo ignora el mobiliario. Se utiliza para la mecánica de Asignación de Clientes: al tener un cliente seleccionado, hacer clic izquierdo sobre una silla válida le asigna esa ruta..
+            * *Feedback Positivo:* El cliente asiente o muestra un icono, y comienza a caminar hacia la mesa de forma autónoma.
+            * *Feedback Negativo:* Si el jugador intenta asignar al cliente a una `SILLA_INACTIVA` (silla huérfana), sonará un efecto de sonido de error (buzzer) y la acción no se registrará.
 
 * **4.8. Combat:**
 * **En la Cantina:** Si la paciencia entre clientes rivales llega a cero, entran en estado `PELEA`. El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
@@ -260,10 +281,23 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 * **9.1. Visual System:**
 * **9.1.1. HUD:** Cuenta con iconos sobre las cabezas de los clientes (globos con sus pedidos de comida, música o bebida), un icono de advertencia sobre asientos mal ubicados, temporizadores circulares de paciencia y un icono de "¡Soplón!" si el jugador delata a alguien en público.
-    * En modo **Pre-Apertura**: El HUD se transforma. Aparece la "Barra de Herramientas del Inventario" en la parte inferior de la pantalla. Muestra iconos de los muebles disponibles con un número de *stock*. Incluye un gran botón flotante de "Abrir Cantina" en la esquina superior derecha. Durante el arrastre (*Drag & Drop*), el HUD dibuja dinámicamente un cuadrado verde o rojo transparente sobre la celda (*tile*) seleccionada por el puntero.
+    * En modo **Pre-Apertura**: 
+        * **Botón Toggle "Modo Construcción":** 
+            * En la fase de Pre-Apertura (y opcionalmente durante el día), el HUD muestra un botón flotante (icono de un martillo o plano) que permite alternar el "Modo Construcción".
+            * **Al activarlo:** Despliega la "Barra de Herramientas del Inventario" en la parte inferior de la pantalla y habilita la manipulación de muebles en el mapa (Drag & Drop y eliminación). Muestra iconos de los muebles disponibles con un número de *stock*. Durante el arrastre (*Drag & Drop*), el HUD dibuja dinámicamente un cuadrado verde o rojo transparente sobre la celda (*tile*) seleccionada por el puntero.
+            * **Al desactivarlo:** Oculta la barra de inventario y bloquea cualquier interacción de construcción con los muebles, despejando la pantalla y los controles (inputs) para las mecánicas de servicio y asignación de clientes.
+        * Incluye un gran botón flotante de "Abrir Cantina" en la esquina superior derecha. 
     * En modo **Nocturno (Apertura)**:
         * **Inventario Dinámico de Suministros:** Durante el servicio nocturno, se mostrará en una esquina de la pantalla (ej. superior izquierda) un contador visual de los suministros de comida conseguidos en el exterior (ej. icono de un filete de Bantha: "x5"). Este número disminuye en tiempo real cada vez que Wuher saca un plato de la Parrilla. Si llega a 0, el icono se vuelve gris o muestra un aspa roja para indicar agotamiento.
         * **Barra de Progreso de Interacción:** Al mantener pulsado `Espacio` en la Torre Central, aparecerá una pequeña barra de carga (progress bar) flotando justo encima de Wuher o del surtidor, llenándose de izquierda a derecha. Se vacía inmediatamente si el jugador suelta el botón antes de tiempo.
+
+    * El sistema de información en pantalla integra el *feedback* directamente sobre los objetos del mundo (*Diegetic HUD*) para evitar saturar la interfaz de pantalla:
+        * **Temporizador de Paciencia (Cola):**
+            * Sobre la cabeza de cada cliente esperando en la entrada, aparece un pequeño globo de pensamiento o un icono circular que actúa como temporizador (similar a un reloj de arena o un diagrama de tarta vaciándose).
+            * Este icono cambia de color para transmitir urgencia: **Verde** (Acaba de llegar), **Amarillo/Naranja** (Perdiendo paciencia) y **Rojo Parpadeante** (A punto de irse).
+        * **Feedback Visual de Sillas (Asignación):**
+            * **Sillas Huérfanas:** Para evitar frustraciones, todas las sillas colocadas por error sin una mesa reciben una marca permanente: un pequeño icono rojo de advertencia o un aspa flotando sobre el tile de la silla, indicando su estado `INACTIVA`.
+            * **Modo Selección de Destino:** Cuando Wuher "selecciona" a un cliente en la entrada, todas las sillas válidas (disponibles y conectadas) resaltan sutilmente en el mapa (por ejemplo, con un suave parpadeo verde en el suelo, o un icono de flecha hacia abajo sobre ellas). Esto permite al jugador identificar instantáneamente a golpe de vista dónde hay huecos libres en el frenesí de la noche.
 
 * **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.
 

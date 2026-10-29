@@ -456,7 +456,7 @@
                  "y":221.666666666667
                 }, 
                 {
-                 "height":93,
+                 "height":30,
                  "id":4,
                  "name":"zonaColaEntrada",
                  "opacity":1,
@@ -474,9 +474,9 @@
                  "rotation":0,
                  "type":"cola_entrada",
                  "visible":true,
-                 "width":128.3333,
-                 "x":320.33335,
-                 "y":546
+                 "width":62.3333,
+                 "x":354.33335,
+                 "y":547
                 }],
          "opacity":1,
          "type":"objectgroup",

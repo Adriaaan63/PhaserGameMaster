@@ -4,16 +4,26 @@ import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
-import { GridManager, TILE_TYPE_TABLE, TILE_TYPE_CHAIR } from '../managers/GridManager';
+import { GridManager, TILE_TYPE_TABLE } from '../managers/GridManager';
 import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
+import { Client } from '../entities/Client';
+import { ClientManager } from '../managers/ClientManager';
+import { PathfindingManager } from '../managers/PathfindingManager';
+import { SeatingManager } from '../managers/SeatingManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
     EVENT_GAME_WARNING,
+    EVENT_FURNITURE_PLACED,
+    EVENT_FURNITURE_REMOVED,
+    EVENT_CLIENT_SELECTED,
+    EVENT_CHAIR_ASSIGNED,
+    EVENT_TOGGLE_BUILD_MODE,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
+    type BuildModeToggledData,
     type GameModeChangedData,
 } from '../utils/EventBus';
 
@@ -76,6 +86,12 @@ export class NightCantinaScene extends Scene {
     private player!: Player;
     private gridManager!: GridManager;
     private placementManager!: PlacementManager;
+    private clientManager!: ClientManager;
+    private seatingManager!: SeatingManager;
+    private pathfindingManager!: PathfindingManager;
+    private selectedClient: Client | null = null;
+    private buildModeEnabled = true;
+    private isNightBuildPaused = false;
 
     public constructor() {
         super('NightCantinaScene');
@@ -142,6 +158,16 @@ export class NightCantinaScene extends Scene {
 
         // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
+        this.clientManager = new ClientManager(this, this.gridManager);
+        this.seatingManager = new SeatingManager(this, this.gridManager);
+        this.pathfindingManager = new PathfindingManager(this.gridManager);
+        this.player.setNightInteractionHandler(this.handleNightInteraction);
+        eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
+        eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
+        eventBus.on(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        this.input.on('pointerdown', this.handlePointerDown, this);
+        this.events.once('shutdown', this.cleanupClientSystems, this);
+        this.events.once('destroy', this.cleanupClientSystems, this);
 
         // Set up collisions between the player and every collision-enabled layer.
         for (const layerName of COLLISION_LAYER_NAMES) {
@@ -163,9 +189,18 @@ export class NightCantinaScene extends Scene {
     }
 
     public update(_time: number, delta: number): void {
+        if (this.registry.get('gameMode') === GAME_MODE_NIGHT && this.buildModeEnabled) {
+            this.placementManager.update();
+            return;
+        }
+        if (this.selectedClient?.clientState === 'LEAVING') {
+            this.selectedClient = null;
+            this.seatingManager.setHighlightsEnabled(false);
+        }
         this.player.update(delta);
         this.updatePlayerDepth();
         this.placementManager.update();
+        this.clientManager.update(delta);
     }
 
     public getGridManager(): GridManager {
@@ -271,8 +306,8 @@ export class NightCantinaScene extends Scene {
 
     private createTestInteractableObjects(): void {
         const testConfigs = [
-            { x: 8, y: 7, type: 'EMPTY_CUP' as const },
-            { x: 15, y: 7, type: 'EMPTY_CUP' as const },
+            { x: 9, y: 7, type: 'EMPTY_CUP' as const },
+            { x: 14, y: 7, type: 'EMPTY_CUP' as const },
         ] as const;
 
         for (const config of testConfigs) {
@@ -334,7 +369,8 @@ export class NightCantinaScene extends Scene {
 
     private handleOpenCantina(): void {
         const tableCount = this.gridManager.getPlacedFurnitureCount(TILE_TYPE_TABLE);
-        const chairCount = this.gridManager.getPlacedFurnitureCount(TILE_TYPE_CHAIR);
+        this.seatingManager.refresh();
+        const chairCount = this.seatingManager.getValidChairs().length;
 
         if (tableCount < 1 || chairCount < 2) {
             eventBus.emit(EVENT_GAME_WARNING, {
@@ -345,6 +381,7 @@ export class NightCantinaScene extends Scene {
 
         this.registry.set('gameMode', GAME_MODE_NIGHT);
         this.placementManager.setEnabled(false);
+        this.clientManager.setEnabled(true);
 
         const modeData: GameModeChangedData = { mode: GAME_MODE_NIGHT };
         eventBus.emit(EVENT_GAME_MODE_CHANGED, modeData);
@@ -352,5 +389,110 @@ export class NightCantinaScene extends Scene {
 
     private cleanupModeEvents(): void {
         eventBus.off(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
+    }
+
+    private handleNightInteraction = (tileX: number, tileY: number): boolean => {
+        if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
+        if (this.selectedClient?.clientState === 'LEAVING') {
+            this.selectedClient = null;
+            this.seatingManager.setHighlightsEnabled(false);
+        }
+        if (this.selectedClient !== null) return this.assignSelectedClient(tileX, tileY);
+        const client = this.clientManager.getWaitingClients().find((candidate) =>
+            this.worldToTile(candidate.x) === tileX && this.worldToTile(candidate.y) === tileY,
+        );
+        if (client === undefined) return false;
+        this.selectedClient = client;
+        client.setSelected(true);
+        this.seatingManager.setHighlightsEnabled(true);
+        eventBus.emit(EVENT_CLIENT_SELECTED, { clientId: client.getData('clientId') as number });
+        return true;
+    };
+
+    private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+        if (
+            this.registry.get('gameMode') !== GAME_MODE_NIGHT
+            || this.buildModeEnabled
+            || this.selectedClient === null
+            || pointer.button !== 0
+        ) return;
+        const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        const tileX = this.gridManager.tilemap.worldToTileX(worldPoint.x);
+        const tileY = this.gridManager.tilemap.worldToTileY(worldPoint.y);
+        if (tileX !== null && tileY !== null && this.seatingManager.isChair(tileX, tileY)) {
+            this.assignSelectedClient(tileX, tileY);
+        }
+    }
+
+    private assignSelectedClient(tileX: number, tileY: number): boolean {
+        const client = this.selectedClient;
+        if (client === null) return false;
+        if (!this.seatingManager.isValidAndFree(tileX, tileY)) {
+            if (this.seatingManager.isChair(tileX, tileY)) console.warn('Silla inactiva u ocupada.');
+            return this.seatingManager.isChair(tileX, tileY);
+        }
+        const start = {
+            tileX: this.worldToTile(client.x),
+            tileY: this.worldToTile(client.y),
+        };
+        const route = this.pathfindingManager.findPath(start, { tileX, tileY });
+        if (route === null || route.length === 0 || !this.seatingManager.reserve(tileX, tileY)) {
+            console.warn('No se encontró una ruta válida hasta esa silla.');
+            return true;
+        }
+        client.setSelected(false);
+        client.assignRoute(route);
+        this.selectedClient = null;
+        this.seatingManager.setHighlightsEnabled(false);
+        eventBus.emit(EVENT_CHAIR_ASSIGNED, {
+            clientId: client.getData('clientId') as number,
+            tileX,
+            tileY,
+        });
+        return true;
+    }
+
+    private worldToTile(worldPosition: number): number {
+        return Math.floor(worldPosition / TILE);
+    }
+
+    private cleanupClientSystems(): void {
+        eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
+        eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
+        eventBus.off(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        this.input.off('pointerdown', this.handlePointerDown, this);
+        this.player?.setNightInteractionHandler(null);
+        this.clientManager?.destroy();
+        this.seatingManager?.destroy();
+        this.selectedClient = null;
+    }
+
+    private handleBuildModeToggled(data: BuildModeToggledData): void {
+        this.buildModeEnabled = data.enabled;
+        const shouldPauseNight = data.enabled && this.registry.get('gameMode') === GAME_MODE_NIGHT;
+        this.setNightBuildPause(shouldPauseNight);
+    }
+
+    private setNightBuildPause(paused: boolean): void {
+        if (this.isNightBuildPaused === paused) return;
+        this.isNightBuildPaused = paused;
+
+        if (paused) {
+            this.player.setVelocity(0, 0);
+            this.player.anims.pause();
+            this.physics.world.pause();
+            this.time.paused = true;
+            this.tweens.paused = true;
+            return;
+        }
+
+        this.physics.world.resume();
+        this.time.paused = false;
+        this.tweens.paused = false;
+        this.player.anims.resume();
+    }
+
+    private handleFurnitureLayoutChanged(): void {
+        this.seatingManager?.refresh();
     }
 }

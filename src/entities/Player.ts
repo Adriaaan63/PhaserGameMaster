@@ -73,6 +73,7 @@ export class Player extends Physics.Arcade.Sprite {
     private facing: FacingDirection = 'down';
     private facingDirection: DirectionVector = VECTOR_DOWN;
     private currentAnimKey: PlayerAnimKey | null = null;
+    private nightInteractionHandler: ((tileX: number, tileY: number) => boolean) | null = null;
 
     public constructor(scene: Scene, x: number, y: number, gridManager: GridManager) {
         super(scene, x, y, PLAYER_SPRITESHEET_KEY, 0);
@@ -244,7 +245,10 @@ export class Player extends Physics.Arcade.Sprite {
                 }
                 station.updateFilling(delta, this.interactionKey.isDown);
                 this.fillingStation = station;
-            } else if (Input.Keyboard.JustDown(this.interactionKey)) {
+            } else if (
+                Input.Keyboard.JustDown(this.interactionKey)
+                && !(this.nightInteractionHandler?.(frontTile.tileX, frontTile.tileY) ?? false)
+            ) {
                 this.interactWithTileInFront(frontTile.tileX, frontTile.tileY, station);
             } else if (this.fillingStation !== null) {
                 this.fillingStation.cancelFilling();
@@ -256,6 +260,15 @@ export class Player extends Physics.Arcade.Sprite {
         }
 
         this.updateHeldObjectPosition();
+    }
+
+    /** Registers a scene-owned contextual handler; return true when it consumed the action. */
+    public setNightInteractionHandler(handler: ((tileX: number, tileY: number) => boolean) | null): void {
+        this.nightInteractionHandler = handler;
+    }
+
+    public getFacingTile(): { readonly tileX: number; readonly tileY: number } | null {
+        return this.getFrontTile();
     }
 
     /**

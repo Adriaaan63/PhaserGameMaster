@@ -183,6 +183,32 @@ export class GridManager {
         return this.furnitureTypes.get(key) ?? TILE_TYPE_EMPTY;
     }
 
+    /** Returns tile coordinates covered by a named or typed Tiled object. */
+    public getObjectZoneTiles(nameOrType: string): readonly { readonly tileX: number; readonly tileY: number }[] {
+        const objectLayer = this.tilemap.getObjectLayer('Objetos') ?? this.tilemap.getObjectLayer('objetos');
+        const normalizedName = nameOrType.toLowerCase();
+        const matches = objectLayer?.objects.filter((object) =>
+            (object.name ?? '').toLowerCase() === normalizedName
+            || (object.type ?? '').toLowerCase() === normalizedName,
+        ) ?? [];
+        const result = new Map<string, { readonly tileX: number; readonly tileY: number }>();
+        for (const object of matches) {
+            if (object.x === undefined || object.y === undefined) continue;
+            const firstX = Math.floor(object.x / this.tilemap.tileWidth);
+            const firstY = Math.floor(object.y / this.tilemap.tileHeight);
+            const lastX = Math.floor((object.x + Math.max(1, object.width ?? this.tilemap.tileWidth) - 0.01) / this.tilemap.tileWidth);
+            const lastY = Math.floor((object.y + Math.max(1, object.height ?? this.tilemap.tileHeight) - 0.01) / this.tilemap.tileHeight);
+            for (let tileY = firstY; tileY <= lastY; tileY++) {
+                for (let tileX = firstX; tileX <= lastX; tileX++) {
+                    if (tileX >= 0 && tileY >= 0 && tileX < this.tilemap.width && tileY < this.tilemap.height) {
+                        result.set(`${tileX}:${tileY}`, { tileX, tileY });
+                    }
+                }
+            }
+        }
+        return [...result.values()];
+    }
+
     /**
      * Determines whether every tile in a rectangular footprint is eligible
      * for furniture placement.
