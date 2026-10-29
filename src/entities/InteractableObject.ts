@@ -1,16 +1,38 @@
 import { GameObjects, Scene } from 'phaser';
 
-import { TILE } from '../data/constants';
-
-const TEXTURE_KEY = 'interactable-jar';
-const OBJECT_SIZE = 16;
+import {
+    PLAYER_HAND_OFFSET_X,
+    PLAYER_HAND_OFFSET_Y,
+    TEXTURE_DRINK_EMPTY,
+    TEXTURE_DRINK_FULL,
+    TEXTURE_FOOD,
+    TILE,
+} from '../data/constants';
 
 export type InteractableObjectType = 'EMPTY_CUP' | 'FILLED_CUP' | 'FOOD_PLATE';
 
 /**
- * Represents an object that can be picked up and placed on a valid surface.
- * Its map registration is managed by GridManager; this class owns only its
- * visual state and tile position.
+ * Resolves the appropriate texture key based on the object's type and state.
+ */
+function resolveTextureKey(type: InteractableObjectType): string {
+    switch (type) {
+        case 'FOOD_PLATE':
+            return TEXTURE_FOOD;
+        case 'FILLED_CUP':
+            return TEXTURE_DRINK_FULL;
+        case 'EMPTY_CUP':
+            return TEXTURE_DRINK_EMPTY;
+    }
+}
+
+/**
+ * Represents a physical object (drink or food plate) that can be picked up,
+ * held in the player's hand, or placed onto a surface (table/bar counter).
+ *
+ * Visual states and transitions:
+ * - Empty cup: `kitchen_props2_25`
+ * - Full drink: `kitchen_props_3`
+ * - Food plate: `kitchen_props2_4`
  */
 export class InteractableObject extends GameObjects.Image {
     private readonly tileSize: number;
@@ -25,59 +47,88 @@ export class InteractableObject extends GameObjects.Image {
         tileY: number,
         objectType: InteractableObjectType = 'EMPTY_CUP',
     ) {
-        InteractableObject.ensureTexture(scene);
+        const textureKey = resolveTextureKey(objectType);
+        const posX = tileX >= 0 ? (tileX + 0.5) * TILE : 0;
+        const posY = tileY >= 0 ? (tileY + 0.5) * TILE : 0;
 
-        super(
-            scene,
-            (tileX + 0.5) * TILE,
-            (tileY + 0.5) * TILE,
-            TEXTURE_KEY,
-        );
+        super(scene, posX, posY, textureKey);
 
         this.tileSize = TILE;
         this.tileX = tileX;
         this.tileY = tileY;
         this.objectType = objectType;
+
+        this.setOrigin(0.5, 0.5);
         this.setDepth(this.y);
         scene.add.existing(this);
     }
 
+    /**
+     * Factory method for creating a food plate ready to be picked up.
+     */
     public static createFoodPlate(scene: Scene): InteractableObject {
-        const object = new InteractableObject(scene, -1, -1, 'FOOD_PLATE');
-        object.setTint(0xf5f5f5);
-        return object;
+        return new InteractableObject(scene, -1, -1, 'FOOD_PLATE');
     }
 
+    /**
+     * Factory method for creating a drink (filled or empty).
+     */
+    public static createDrink(scene: Scene, filled: boolean = true): InteractableObject {
+        return new InteractableObject(scene, -1, -1, filled ? 'FILLED_CUP' : 'EMPTY_CUP');
+    }
+
+    /**
+     * Backward-compatible texture stub (textures are now loaded in PreloadScene).
+     */
+    public static ensureTexture(_scene: Scene): void {
+        // No-op: textures are loaded in PreloadScene
+    }
+
+    /**
+     * Fills the beverage cup and immediately switches its texture to full.
+     */
     public fillBeverage(): void {
         this.objectType = 'FILLED_CUP';
-        this.setTint(0x27ae60);
+        this.setTexture(TEXTURE_DRINK_FULL);
+        this.clearTint();
+    }
+
+    /**
+     * Empties the beverage cup (e.g. after customer consumption) and
+     * immediately switches its texture to empty.
+     */
+    public emptyBeverage(): void {
+        this.objectType = 'EMPTY_CUP';
+        this.setTexture(TEXTURE_DRINK_EMPTY);
+        this.clearTint();
     }
 
     public isEmptyCup(): boolean {
         return this.objectType === 'EMPTY_CUP';
     }
 
-    public static ensureTexture(scene: Scene): void {
-        if (scene.textures.exists(TEXTURE_KEY)) {
-            return;
-        }
-
-        const graphics = scene.make.graphics({ x: 0, y: 0 });
-        graphics.fillStyle(0xd4ac0d);
-        graphics.fillRoundedRect(2, 2, 12, 12, 3);
-        graphics.lineStyle(1, 0x6e4b12, 1);
-        graphics.strokeRoundedRect(2, 2, 12, 12, 3);
-        graphics.generateTexture(TEXTURE_KEY, OBJECT_SIZE, OBJECT_SIZE);
-        graphics.destroy();
+    public isFilledCup(): boolean {
+        return this.objectType === 'FILLED_CUP';
     }
 
-    /** Makes the object follow the player's hands above the character. */
+    public isFoodPlate(): boolean {
+        return this.objectType === 'FOOD_PLATE';
+    }
+
+    public getObjectType(): InteractableObjectType {
+        return this.objectType;
+    }
+
+    /**
+     * Sets the object into held state, ready to track player position.
+     */
     public pickUp(): void {
         this.held = true;
-        this.setDepth(this.y + this.tileSize);
     }
 
-    /** Places the object at the centre of the supplied tile. */
+    /**
+     * Drops the object at the centre of the specified grid tile and restores depth.
+     */
     public drop(tileX: number, tileY: number): void {
         this.held = false;
         this.tileX = tileX;
@@ -89,11 +140,30 @@ export class InteractableObject extends GameObjects.Image {
         this.setDepth(this.y);
     }
 
-    public updateHeldPosition(playerX: number, playerY: number): void {
+    /**
+     * Updates position to follow the player's right hand every frame.
+     *
+     * @param playerX Current player body X coordinate.
+     * @param playerY Current player body Y coordinate.
+     * @param offsetX Hand horizontal offset (respecting flipX).
+     * @param offsetY Hand vertical offset.
+     * @param depth Depth value to prevent visual occlusion issues.
+     */
+    public updateHeldPosition(
+        playerX: number,
+        playerY: number,
+        offsetX: number = PLAYER_HAND_OFFSET_X,
+        offsetY: number = PLAYER_HAND_OFFSET_Y,
+        depth: number = playerY + 1,
+    ): void {
         if (this.held) {
-            this.setPosition(playerX, playerY - this.tileSize * 0.75);
-            this.setDepth(playerY);
+            this.setPosition(playerX + offsetX, playerY + offsetY);
+            this.setDepth(depth);
         }
+    }
+
+    public isHeld(): boolean {
+        return this.held;
     }
 
     public getTileX(): number {

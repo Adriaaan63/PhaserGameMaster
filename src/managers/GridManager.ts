@@ -354,7 +354,28 @@ export class GridManager {
     }
 
     public getStationAt(tileX: number, tileY: number): Station | null {
-        return this.stations.get(this.getTileKey(tileX, tileY)) ?? null;
+        const direct = this.stations.get(this.getTileKey(tileX, tileY));
+        if (direct !== undefined) {
+            return direct;
+        }
+
+        // Fallback semántico: si el tile está tipado como parrilla o cilindro, resolver la estación asociada
+        const tileType = this.getTileTypeAtGrid(tileX, tileY);
+        if (tileType === TILE_TYPE_GRILL) {
+            for (const station of this.stations.values()) {
+                if (station.constructor.name === 'Grill') {
+                    return station;
+                }
+            }
+        } else if (tileType === TILE_TYPE_DRINK_CYLINDER) {
+            for (const station of this.stations.values()) {
+                if (station.constructor.name === 'BeverageTower') {
+                    return station;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

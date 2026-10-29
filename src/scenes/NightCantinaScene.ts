@@ -270,16 +270,14 @@ export class NightCantinaScene extends Scene {
     }
 
     private createTestInteractableObjects(): void {
-        InteractableObject.ensureTexture(this);
-
-        const testTiles = [
-            { x: 8, y: 7 },
-            { x: 15, y: 7 },
+        const testConfigs = [
+            { x: 8, y: 7, type: 'EMPTY_CUP' as const },
+            { x: 15, y: 7, type: 'EMPTY_CUP' as const },
         ] as const;
 
-        for (const tile of testTiles) {
-            const object = new InteractableObject(this, tile.x, tile.y);
-            if (!this.gridManager.registerInteractableObject(object, tile.x, tile.y)) {
+        for (const config of testConfigs) {
+            const object = new InteractableObject(this, config.x, config.y, config.type);
+            if (!this.gridManager.registerInteractableObject(object, config.x, config.y)) {
                 object.destroy();
             }
         }
@@ -294,17 +292,28 @@ export class NightCantinaScene extends Scene {
         for (const object of objectLayer.objects) {
             const objectType = object.type?.toLowerCase();
             const objectName = object.name?.toLowerCase();
-            const tileX = Math.floor((object.x ?? 0) / TILE);
-            const tileY = Math.floor((object.y ?? 0) / TILE);
-            const tileWidth = Math.max(1, Math.ceil((object.width ?? TILE) / TILE));
-            const tileHeight = Math.max(1, Math.ceil((object.height ?? TILE) / TILE));
+            const rawX = object.x ?? 0;
+            const rawY = object.y ?? 0;
+            const rawWidth = object.width ?? TILE;
+            const rawHeight = object.height ?? TILE;
 
-            if (objectName === 'torrecentral' || objectType === 'torre_central') {
-                const station = new BeverageTower(this, tileX, tileY);
-                this.registerStationTiles(station, tileX, tileY, tileWidth, tileHeight);
-            } else if (objectName === 'parrilla' || objectType === 'parrilla') {
-                const station = new Grill(this, tileX, tileY);
-                this.registerStationTiles(station, tileX, tileY, tileWidth, tileHeight);
+            // Math.round para compensar offsets flotantes de objetos en Tiled (ej. 221.67px -> fila 7)
+            const tileX = Math.round(rawX / TILE);
+            const tileY = Math.round(rawY / TILE);
+
+            if (objectName === 'parrilla' || objectType === 'parrilla') {
+                // La estructura de la parrilla ocupa 2x2 celdas de mostrador (columnas 11..12, filas 7..8)
+                const width = Math.max(2, Math.round(rawWidth / TILE));
+                const height = Math.max(2, Math.round(rawHeight / TILE));
+                const station = new Grill(this, tileX, tileY, width, height);
+                this.registerStationTiles(station, tileX, tileY, width, height);
+            } else if (objectName === 'torrecentral' || objectType === 'torre_central') {
+                // La torre central de bebidas ocupa 2x2 celdas (columnas 11..12, filas 9..10)
+                const width = Math.max(2, Math.round(rawWidth / TILE));
+                const height = Math.max(2, Math.round(rawHeight / TILE));
+                const actualTileY = tileY === 10 ? 9 : tileY;
+                const station = new BeverageTower(this, tileX, actualTileY, width, height);
+                this.registerStationTiles(station, tileX, actualTileY, width, height);
             }
         }
     }

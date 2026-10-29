@@ -2,6 +2,8 @@ import { GameObjects, Input, Physics, Scene } from 'phaser';
 
 import {
     PLAYER_BASE_SPEED,
+    PLAYER_HAND_OFFSET_X,
+    PLAYER_HAND_OFFSET_Y,
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
 import { InteractableObject } from './InteractableObject';
@@ -13,7 +15,11 @@ import {
     TILE_TYPE_BAR,
     TILE_TYPE_TABLE,
 } from '../managers/GridManager';
-import { GAME_MODE_NIGHT } from '../utils/EventBus';
+import {
+    EVENT_GAME_WARNING,
+    GAME_MODE_NIGHT,
+    eventBus,
+} from '../utils/EventBus';
 
 /**
  * Claves de animación registradas en el gestor global de animaciones de Phaser.
@@ -49,8 +55,8 @@ const VECTOR_RIGHT: DirectionVector = { x: 1, y: 0 };
 
 /**
  * Clase que representa a Wuher, el tabernero y personaje jugable.
- * Encapsula la física arcade y la máquina de movimiento en 8 direcciones,
- * la resolución de animaciones direccionales basadas en spritesheets y la interacción contextual.
+ * Encapsula la física arcade, movimiento en 8 direcciones, resolución de animaciones
+ * direccionales, sistema de acarreo en mano derecha y contextualización de interacciones.
  */
 export class Player extends Physics.Arcade.Sprite {
     private readonly gridManager: GridManager;
@@ -100,25 +106,22 @@ export class Player extends Physics.Arcade.Sprite {
         // Integración en escena y sistema de físicas
         scene.add.existing(this);
         scene.physics.add.existing(this);
-this.setCollideWorldBounds(true);
+        this.setCollideWorldBounds(true);
 
-        // 2. ESCALADO VISUAL EXACTO A 32x32 (o similar)
-        // Asumiendo que el frame original es de 64x64.
+        // Escalado visual exacto a 32x32
         const FRAME_ORIGINAL_SIZE = 64;
         const TILE_TARGET_SIZE = 32;
         const scaleFactor = TILE_TARGET_SIZE / FRAME_ORIGINAL_SIZE;
         this.setScale(scaleFactor);
+
         // Huella de colisión en los pies (28x24 px centrada en el frame de 150x150)
-        // Offset X = (150 - 28) / 2 = 61 (simétrico para que flipX no desplace el body)
-        // Offset Y = 139 - 24 = 115 (la suela de las botas de Wuher está en Y=139)
         this.setSize(28, 24);
         this.setOffset(61, 115);
-
 
         // Estado inicial de animación
         this.playAnimation(PLAYER_ANIM_KEYS.IDLE_DOWN);
 
-        // Limpieza segura de listeners al destruirse el objeto (Regla SRP y Memory Leaks)
+        // Limpieza segura de listeners al destruirse el objeto
         this.once(GameObjects.Events.DESTROY, this.cleanup, this);
     }
 
@@ -187,8 +190,9 @@ this.setCollideWorldBounds(true);
      * Bucle principal de actualización del jugador:
      * - Lee la entrada del teclado (WASD).
      * - Resuelve dirección y velocidad física.
-     * - Actualiza eficientemente la animación y orientación (flipX) sin sobrecoste.
+     * - Actualiza eficientemente la animación y orientación (flipX).
      * - Procesa la acción contextual de interacción con la tecla Espacio.
+     * - Mantiene el objeto acarreado sincronizado en la mano derecha de Wuher.
      */
     public update(delta: number): void {
         const horizontal = Number(this.movementKeys.right.isDown) - Number(this.movementKeys.left.isDown);
@@ -209,7 +213,6 @@ this.setCollideWorldBounds(true);
             // Ajuste de orientación visual
             this.setFlipX(this.facing === 'left');
 
-            // Ajuste dinámico de velocidad de animación si está corriendo
             this.anims.timeScale = 1.0;
 
             const walkAnimKey = this.getWalkAnimKey(this.facing);
@@ -227,12 +230,15 @@ this.setCollideWorldBounds(true);
         const frontTile = this.getFrontTile();
         if (this.scene.registry.get('gameMode') !== GAME_MODE_NIGHT) {
             this.cancelFilling();
-            this.heldObject?.updateHeldPosition(this.x, this.y);
+            this.updateHeldObjectPosition();
             return;
         }
+
         if (frontTile !== null) {
             const station = this.gridManager.getStationAt(frontTile.tileX, frontTile.tileY);
-            if (this.heldObject !== null && station instanceof BeverageTower) {
+
+            // Filling an empty cup held in hand at BeverageTower
+            if (this.heldObject !== null && this.heldObject.isEmptyCup() && station instanceof BeverageTower) {
                 if (this.interactionKey.isDown && !station.isFilling(this.heldObject)) {
                     station.startFilling(this.heldObject);
                 }
@@ -249,7 +255,27 @@ this.setCollideWorldBounds(true);
             this.fillingStation = null;
         }
 
-        this.heldObject?.updateHeldPosition(this.x, this.y);
+        this.updateHeldObjectPosition();
+    }
+
+    /**
+     * Mantiene el objeto acarreado perfectamente ubicado en la mano derecha del jugador.
+     */
+    private updateHeldObjectPosition(): void {
+        if (this.heldObject === null) {
+            return;
+        }
+
+        const offsetX = this.flipX ? -PLAYER_HAND_OFFSET_X : PLAYER_HAND_OFFSET_X;
+        const depthOffset = this.facing === 'up' ? -1 : 1;
+
+        this.heldObject.updateHeldPosition(
+            this.x,
+            this.y,
+            offsetX,
+            PLAYER_HAND_OFFSET_Y,
+            this.depth + depthOffset,
+        );
     }
 
     private cancelFilling(): void {
@@ -271,13 +297,11 @@ this.setCollideWorldBounds(true);
             return vertical > 0 ? 'down' : 'up';
         }
 
-        // En movimiento diagonal, si la dirección actual coincide con uno de los componentes, se preserva
         if (horizontal > 0 && currentFacing === 'right') return 'right';
         if (horizontal < 0 && currentFacing === 'left') return 'left';
         if (vertical > 0 && currentFacing === 'down') return 'down';
         if (vertical < 0 && currentFacing === 'up') return 'up';
 
-        // Preferencia por defecto en diagonales simétricas
         return horizontal > 0 ? 'right' : 'left';
     }
 
@@ -301,9 +325,6 @@ this.setCollideWorldBounds(true);
         }
     }
 
-    /**
-     * Obtiene la clave de animación de andar según la orientación.
-     */
     private getWalkAnimKey(facing: FacingDirection): PlayerAnimKey {
         switch (facing) {
             case 'down':
@@ -316,9 +337,6 @@ this.setCollideWorldBounds(true);
         }
     }
 
-    /**
-     * Obtiene la clave de animación en reposo (idle) según la última orientación.
-     */
     private getIdleAnimKey(facing: FacingDirection): PlayerAnimKey {
         switch (facing) {
             case 'down':
@@ -331,9 +349,6 @@ this.setCollideWorldBounds(true);
         }
     }
 
-    /**
-     * Reproduce una animación únicamente si difiere de la actual, evitando llamadas redundantes a Phaser.
-     */
     private playAnimation(animKey: PlayerAnimKey): void {
         if (this.currentAnimKey !== animKey) {
             this.currentAnimKey = animKey;
@@ -342,18 +357,78 @@ this.setCollideWorldBounds(true);
     }
 
     /**
-     * Comprueba e interactúa con el tile situado inmediatamente delante de los pies del jugador.
+     * Comprueba e interactúa con el tile o estación frente al jugador.
      */
     private interactWithTileInFront(tileX: number, tileY: number, station: Station | null): void {
-        if (this.heldObject === null && station instanceof Grill) {
-            const object = station.takeFood();
-            if (object !== null) {
-                this.heldObject = object;
-                object.pickUp();
+        const resolvedStation = station ?? this.gridManager.getStationAt(tileX, tileY);
+
+        // Interacción con Parrilla
+        if (resolvedStation instanceof Grill) {
+            if (resolvedStation.isCooking()) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'La comida se está cocinando...' });
+                return;
             }
+
+            if (resolvedStation.isFoodReady()) {
+                if (this.heldObject !== null) {
+                    eventBus.emit(EVENT_GAME_WARNING, { message: '¡Tienes las manos ocupadas!' });
+                    return;
+                }
+
+                const food = resolvedStation.takeFood();
+                if (food !== null) {
+                    this.heldObject = food;
+                    food.pickUp();
+                }
+                return;
+            }
+
+            if (this.heldObject !== null) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: '¡Tienes las manos ocupadas para cocinar!' });
+                return;
+            }
+
+            if (!resolvedStation.canStartCooking()) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: '¡No quedan ingredientes para cocinar!' });
+                return;
+            }
+
+            resolvedStation.startCooking();
             return;
         }
 
+        // Interacción con Torre Central de Bebidas
+        if (resolvedStation instanceof BeverageTower) {
+            if (this.heldObject === null) {
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: 'Necesitas traer un vaso vacío para llenarlo.',
+                });
+                return;
+            }
+
+            if (this.heldObject.isFoodPlate()) {
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: 'No puedes llenar comida en la torre de bebidas.',
+                });
+                return;
+            }
+
+            if (this.heldObject.isFilledCup()) {
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: 'Esta bebida ya está llena.',
+                });
+                return;
+            }
+
+            if (this.heldObject.isEmptyCup()) {
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: 'Mantén ESPACIO para llenar la jarra.',
+                });
+                return;
+            }
+        }
+
+        // Recoger objeto existente en superficie (mesa o barra)
         if (this.heldObject === null) {
             const object = this.gridManager.removeInteractableObject(tileX, tileY);
             if (object !== null) {
@@ -363,6 +438,7 @@ this.setCollideWorldBounds(true);
             return;
         }
 
+        // Depositar objeto acarreado sobre superficie válida (mesa o barra)
         const tileType = this.gridManager.getTileTypeAtGrid(tileX, tileY);
         const isValidSurface = tileType === TILE_TYPE_TABLE || tileType === TILE_TYPE_BAR;
         if (isValidSurface && this.gridManager.getInteractableObjectAt(tileX, tileY) === null) {
@@ -375,11 +451,16 @@ this.setCollideWorldBounds(true);
     }
 
     private getFrontTile(): { tileX: number; tileY: number } | null {
-        const originX = this.body !== null ? this.body.center.x : this.x;
-        const originY = this.body !== null ? this.body.center.y : this.y;
+        const body = this.body;
+        const originX = body !== null ? body.center.x : this.x;
+        const originY = body !== null ? body.center.y : this.y;
 
-        const targetX = originX + this.facingDirection.x * this.gridManager.tilemap.tileWidth;
-        const targetY = originY + this.facingDirection.y * this.gridManager.tilemap.tileHeight;
+        const halfWidth = body !== null ? body.width / 2 : 14;
+        const halfHeight = body !== null ? body.height / 2 : 12;
+        const forwardReach = 16;
+
+        const targetX = originX + this.facingDirection.x * (halfWidth + forwardReach);
+        const targetY = originY + this.facingDirection.y * (halfHeight + forwardReach);
 
         const tileX = this.gridManager.tilemap.worldToTileX(targetX);
         const tileY = this.gridManager.tilemap.worldToTileY(targetY);
