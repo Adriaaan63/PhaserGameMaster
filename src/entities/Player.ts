@@ -7,6 +7,7 @@ import {
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
 import { InteractableObject } from './InteractableObject';
+import type { InteractableObjectType } from './InteractableObject';
 import { BeverageTower } from './stations/BeverageTower';
 import { Grill } from './stations/Grill';
 import type { Station } from './stations/Station';
@@ -269,6 +270,21 @@ export class Player extends Physics.Arcade.Sprite {
 
     public getFacingTile(): { readonly tileX: number; readonly tileY: number } | null {
         return this.getFrontTile();
+    }
+
+    public getHeldObjectType(): InteractableObjectType | null {
+        return this.heldObject?.getObjectType() ?? null;
+    }
+
+    /** Destroys the held service item only when it matches the expected order item. */
+    public consumeHeldObject(expectedType: InteractableObjectType): boolean {
+        if (this.heldObject === null || this.heldObject.getObjectType() !== expectedType) {
+            return false;
+        }
+
+        this.heldObject.destroy();
+        this.heldObject = null;
+        return true;
     }
 
     /**

@@ -1,6 +1,8 @@
-import { Scene } from 'phaser';
+import { Physics, Scene } from 'phaser';
 
+import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import { Player } from '../entities/Player';
+import { CoinDrop } from '../entities/CoinDrop';
 import { InteractableObject } from '../entities/InteractableObject';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
@@ -20,10 +22,14 @@ import {
     EVENT_CLIENT_SELECTED,
     EVENT_CHAIR_ASSIGNED,
     EVENT_TOGGLE_BUILD_MODE,
+    EVENT_CLIENT_SATISFIED,
+    EVENT_COIN_COLLECTED,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
     type BuildModeToggledData,
+    type ClientSatisfiedData,
+    type CoinCollectedData,
     type GameModeChangedData,
 } from '../utils/EventBus';
 
@@ -92,6 +98,7 @@ export class NightCantinaScene extends Scene {
     private selectedClient: Client | null = null;
     private buildModeEnabled = true;
     private isNightBuildPaused = false;
+    private coinsGroup!: Physics.Arcade.Group;
 
     public constructor() {
         super('NightCantinaScene');
@@ -109,6 +116,9 @@ export class NightCantinaScene extends Scene {
 
     public create(): void {
         this.registry.set('gameMode', GAME_MODE_PRE_OPENING);
+        if (typeof this.registry.get(CREDITS_REGISTRY_KEY) !== 'number') {
+            this.registry.set(CREDITS_REGISTRY_KEY, GAME_REGISTRY.economy.startingCredits);
+        }
         eventBus.on(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
         this.events.once('shutdown', this.cleanupModeEvents, this);
         this.events.once('destroy', this.cleanupModeEvents, this);
@@ -152,19 +162,22 @@ export class NightCantinaScene extends Scene {
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
+        this.coinsGroup = this.physics.add.group();
+        this.physics.add.overlap(this.player, this.coinsGroup, this.collectCoin, undefined, this);
         this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
 
         // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
-        this.clientManager = new ClientManager(this, this.gridManager);
+        this.clientManager = new ClientManager(this, this.gridManager, this.coinsGroup);
         this.seatingManager = new SeatingManager(this, this.gridManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        eventBus.on(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
         this.input.on('pointerdown', this.handlePointerDown, this);
         this.events.once('shutdown', this.cleanupClientSystems, this);
         this.events.once('destroy', this.cleanupClientSystems, this);
@@ -201,6 +214,9 @@ export class NightCantinaScene extends Scene {
         this.updatePlayerDepth();
         this.placementManager.update();
         this.clientManager.update(delta);
+        for (const child of this.coinsGroup.getChildren()) {
+            if (child instanceof CoinDrop && child.active) child.update(delta);
+        }
     }
 
     public getGridManager(): GridManager {
@@ -397,6 +413,23 @@ export class NightCantinaScene extends Scene {
             this.selectedClient = null;
             this.seatingManager.setHighlightsEnabled(false);
         }
+
+        const orderClient = this.clientManager.getClientWaitingForOrderAt(tileX, tileY);
+        const heldItemType = this.player.getHeldObjectType();
+        if (orderClient !== null && heldItemType !== null) {
+            if (orderClient.orderItemId !== heldItemType) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Ese cliente pidió otra cosa.' });
+                return true;
+            }
+
+            if (this.player.consumeHeldObject(heldItemType) && orderClient.receiveOrder(heldItemType)) {
+                return true;
+            }
+
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'No se pudo entregar el pedido.' });
+            return true;
+        }
+
         if (this.selectedClient !== null) return this.assignSelectedClient(tileX, tileY);
         const client = this.clientManager.getWaitingClients().find((candidate) =>
             this.worldToTile(candidate.x) === tileX && this.worldToTile(candidate.y) === tileY,
@@ -460,10 +493,12 @@ export class NightCantinaScene extends Scene {
         eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        eventBus.off(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
         this.input.off('pointerdown', this.handlePointerDown, this);
         this.player?.setNightInteractionHandler(null);
         this.clientManager?.destroy();
         this.seatingManager?.destroy();
+        this.coinsGroup?.clear(true, true);
         this.selectedClient = null;
     }
 
@@ -495,4 +530,30 @@ export class NightCantinaScene extends Scene {
     private handleFurnitureLayoutChanged(): void {
         this.seatingManager?.refresh();
     }
+
+    private handleClientSatisfied(data: ClientSatisfiedData): void {
+        if (data.orderItemId !== 'FILLED_CUP') return;
+
+        const surface = this.seatingManager.getAvailableServingSurface(data.seatTileX, data.seatTileY);
+        if (surface === null) return;
+
+        const emptyCup = new InteractableObject(this, surface.tileX, surface.tileY, 'EMPTY_CUP');
+        if (!this.gridManager.registerInteractableObject(emptyCup, surface.tileX, surface.tileY)) {
+            emptyCup.destroy();
+        }
+    }
+
+    private collectCoin = (_player: unknown, candidate: unknown): void => {
+        if (!(candidate instanceof CoinDrop)) return;
+
+        const currentCredits = this.registry.get(CREDITS_REGISTRY_KEY);
+        const totalCredits = (typeof currentCredits === 'number'
+            ? currentCredits
+            : GAME_REGISTRY.economy.startingCredits) + candidate.value;
+        const data: CoinCollectedData = { value: candidate.value, totalCredits };
+        candidate.destroy();
+        this.registry.set(CREDITS_REGISTRY_KEY, totalCredits);
+        eventBus.emit(EVENT_COIN_COLLECTED, data);
+        console.debug('Crédito recogido.');
+    };
 }

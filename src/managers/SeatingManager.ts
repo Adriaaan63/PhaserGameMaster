@@ -63,6 +63,22 @@ export class SeatingManager {
         return true;
     }
 
+    /** Finds an unoccupied table or bar tile orthogonally adjacent to this chair. */
+    public getAvailableServingSurface(tileX: number, tileY: number): ChairPosition | null {
+        for (const offset of ORTHOGONAL_NEIGHBORS) {
+            const surfaceX = tileX + offset.tileX;
+            const surfaceY = tileY + offset.tileY;
+            const type = this.grid.getTileTypeAtGrid(surfaceX, surfaceY);
+            if (
+                (type === TILE_TYPE_TABLE || type === TILE_TYPE_BAR)
+                && this.grid.getInteractableObjectAt(surfaceX, surfaceY) === null
+            ) {
+                return { tileX: surfaceX, tileY: surfaceY };
+            }
+        }
+        return null;
+    }
+
     public setHighlightsEnabled(enabled: boolean): void { this.highlighting = enabled; this.updateHighlights(); }
 
     public destroy(): void { for (const chair of this.chairs) chair.marker.destroy(); this.chairs = []; }

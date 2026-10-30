@@ -1,5 +1,6 @@
 import { Events } from 'phaser';
 
+import type { OrderItemId } from '../data/GameRegistry';
 import type { FurnitureCategory } from '../data/FurnitureRegistry';
 
 export const EVENT_GAME_READY = 'game-ready';
@@ -18,6 +19,8 @@ export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
+export const EVENT_CLIENT_SATISFIED = 'client:satisfied';
+export const EVENT_COIN_COLLECTED = 'economy:coin-collected';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
@@ -25,6 +28,13 @@ export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface ClientSelectedData { readonly clientId: number; }
 export interface ChairAssignedData { readonly clientId: number; readonly tileX: number; readonly tileY: number; }
 export interface ClientSeatedData { readonly clientId: number; }
+export interface ClientSatisfiedData {
+    readonly clientId: number;
+    readonly orderItemId: OrderItemId;
+    readonly seatTileX: number;
+    readonly seatTileY: number;
+}
+export interface CoinCollectedData { readonly value: number; readonly totalCredits: number; }
 
 /**
  * @deprecated Use `FurnitureCategory` from `FurnitureRegistry` instead.

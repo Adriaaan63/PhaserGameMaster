@@ -95,6 +95,14 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * **Sistema de Paciencia (Cola):** Nada más generarse en la entrada, cada cliente inicia con una "Barra de Paciencia" (o medidor de estado). Este valor disminuye gradualmente mientras el cliente espera de pie. Si no es atendido (asignado a una silla) antes de que la paciencia llegue a cero, el cliente abandonará la cantina por la puerta, penalizando la reputación del jugador.
     * **Regla de Sillas Huérfanas (Restricción de Asignación):** El jugador solo puede sentar clientes en sillas operativas. Cualquier silla en el mapa que no tenga al menos una MESA o una BARRA en sus tiles ortogonalmente adyacentes se considera una **Silla Huérfana**. Estas sillas reciben un identificador de estado `SILLA_INACTIVA` y no se pueden seleccionar como destino para ningún cliente.
     * **Restricción de Ocupación:** Un cliente solo puede ser asignado a un tile de Silla que actualmente se encuentre libre (sin otro cliente ni evento de destrucción).
+* **Reglas de Pedidos y Paciencia de Servicio:**
+    * Una vez que un cliente se sienta en su silla asignada, el sistema genera aleatoriamente un pedido (Bebida, Comida o Música).
+    * Al generar el pedido, el cliente recibe una nueva "Barra de Paciencia de Servicio". Este es un temporizador independiente al de la cola, y su duración inicial depende del tipo de pedido y de la clase del cliente.
+    * Si la paciencia llega a cero antes de recibir el objeto correcto, el cliente abandonará la mesa enfadado, sin dejar propina y afectando negativamente a la reputación.
+    * Si Wuher le entrega el ítem correcto antes del tiempo límite, el cliente pasa a estado de "Satisfecho" y emite el pago.
+* **Reglas de Economía Física:**
+    * El pago no se suma automáticamente al contador del jugador. Al ser satisfecho, el cliente "lanza" físicamente un número de monedas (Créditos) al suelo, alrededor de su tile actual.
+    * Las monedas tienen un tiempo de vida (desaparecen si se ignoran durante mucho tiempo) y son vulnerables a ser robadas por eventos (ej. Scurriers).
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -107,13 +115,19 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
     2. **Fase Asignación (Jugador):** El universo entra en un modo de "selección". El jugador, al interactuar con el cliente, habilita un sub-sistema que escanea todas las sillas del `GridManager`. Filtra y resalta únicamente aquellas que tienen el estado `ACTIVA` (conectadas a mesa/barra y libres).
     3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* (A*) para trazar la ruta más corta desde la entrada hasta el tile de la silla, esquivando muros y otros clientes estáticos. Al llegar, el cliente se ancla al tile de la silla, cambiando su animación a "Sentado".
 
+* **Máquina de Estados del Cliente Expandida:**
+    1. `WAITING_IN_LINE` -> 2. `MOVING_TO_CHAIR` -> 3. `SEATED_WAITING_ORDER` (El cliente genera un pedido y su paciencia decae) -> 4. `SATISFIED` (Recibe el ítem, lanza monedas y se levanta) -> 5. `LEAVING`.
+* **Entidades Económicas:** Las monedas (Créditos) se modelan como entidades físicas en el mundo (`DropEntities`), no como simples valores numéricos. Son instanciadas por el `Client` pero gestionadas por el motor de físicas del juego.
+
 
 * **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
     * **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de paredes, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente.
+    * **Recolección por Colisión (Trigger):** Las monedas arrojadas por los clientes no requieren interacción manual (no se usa `Espacio`). Tienen un *collider* de tipo "Trigger" (sensor). Cuando el cuerpo físico de Wuher se solapa con el *bounding box* de la moneda, esta es destruida del mundo físico y su valor se transfiere a la economía del jugador.
 
 
 * **4.4. Economy:**
-* Basada en **Créditos Imperiales** que los clientes lanzan al aire tras consumir.
+* La economía principal se basa en la **Recolección Activa** Basada en **Créditos Imperiales** que los clientes lanzan al aire tras consumir..
+    * **Fórmula de Pago (Prototipo):** La cantidad de monedas soltadas dependerá del valor base del ítem entregado multiplicado por un modificador de propina (basado en cuánta paciencia le sobraba al cliente). El valor exacto y el ratio de *drop* están centralizados en un Gestor de Datos (Data Registry) para facilitar el equilibrado progresivo del juego.
 
 
 * Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo.
@@ -144,6 +158,7 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
     * **Gestión de Estaciones de Servicio:**
         * **Interactuar con la Torre Central:** Wuher debe estar en estado `HOLDING` con un "vaso vacío". Al mirar hacia la Torre Central, mantener `Espacio` transforma el "vaso vacío" en "vaso lleno" (Juri Juice, Leche Azul, etc., dependiendo del dispensador o menú activo) tras completar una pequeña barra de progreso.
         * **Recoger de la Parrilla:** Cuando un cliente pide comida, Wuher se acerca a la Parrilla con las manos vacías (estado `EMPTY`). Al pulsar `Espacio`, se resta una unidad del inventario global de comida de esa noche, y Wuher pasa al estado `HOLDING` con un "Plato de Comida" en las manos, listo para ser entregado.
+    * **Objetos Consumibles (Físicos):** Las monedas ("Créditos") son objetos instanciados dinámicamente en el suelo. Se recogen simplemente caminando sobre ellas. Su recolección es independiente del sistema de "Manos Ocupadas" (estado `HOLDING`), por lo que Wuher puede recoger monedas del suelo incluso si lleva un plato de comida en las manos.
 
 
 * **4.7. Actions:** 
@@ -163,7 +178,8 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * *Frente a una pelea / rata:* Usa el garrote para atacar/espantar.
         * **Con las manos OCUPADAS (`State: HOLDING`):**
             * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
-            * *Frente al Cliente / Mesa:* Entrega o apoya el objeto.
+            * *Frente a la Mesa:* apoya el objeto.
+            * Frente al Cliente Sentado: Al presionar `Espacio`, el juego verifica si el ítem que sostiene Wuher coincide con el identificador del pedido del cliente. Si coincide, el ítem se destruye de las manos de Wuher (pasa a `EMPTY`), el cliente lanza el pago al aire y se levanta. Si no coincide, el juego emite un feedback visual/sonoro de rechazo y el jugador conserva el ítem.
         
     * El uso del ratón (`Clic Izquierdo / Derecho`) está limitado a la interfaz de usuario, tiendas y arrastrar mobiliario.
 
@@ -298,6 +314,10 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
         * **Feedback Visual de Sillas (Asignación):**
             * **Sillas Huérfanas:** Para evitar frustraciones, todas las sillas colocadas por error sin una mesa reciben una marca permanente: un pequeño icono rojo de advertencia o un aspa flotando sobre el tile de la silla, indicando su estado `INACTIVA`.
             * **Modo Selección de Destino:** Cuando Wuher "selecciona" a un cliente en la entrada, todas las sillas válidas (disponibles y conectadas) resaltan sutilmente en el mapa (por ejemplo, con un suave parpadeo verde en el suelo, o un icono de flecha hacia abajo sobre ellas). Esto permite al jugador identificar instantáneamente a golpe de vista dónde hay huecos libres en el frenesí de la noche.
+        * **Feedback Visual Diegético de Pedidos:** 
+            * Tan pronto como un cliente se sienta, aparece sobre su cabeza un **globo o bocadillo cuadrado** (similar al estilo de *Meadgard*).
+            * En el centro de este cuadrado se renderiza un icono que identifica claramente lo que desea (ej. un filete para Comida, una jarra para Bebida).
+            * **Paciencia Dinámica Integrada:** El fondo de este bocadillo cuadrado, actúa como el temporizador visual. Se vacía progresivamente (como una barra vertical de color) cambiando de Verde a Rojo, indicando al jugador exactamente cuánto tiempo le queda para completar ese servicio específico antes de fracasar.
 
 * **9.1.2. Menus:** El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.
 

@@ -45,3 +45,13 @@ Sigue estrictamente esta estructura de directorios y modularización para separa
 ## 6. Restricciones del Agente
 * Antes de añadir un paquete de terceros (npm), pregunta al usuario. Aprovecha primero las herramientas nativas de Phaser v4.
 * Documenta en formato JSDoc los métodos complejos (especialmente lógicas de *pathfinding* o gestores de colisiones).
+
+## 7. Arquitectura de Datos y Parametrización (Data-Driven Design)
+Para permitir un futuro balanceo y equilibrado del juego de manera ágil sin tocar la lógica del código, se prohíbe el uso de "Magic Numbers" dispersos en las clases.
+* **Sistema de Registro Estático (`src/data/GameRegistry.ts`):** 
+  Todos los parámetros numéricos de diseño deben centralizarse en un archivo único de configuración, estructurado en diccionarios u objetos de solo lectura (`Readonly`). 
+* Este archivo debe contener parámetros como:
+  * `CLIENT_PATIENCE`: Tiempos base de paciencia (cola vs. sentados).
+  * `ORDER_WEIGHTS`: Probabilidades (pesos) de qué pide cada cliente.
+  * `ECONOMY_RATES`: Valor base de las monedas, multiplicadores por propina y tiempo de vida de los *drops* en el suelo.
+* Las entidades (como `Client` o `Coin`) deben leer su comportamiento inicial de esta fuente de la verdad inmutable, permitiendo al diseñador modificar toda la curva de dificultad editando un solo archivo de configuración.

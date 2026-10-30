@@ -6,8 +6,10 @@ import {
     getFurnitureConfig,
     type FurnitureConfig,
 } from '../data/FurnitureRegistry';
+import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import {
     EVENT_CANTINA_OPEN,
+    EVENT_COIN_COLLECTED,
     EVENT_DRAG_END,
     EVENT_DRAG_MOVE,
     EVENT_FURNITURE_PLACED,
@@ -17,6 +19,7 @@ import {
     EVENT_TOGGLE_BUILD_MODE,
     eventBus,
     type BuildModeToggledData,
+    type CoinCollectedData,
     type FurniturePlacedData,
     type FurnitureRemovedData,
     type GameModeChangedData,
@@ -44,6 +47,9 @@ const OPEN_BUTTON_HEIGHT = 34;
 const BUILD_MODE_BUTTON_WIDTH = 172;
 const BUILD_MODE_BUTTON_HEIGHT = 32;
 const BUILD_MODE_BUTTON_Y = 72;
+const CREDITS_DISPLAY_X = 12;
+const CREDITS_DISPLAY_Y = 12;
+const CREDITS_DISPLAY_DEPTH = 1_000;
 
 /** Border colour used for the default (non-hovered) slot state. */
 const SLOT_BORDER_COLOR = 0xd4a359;
@@ -76,9 +82,11 @@ export class InventoryUI {
     private readonly barContainer: GameObjects.Container;
     private readonly openButtonContainer: GameObjects.Container;
     private readonly buildModeButtonContainer: GameObjects.Container;
+    private readonly creditsText: GameObjects.Text;
     private readonly slots: Map<string, SlotElements> = new Map();
     private isBuildModeEnabled = true;
     private buildModeButtonText!: GameObjects.Text;
+    private credits = 0;
 
     private readonly onFurniturePlacedBound = (data: FurniturePlacedData): void => {
         this.deductItem(data.furnitureId);
@@ -95,6 +103,11 @@ export class InventoryUI {
         this.openButtonContainer.setVisible(preOpening);
     };
 
+    private readonly onCoinCollectedBound = (data: CoinCollectedData): void => {
+        this.credits = data.totalCredits;
+        this.refreshCreditsDisplay();
+    };
+
     public constructor(scene: Scene) {
         this.scene = scene;
 
@@ -106,6 +119,18 @@ export class InventoryUI {
         this.barContainer = this.scene.add.container(0, 0);
         this.openButtonContainer = this.scene.add.container(0, 0);
         this.buildModeButtonContainer = this.scene.add.container(0, 0);
+        const initialCredits = this.scene.registry.get(CREDITS_REGISTRY_KEY);
+        this.credits = typeof initialCredits === 'number'
+            ? initialCredits
+            : GAME_REGISTRY.economy.startingCredits;
+        this.creditsText = this.scene.add.text(CREDITS_DISPLAY_X, CREDITS_DISPLAY_Y, '', {
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            color: '#ffd166',
+            stroke: '#241e18',
+            strokeThickness: 3,
+        }).setScrollFactor(0).setDepth(CREDITS_DISPLAY_DEPTH);
+        this.refreshCreditsDisplay();
 
         this.createBottomBar();
         this.createOpenButton();
@@ -168,6 +193,7 @@ export class InventoryUI {
         eventBus.off(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
         eventBus.off(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
+        eventBus.off(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
 
         this.scene.scale.off('resize', this.reposition, this);
         this.scene.input.off('pointermove', this.handleScenePointerMove, this);
@@ -176,6 +202,7 @@ export class InventoryUI {
         this.barContainer.destroy(true);
         this.openButtonContainer.destroy(true);
         this.buildModeButtonContainer.destroy(true);
+        this.creditsText.destroy();
         this.slots.clear();
     }
 
@@ -367,6 +394,10 @@ export class InventoryUI {
         );
     }
 
+    private refreshCreditsDisplay(): void {
+        this.creditsText.setText(`CRÉDITOS: ${this.credits}`);
+    }
+
     /**
      * Updates visual display (count text and dimming) for a given furniture ID slot.
      */
@@ -395,6 +426,7 @@ export class InventoryUI {
         eventBus.on(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
         eventBus.on(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
+        eventBus.on(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
 
         this.scene.scale.on('resize', this.reposition, this);
 
