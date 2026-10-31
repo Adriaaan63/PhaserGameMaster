@@ -102,7 +102,7 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * Si Wuher le entrega el ítem correcto antes del tiempo límite, el cliente pasa a estado de "Satisfecho" y emite el pago.
 * **Reglas de Economía Física:**
     * El pago no se suma automáticamente al contador del jugador. Al ser satisfecho, el cliente "lanza" físicamente un número de monedas (Créditos) al suelo, alrededor de su tile actual.
-    * Las monedas tienen un tiempo de vida (desaparecen si se ignoran durante mucho tiempo) y son vulnerables a ser robadas por eventos (ej. Scurriers).
+    * Las monedas persisten en el suelo hasta que Wuher las recoge o una rata las roba. No desaparecen por tiempo; la recolección y el robo compiten por la misma moneda y solo uno puede completarse.
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -111,16 +111,21 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 * **4.2. Model of the game universe:** El universo se divide mecánicamente en *capas lógicas de cuadrícula*. El interior de la cantina no es solo un suelo plano, sino que cuenta con un mapa de metadatos (zonas) invisible para el jugador pero crítico para el sistema. El `GridManager` clasifica cada tile (ej. Tile 5x8 = "Suelo Libre", Tile 12x4 = "Zona Prohibida: Banda"). Todas las piezas interactúan bajo este modelo: los clientes buscan "Suelos Libres" adyacentes a "Mesas" para caminar, el jugador solo puede colocar muebles en "Suelos Libres", y las ratas generan sus rutas de robo desde los *tiles* catalogados como `spawnRatas`.
 El universo de la cantina modela a los clientes no como simples *sprites*, sino como **Agentes Estatales Dinámicos** vinculados al `GridManager`.
+    * **Máquina de Estados del Cliente Expandida:**
+        1. `WAITING_IN_LINE` -> 2. `MOVING_TO_CHAIR` -> 3. `SEATED_WAITING_ORDER` (El cliente genera un pedido y su paciencia decae) -> 4. `SATISFIED` (Recibe el ítem, lanza monedas y se levanta) -> 5. `LEAVING`.
     1. **Fase Espera:** El cliente existe en un tile de la `zonaColaEntrada`. El universo verifica por cada cliente su "paciencia", siendo un temporizador que decae.
     2. **Fase Asignación (Jugador):** El universo entra en un modo de "selección". El jugador, al interactuar con el cliente, habilita un sub-sistema que escanea todas las sillas del `GridManager`. Filtra y resalta únicamente aquellas que tienen el estado `ACTIVA` (conectadas a mesa/barra y libres).
-    3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* (A*) para trazar la ruta más corta desde la entrada hasta el tile de la silla, esquivando muros y otros clientes estáticos. Al llegar, el cliente se ancla al tile de la silla, cambiando su animación a "Sentado".
+    3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* para trazar una ruta sobre la cuadrícula, esquivando obstáculos y las posiciones reservadas por otros clientes. Si una ruta queda bloqueada durante el movimiento, se recalcula; los clientes no pueden ocupar simultáneamente el mismo tile.
+    4. **Fase Éxodo (Salida):** Cuando el cliente termina su ciclo en la silla (ya sea por estado `SATISFIED` tras recibir su pedido, o `LEAVING` enfadado porque su paciencia llegó a cero), el universo invoca nuevamente al sistema de *Pathfinding*.
+        * El `GridManager` identifica la Puerta Trasera como un portal transitable en la cuadrícula, incluso si comparte tiles con la capa visual de paredes.
+        * El cliente conserva su reserva de silla mientras siga sobre ella. La silla queda disponible al abandonar su tile, evitando que otro cliente sea enviado al mismo asiento antes de que se despeje.
+        * Si no existe una ruta al portal, el cliente permanece en estado `EXIT_BLOCKED`, muestra feedback rojo y reintenta la ruta. No desaparece como si hubiese alcanzado la puerta.
+        * Durante el trayecto, el cliente ignora interacciones con el jugador. Al alcanzar la puerta trasera, el cliente se retira de la escena.
 
-* **Máquina de Estados del Cliente Expandida:**
-    1. `WAITING_IN_LINE` -> 2. `MOVING_TO_CHAIR` -> 3. `SEATED_WAITING_ORDER` (El cliente genera un pedido y su paciencia decae) -> 4. `SATISFIED` (Recibe el ítem, lanza monedas y se levanta) -> 5. `LEAVING`.
-* **Entidades Económicas:** Las monedas (Créditos) se modelan como entidades físicas en el mundo (`DropEntities`), no como simples valores numéricos. Son instanciadas por el `Client` pero gestionadas por el motor de físicas del juego.
+    * **Entidades Económicas:** Las monedas (Créditos) se modelan como entidades físicas persistentes (`CoinDrop`) administradas por `CoinManager`. Wuher puede recogerlas por solapamiento y las ratas pueden robarlas mediante el mismo gestor.
 
 
-* **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando algoritmos de *pathfinding* (A*) para que los clientes se muevan por las puertas sin chocar.
+* **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando *pathfinding* para que los clientes se muevan por las puertas sin chocar.
     * **Y-Sorting (Profundidad Visual):** Al utilizar una perspectiva 3/4 con personajes de proporciones altas (32x64) moviéndose en un grid de 32x32, el motor (Phaser) debe actualizar constantemente la profundidad de dibujado (`depth` o `Z-index`) de todos los *sprites* basándose en la coordenada "Y" de su punto de anclaje (los pies). Esto garantiza que si Wuher camina por detrás de paredes, su cuerpo quede oculto, pero si camina por delante, se superponga visualmente.
     * **Recolección por Colisión (Trigger):** Las monedas arrojadas por los clientes no requieren interacción manual (no se usa `Espacio`). Tienen un *collider* de tipo "Trigger" (sensor). Cuando el cuerpo físico de Wuher se solapa con el *bounding box* de la moneda, esta es destruida del mundo físico y su valor se transfiere a la economía del jugador.
 

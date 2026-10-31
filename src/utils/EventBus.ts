@@ -21,6 +21,8 @@ export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
 export const EVENT_CLIENT_SATISFIED = 'client:satisfied';
 export const EVENT_COIN_COLLECTED = 'economy:coin-collected';
+export const EVENT_COIN_STOLEN = 'economy:coin-stolen';
+export const EVENT_CLIENT_EXIT_PATH_FAILED = 'client:exit-path-failed';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
@@ -35,6 +37,13 @@ export interface ClientSatisfiedData {
     readonly seatTileY: number;
 }
 export interface CoinCollectedData { readonly value: number; readonly totalCredits: number; }
+export interface CoinStolenData { readonly value: number; }
+export interface ClientExitPathFailedData {
+    readonly clientId: number;
+    readonly start: { readonly tileX: number; readonly tileY: number };
+    readonly exit: { readonly tileX: number; readonly tileY: number } | null;
+    readonly reason: 'EXIT_NOT_CONFIGURED' | 'NO_PATH';
+}
 
 /**
  * @deprecated Use `FurnitureCategory` from `FurnitureRegistry` instead.

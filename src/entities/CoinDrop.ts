@@ -4,11 +4,10 @@ import { GAME_REGISTRY, type EconomyConfig } from '../data/GameRegistry';
 
 const COIN_TEXTURE_KEY = 'generated-credit-coin';
 
-/** A short-lived, physical credit pickup. Arcade overlap supplies trigger behavior. */
+/** Persistent physical credit pickup. Arcade overlap supplies trigger behavior. */
 export class CoinDrop extends Physics.Arcade.Image {
     public readonly value: number;
-
-    private remainingLifetimeMs: number;
+    private disposition: 'AVAILABLE' | 'COLLECTED' | 'STOLEN' = 'AVAILABLE';
 
     public constructor(
         scene: Scene,
@@ -22,7 +21,6 @@ export class CoinDrop extends Physics.Arcade.Image {
         super(scene, x, y, COIN_TEXTURE_KEY);
 
         this.value = value;
-        this.remainingLifetimeMs = economy.coinLifetimeMs;
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -36,14 +34,16 @@ export class CoinDrop extends Physics.Arcade.Image {
         this.setDepth(y);
     }
 
-    public update(deltaMs: number): void {
-        this.remainingLifetimeMs -= deltaMs;
-        if (this.remainingLifetimeMs <= 0) {
-            this.destroy();
-            return;
-        }
-
+    public update(): void {
         this.setDepth(this.y);
+    }
+
+    /** Claims this drop exactly once, whether Wuher collects it or a rat steals it. */
+    public claim(disposition: 'COLLECTED' | 'STOLEN'): boolean {
+        if (this.disposition !== 'AVAILABLE') return false;
+        this.disposition = disposition;
+        this.destroy();
+        return true;
     }
 
     private static ensureTexture(scene: Scene, economy: EconomyConfig): void {

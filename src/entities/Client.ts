@@ -1,4 +1,4 @@
-import { GameObjects, Physics, Scene } from 'phaser';
+import { GameObjects, Scene } from 'phaser';
 import {
     GAME_REGISTRY,
     samplePatienceDuration,
@@ -6,15 +6,19 @@ import {
     type OrderOption,
 } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
-import { CoinDrop } from './CoinDrop';
 import type { InteractableObjectType } from './InteractableObject';
+import type { GridManager } from '../managers/GridManager';
+import type { SeatingManager } from '../managers/SeatingManager';
+import type { PathfindingManager } from '../managers/PathfindingManager';
+import type { CoinManager } from '../managers/CoinManager';
 
 export type ClientState =
     | 'WAITING_IN_LINE'
     | 'MOVING_TO_CHAIR'
     | 'SEATED_WAITING_ORDER'
     | 'SATISFIED'
-    | 'LEAVING';
+    | 'LEAVING'
+    | 'EXIT_BLOCKED';
 
 export interface ClientPosition { readonly tileX: number; readonly tileY: number; }
 
@@ -31,12 +35,22 @@ export class Client extends GameObjects.Container {
     private orderBubble: GameObjects.Container | null = null;
     private orderProgress: GameObjects.Rectangle | null = null;
     private seatPosition: ClientPosition | null = null;
+    private satisfiedRemainingMs = 0;
+    private exitNotified = false;
+    private exitRetryRemainingMs = 0;
+    private exitFailureReported = false;
+    private seatReleased = false;
+    private seatWasOccupied = false;
 
     public constructor(
         scene: Scene,
+        public readonly clientId: number,
         position: ClientPosition,
         queuePatienceMs: number,
-        private readonly coinsGroup: Physics.Arcade.Group,
+        private readonly coinManager: CoinManager,
+        private readonly grid: GridManager,
+        private readonly seating: SeatingManager,
+        private readonly pathfinding: PathfindingManager,
         registry: GameRegistry = GAME_REGISTRY,
     ) {
         super(scene, position.tileX * TILE + TILE / 2, position.tileY * TILE + TILE / 2);
@@ -90,6 +104,7 @@ export class Client extends GameObjects.Container {
         this.orderBubble = null;
         this.orderProgress = null;
         this.spawnCoinDrops();
+        this.satisfiedRemainingMs = this.registry.clients.satisfiedStayMs;
         this.emit('satisfied', this);
         return true;
     }
@@ -101,7 +116,15 @@ export class Client extends GameObjects.Container {
         );
     }
 
-    public update(deltaMs: number): void {
+    public get currentTile(): ClientPosition {
+        return { tileX: Math.floor(this.x / TILE), tileY: Math.floor(this.y / TILE) };
+    }
+
+    public get nextRoutePosition(): ClientPosition | null {
+        return this.route[this.routeIndex] ?? null;
+    }
+
+    public update(deltaMs: number, blockedPositions: readonly ClientPosition[] = []): void {
         if (this.currentState === 'WAITING_IN_LINE') {
             this.patienceRemainingMs = Math.max(0, this.patienceRemainingMs - deltaMs);
             this.refreshQueueIndicator();
@@ -109,13 +132,21 @@ export class Client extends GameObjects.Container {
                 this.leave('patience-expired');
             }
         } else if (this.currentState === 'MOVING_TO_CHAIR') {
-            this.advanceAlongRoute(deltaMs);
+            this.advanceAlongRoute(deltaMs, blockedPositions);
         } else if (this.currentState === 'SEATED_WAITING_ORDER') {
             this.patienceRemainingMs = Math.max(0, this.patienceRemainingMs - deltaMs);
             this.refreshOrderBubble();
             if (this.patienceRemainingMs === 0) {
                 this.leave('service-expired');
             }
+        } else if (this.currentState === 'SATISFIED') {
+            this.satisfiedRemainingMs = Math.max(0, this.satisfiedRemainingMs - deltaMs);
+            if (this.satisfiedRemainingMs === 0) this.leave('service-expired');
+        } else if (this.currentState === 'LEAVING') {
+            this.advanceAlongRoute(deltaMs, blockedPositions);
+        } else if (this.currentState === 'EXIT_BLOCKED') {
+            this.exitRetryRemainingMs = Math.max(0, this.exitRetryRemainingMs - deltaMs);
+            if (this.exitRetryRemainingMs === 0) this.tryStartExitRoute(blockedPositions);
         }
     }
 
@@ -128,13 +159,27 @@ export class Client extends GameObjects.Container {
         return true;
     }
 
-    private advanceAlongRoute(deltaMs: number): void {
-        const target = this.route[this.routeIndex];
+    private advanceAlongRoute(deltaMs: number, blockedPositions: readonly ClientPosition[]): void {
+        let target = this.route[this.routeIndex];
+        if (target !== undefined && this.isBlocked(target, blockedPositions)) {
+            const destination = this.route[this.route.length - 1];
+            if (destination === undefined) return;
+            const route = this.pathfinding.findPath(this.currentTile, destination, blockedPositions);
+            if (route === null) return;
+            this.route = route;
+            this.routeIndex = 0;
+            target = this.route[this.routeIndex];
+        }
         if (target === undefined) {
-            this.currentState = 'SEATED_WAITING_ORDER';
-            this.indicator.setVisible(false);
-            this.startOrderService();
-            this.emit('seated', this);
+            if (this.currentState === 'LEAVING') {
+                this.notifyExitComplete();
+            } else {
+                this.currentState = 'SEATED_WAITING_ORDER';
+                this.seatWasOccupied = true;
+                this.indicator.setVisible(false);
+                this.startOrderService();
+                this.emit('seated', this);
+            }
             return;
         }
         const targetX = target.tileX * TILE + TILE / 2;
@@ -150,6 +195,7 @@ export class Client extends GameObjects.Container {
             this.setPosition(this.x + deltaX / length * distance, this.y + deltaY / length * distance);
         }
         this.setDepth(this.y);
+        this.releaseSeatIfVacated();
     }
 
     private refreshQueueIndicator(): void {
@@ -245,31 +291,76 @@ export class Client extends GameObjects.Container {
         progress.setScale(1, ratio);
     }
 
-    private leave(reason: 'patience-expired' | 'service-expired'): void {
+    private leave(_reason: 'patience-expired' | 'service-expired'): void {
         this.currentState = 'LEAVING';
         this.orderBubble?.destroy();
         this.orderBubble = null;
         this.orderProgress = null;
-        this.emit(reason, this);
+        this.tryStartExitRoute();
+    }
+
+    private tryStartExitRoute(blockedPositions: readonly ClientPosition[] = []): void {
+        const exit = this.grid.getExitPosition();
+        const start = this.currentTile;
+        if (exit === null) {
+            this.enterExitBlocked(start, null, 'EXIT_NOT_CONFIGURED');
+            return;
+        }
+        const route = this.pathfinding.findPath(start, exit, blockedPositions);
+        if (route === null) {
+            this.enterExitBlocked(start, exit, 'NO_PATH');
+            return;
+        }
+        this.currentState = 'LEAVING';
+        this.indicator.setVisible(false);
+        this.exitFailureReported = false;
+        this.route = route;
+        this.routeIndex = 0;
+        if (route.length === 0) this.notifyExitComplete();
+    }
+
+    private enterExitBlocked(
+        start: ClientPosition,
+        exit: ClientPosition | null,
+        reason: 'EXIT_NOT_CONFIGURED' | 'NO_PATH',
+    ): void {
+        this.currentState = 'EXIT_BLOCKED';
+        this.route = [];
+        this.routeIndex = 0;
+        this.exitRetryRemainingMs = this.registry.clients.exitRetryMs;
+        this.bodyGraphic.setFillStyle(this.registry.clients.exitBlockedColor);
+        this.indicator.setVisible(true).setFillStyle(this.registry.clients.exitBlockedColor);
+        if (this.exitFailureReported) return;
+        this.exitFailureReported = true;
+        this.emit('exit-path-failed', { clientId: this.clientId, start, exit, reason });
+    }
+
+    private releaseSeatIfVacated(): void {
+        if (
+            this.currentState !== 'LEAVING'
+            || !this.seatWasOccupied
+            || this.seatReleased
+            || this.seatPosition === null
+        ) return;
+        const current = this.currentTile;
+        if (current.tileX === this.seatPosition.tileX && current.tileY === this.seatPosition.tileY) return;
+        this.seating.release(this.clientId, this.seatPosition.tileX, this.seatPosition.tileY);
+        this.seatReleased = true;
+    }
+
+    private isBlocked(position: ClientPosition, blockedPositions: readonly ClientPosition[]): boolean {
+        return blockedPositions.some((blocked) =>
+            blocked.tileX === position.tileX && blocked.tileY === position.tileY,
+        );
+    }
+
+    private notifyExitComplete(): void {
+        if (this.exitNotified) return;
+        this.exitNotified = true;
+        this.emit('exited', this);
     }
 
     private spawnCoinDrops(): void {
-        const economy = this.registry.economy;
-        for (let coinIndex = 0; coinIndex < economy.coinsPerSatisfiedClient; coinIndex++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = economy.launchSpeedMin
-                + Math.random() * (economy.launchSpeedMax - economy.launchSpeedMin);
-            const spawnX = this.x + Math.cos(angle) * economy.coinSpreadRadius;
-            const spawnY = this.y + Math.sin(angle) * economy.coinSpreadRadius;
-            const coin = new CoinDrop(
-                this.scene,
-                spawnX,
-                spawnY,
-                economy.valuePerCoin,
-                { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
-                economy,
-            );
-            this.coinsGroup.add(coin);
-        }
+        this.coinManager.spawnSatisfiedClientReward(this.x, this.y);
     }
 }

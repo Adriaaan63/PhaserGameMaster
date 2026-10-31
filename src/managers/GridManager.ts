@@ -209,6 +209,25 @@ export class GridManager {
         return [...result.values()];
     }
 
+    /** Returns the back-door exit tile from the Tiled object layer, if configured. */
+    public getExitPosition(): { readonly tileX: number; readonly tileY: number } | null {
+        const exitNames = [
+            'puerta_trasera',
+            'puerta trasera',
+            'salida',
+            'salidatrasera',
+            'puerta_salida',
+        ];
+        for (const exitName of exitNames) {
+            const exitTiles = this.getObjectZoneTiles(exitName);
+            const exitPosition = exitTiles.find((position) =>
+                this.getTileTypeAtGrid(position.tileX, position.tileY) === TILE_TYPE_BACK_DOOR,
+            ) ?? exitTiles[0];
+            if (exitPosition !== undefined) return exitPosition;
+        }
+        return null;
+    }
+
     /**
      * Determines whether every tile in a rectangular footprint is eligible
      * for furniture placement.

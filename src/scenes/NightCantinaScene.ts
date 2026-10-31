@@ -1,8 +1,7 @@
-import { Physics, Scene } from 'phaser';
+import { Scene } from 'phaser';
 
 import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import { Player } from '../entities/Player';
-import { CoinDrop } from '../entities/CoinDrop';
 import { InteractableObject } from '../entities/InteractableObject';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
@@ -11,6 +10,7 @@ import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
 import { Client } from '../entities/Client';
 import { ClientManager } from '../managers/ClientManager';
+import { CoinManager } from '../managers/CoinManager';
 import { PathfindingManager } from '../managers/PathfindingManager';
 import { SeatingManager } from '../managers/SeatingManager';
 import {
@@ -23,13 +23,11 @@ import {
     EVENT_CHAIR_ASSIGNED,
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_CLIENT_SATISFIED,
-    EVENT_COIN_COLLECTED,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
     type BuildModeToggledData,
     type ClientSatisfiedData,
-    type CoinCollectedData,
     type GameModeChangedData,
 } from '../utils/EventBus';
 
@@ -98,7 +96,7 @@ export class NightCantinaScene extends Scene {
     private selectedClient: Client | null = null;
     private buildModeEnabled = true;
     private isNightBuildPaused = false;
-    private coinsGroup!: Physics.Arcade.Group;
+    private coinManager!: CoinManager;
 
     public constructor() {
         super('NightCantinaScene');
@@ -162,17 +160,22 @@ export class NightCantinaScene extends Scene {
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
-        this.coinsGroup = this.physics.add.group();
-        this.physics.add.overlap(this.player, this.coinsGroup, this.collectCoin, undefined, this);
+        this.coinManager = new CoinManager(this, this.player);
         this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
 
         // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
-        this.clientManager = new ClientManager(this, this.gridManager, this.coinsGroup);
         this.seatingManager = new SeatingManager(this, this.gridManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
+        this.clientManager = new ClientManager(
+            this,
+            this.gridManager,
+            this.coinManager,
+            this.seatingManager,
+            this.pathfindingManager,
+        );
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
@@ -214,9 +217,7 @@ export class NightCantinaScene extends Scene {
         this.updatePlayerDepth();
         this.placementManager.update();
         this.clientManager.update(delta);
-        for (const child of this.coinsGroup.getChildren()) {
-            if (child instanceof CoinDrop && child.active) child.update(delta);
-        }
+        this.coinManager.update();
     }
 
     public getGridManager(): GridManager {
@@ -468,8 +469,12 @@ export class NightCantinaScene extends Scene {
             tileX: this.worldToTile(client.x),
             tileY: this.worldToTile(client.y),
         };
-        const route = this.pathfindingManager.findPath(start, { tileX, tileY });
-        if (route === null || route.length === 0 || !this.seatingManager.reserve(tileX, tileY)) {
+        const route = this.pathfindingManager.findPath(
+            start,
+            { tileX, tileY },
+            this.clientManager.getOccupiedPositions(client.clientId),
+        );
+        if (route === null || route.length === 0 || !this.seatingManager.reserve(client.clientId, tileX, tileY)) {
             console.warn('No se encontró una ruta válida hasta esa silla.');
             return true;
         }
@@ -498,7 +503,7 @@ export class NightCantinaScene extends Scene {
         this.player?.setNightInteractionHandler(null);
         this.clientManager?.destroy();
         this.seatingManager?.destroy();
-        this.coinsGroup?.clear(true, true);
+        this.coinManager?.destroy();
         this.selectedClient = null;
     }
 
@@ -543,17 +548,4 @@ export class NightCantinaScene extends Scene {
         }
     }
 
-    private collectCoin = (_player: unknown, candidate: unknown): void => {
-        if (!(candidate instanceof CoinDrop)) return;
-
-        const currentCredits = this.registry.get(CREDITS_REGISTRY_KEY);
-        const totalCredits = (typeof currentCredits === 'number'
-            ? currentCredits
-            : GAME_REGISTRY.economy.startingCredits) + candidate.value;
-        const data: CoinCollectedData = { value: candidate.value, totalCredits };
-        candidate.destroy();
-        this.registry.set(CREDITS_REGISTRY_KEY, totalCredits);
-        eventBus.emit(EVENT_COIN_COLLECTED, data);
-        console.debug('Crédito recogido.');
-    };
 }

@@ -28,7 +28,6 @@ export interface EconomyConfig {
     readonly startingCredits: number;
     readonly coinsPerSatisfiedClient: number;
     readonly valuePerCoin: number;
-    readonly coinLifetimeMs: number;
     readonly coinRadius: number;
     readonly coinColor: number;
     readonly coinOutlineColor: number;
@@ -47,7 +46,10 @@ export interface GameRegistry {
         readonly spawnIntervalMs: number;
         readonly maxWaiting: number;
         readonly moveSpeed: number;
+        readonly satisfiedStayMs: number;
         readonly leaveFadeMs: number;
+        readonly exitRetryMs: number;
+        readonly exitBlockedColor: number;
         readonly patienceWarningRatio: number;
         readonly patienceCriticalRatio: number;
         readonly patienceHealthyColor: number;
@@ -97,7 +99,6 @@ export const GAME_REGISTRY = {
         startingCredits: 0,
         coinsPerSatisfiedClient: 3,
         valuePerCoin: 5,
-        coinLifetimeMs: 20_000,
         coinRadius: 8,
         coinColor: 0xf6c453,
         coinOutlineColor: 0x8c5b1a,
@@ -111,7 +112,10 @@ export const GAME_REGISTRY = {
         spawnIntervalMs: 8_000,
         maxWaiting: 4,
         moveSpeed: 72,
+        satisfiedStayMs: 2_000,
         leaveFadeMs: 350,
+        exitRetryMs: 1_000,
+        exitBlockedColor: 0xff2020,
         patienceWarningRatio: 0.6,
         patienceCriticalRatio: 0.25,
         patienceHealthyColor: 0x00ff00,

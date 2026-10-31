@@ -16,7 +16,7 @@ const ORTHOGONAL_NEIGHBORS: readonly ChairPosition[] = [
 
 export class SeatingManager {
     private chairs: ChairVisual[] = [];
-    private readonly occupied = new Set<string>();
+    private readonly occupied = new Map<string, number>();
     private highlighting = false;
 
     public constructor(private readonly scene: Scene, private readonly grid: GridManager) { this.refresh(); }
@@ -56,11 +56,23 @@ export class SeatingManager {
         return this.getValidChairs().some((chair) => chair.tileX === tileX && chair.tileY === tileY);
     }
 
-    public reserve(tileX: number, tileY: number): boolean {
+    public reserve(clientId: number, tileX: number, tileY: number): boolean {
         if (!this.isValidAndFree(tileX, tileY)) return false;
-        this.occupied.add(this.key({ tileX, tileY }));
+        this.occupied.set(this.key({ tileX, tileY }), clientId);
         this.updateHighlights();
         return true;
+    }
+
+    /** Releases a previously reserved chair so another client can use it. */
+    public release(clientId: number, tileX: number, tileY: number): void {
+        const key = this.key({ tileX, tileY });
+        if (this.occupied.get(key) !== clientId) return;
+        this.occupied.delete(key);
+        this.updateHighlights();
+    }
+
+    public isOccupied(tileX: number, tileY: number): boolean {
+        return this.occupied.has(this.key({ tileX, tileY }));
     }
 
     /** Finds an unoccupied table or bar tile orthogonally adjacent to this chair. */
