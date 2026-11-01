@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Input, Scene } from 'phaser';
 
 import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import { Player } from '../entities/Player';
@@ -10,6 +10,7 @@ import { PlacementManager } from '../managers/PlacementManager';
 import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
 import { Client } from '../entities/Client';
 import { ClientManager } from '../managers/ClientManager';
+import { AffinityManager } from '../managers/AffinityManager';
 import { CoinManager } from '../managers/CoinManager';
 import { PathfindingManager } from '../managers/PathfindingManager';
 import { SeatingManager } from '../managers/SeatingManager';
@@ -91,9 +92,11 @@ export class NightCantinaScene extends Scene {
     private gridManager!: GridManager;
     private placementManager!: PlacementManager;
     private clientManager!: ClientManager;
+    private affinityManager!: AffinityManager;
     private seatingManager!: SeatingManager;
     private pathfindingManager!: PathfindingManager;
     private selectedClient: Client | null = null;
+    private cancelAssignmentKey!: Input.Keyboard.Key;
     private buildModeEnabled = true;
     private isNightBuildPaused = false;
     private coinManager!: CoinManager;
@@ -160,7 +163,11 @@ export class NightCantinaScene extends Scene {
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
         this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
-        this.coinManager = new CoinManager(this, this.player);
+        const keyboard = this.input.keyboard;
+        if (keyboard === null) {
+            throw new Error('No se encontró el teclado para cancelar la asignación de clientes.');
+        }
+        this.cancelAssignmentKey = keyboard.addKey(Input.Keyboard.KeyCodes.ESC);
         this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
@@ -169,6 +176,7 @@ export class NightCantinaScene extends Scene {
         this.placementManager = new PlacementManager(this, this.gridManager, this.player);
         this.seatingManager = new SeatingManager(this, this.gridManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
+        this.coinManager = new CoinManager(this, this.player, this.pathfindingManager);
         this.clientManager = new ClientManager(
             this,
             this.gridManager,
@@ -176,6 +184,8 @@ export class NightCantinaScene extends Scene {
             this.seatingManager,
             this.pathfindingManager,
         );
+        this.coinManager.setBlockedPositionProvider(() => this.clientManager.getOccupiedPositions());
+        this.affinityManager = new AffinityManager(this.clientManager);
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
@@ -192,6 +202,7 @@ export class NightCantinaScene extends Scene {
                 this.physics.add.collider(this.player, layer.tilemapLayer);
             }
         }
+        this.physics.add.collider(this.player, this.clientManager.getCollisionGroup());
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
         this.cameras.main.setViewport(
@@ -209,9 +220,13 @@ export class NightCantinaScene extends Scene {
             this.placementManager.update();
             return;
         }
-        if (this.selectedClient?.clientState === 'LEAVING') {
-            this.selectedClient = null;
-            this.seatingManager.setHighlightsEnabled(false);
+        const cancelSelectionPressed = Input.Keyboard.JustDown(this.cancelAssignmentKey);
+        if (this.selectedClient !== null && this.selectedClient.clientState !== 'WAITING_IN_LINE') {
+            this.clearClientSelection();
+        }
+        if (this.selectedClient !== null && cancelSelectionPressed) {
+            this.clearClientSelection();
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Asignación cancelada.' });
         }
         this.player.update(delta);
         this.updatePlayerDepth();
@@ -410,9 +425,8 @@ export class NightCantinaScene extends Scene {
 
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
         if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
-        if (this.selectedClient?.clientState === 'LEAVING') {
-            this.selectedClient = null;
-            this.seatingManager.setHighlightsEnabled(false);
+        if (this.selectedClient !== null && this.selectedClient.clientState !== 'WAITING_IN_LINE') {
+            this.clearClientSelection();
         }
 
         const orderClient = this.clientManager.getClientWaitingForOrderAt(tileX, tileY);
@@ -436,10 +450,14 @@ export class NightCantinaScene extends Scene {
             this.worldToTile(candidate.x) === tileX && this.worldToTile(candidate.y) === tileY,
         );
         if (client === undefined) return false;
+        if (this.seatingManager.getValidChairs().length === 0) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'No hay sillas libres para este cliente.' });
+            return true;
+        }
         this.selectedClient = client;
         client.setSelected(true);
         this.seatingManager.setHighlightsEnabled(true);
-        eventBus.emit(EVENT_CLIENT_SELECTED, { clientId: client.getData('clientId') as number });
+        eventBus.emit(EVENT_CLIENT_SELECTED, { clientId: client.clientId });
         return true;
     };
 
@@ -462,8 +480,18 @@ export class NightCantinaScene extends Scene {
         const client = this.selectedClient;
         if (client === null) return false;
         if (!this.seatingManager.isValidAndFree(tileX, tileY)) {
-            if (this.seatingManager.isChair(tileX, tileY)) console.warn('Silla inactiva u ocupada.');
-            return this.seatingManager.isChair(tileX, tileY);
+            if (this.seatingManager.getValidChairs().length === 0) {
+                this.clearClientSelection();
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: 'Ya no quedan sillas libres. Asignación cancelada.',
+                });
+                return true;
+            }
+            if (this.seatingManager.isChair(tileX, tileY)) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Esa silla está inactiva u ocupada.' });
+                return true;
+            }
+            return false;
         }
         const start = {
             tileX: this.worldToTile(client.x),
@@ -478,10 +506,13 @@ export class NightCantinaScene extends Scene {
             console.warn('No se encontró una ruta válida hasta esa silla.');
             return true;
         }
-        client.setSelected(false);
-        client.assignRoute(route);
-        this.selectedClient = null;
-        this.seatingManager.setHighlightsEnabled(false);
+        if (!client.assignRoute(route)) {
+            this.seatingManager.release(client.clientId, tileX, tileY);
+            this.clearClientSelection();
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'El cliente ya no puede recibir una silla.' });
+            return true;
+        }
+        this.clearClientSelection();
         eventBus.emit(EVENT_CHAIR_ASSIGNED, {
             clientId: client.getData('clientId') as number,
             tileX,
@@ -494,6 +525,12 @@ export class NightCantinaScene extends Scene {
         return Math.floor(worldPosition / TILE);
     }
 
+    private clearClientSelection(): void {
+        this.selectedClient?.setSelected(false);
+        this.selectedClient = null;
+        this.seatingManager?.setHighlightsEnabled(false);
+    }
+
     private cleanupClientSystems(): void {
         eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
@@ -501,14 +538,19 @@ export class NightCantinaScene extends Scene {
         eventBus.off(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
         this.input.off('pointerdown', this.handlePointerDown, this);
         this.player?.setNightInteractionHandler(null);
+        if (this.cancelAssignmentKey !== undefined) {
+            this.input.keyboard?.removeKey(this.cancelAssignmentKey);
+        }
+        this.clearClientSelection();
+        this.affinityManager?.destroy();
         this.clientManager?.destroy();
         this.seatingManager?.destroy();
         this.coinManager?.destroy();
-        this.selectedClient = null;
     }
 
     private handleBuildModeToggled(data: BuildModeToggledData): void {
         this.buildModeEnabled = data.enabled;
+        if (data.enabled) this.clearClientSelection();
         const shouldPauseNight = data.enabled && this.registry.get('gameMode') === GAME_MODE_NIGHT;
         this.setNightBuildPause(shouldPauseNight);
     }

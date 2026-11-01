@@ -2,6 +2,46 @@ import { TEXTURE_DRINK_FULL, TEXTURE_FOOD } from './constants';
 
 export const CREDITS_REGISTRY_KEY = 'credits';
 
+export enum ClientRace {
+    WOOKIEE = 'WOOKIEE',
+    TRANDOSHAN = 'TRANDOSHAN',
+    RODIAN = 'RODIAN',
+    AQUALISH = 'AQUALISH',
+    ITHORIAN = 'ITHORIAN',
+}
+
+export const CLIENT_RACES: readonly ClientRace[] = Object.freeze(Object.values(ClientRace));
+
+export const AFFINITY_PENALTY_MULTIPLIER = 2;
+export const AFFINITY_ADJACENCY_RADIUS_TILES = 1;
+
+export const AFFINITY_RULES: Readonly<Record<ClientRace, readonly ClientRace[]>> = {
+    [ClientRace.WOOKIEE]: [ClientRace.TRANDOSHAN],
+    [ClientRace.TRANDOSHAN]: [ClientRace.WOOKIEE, ClientRace.RODIAN, ClientRace.ITHORIAN],
+    [ClientRace.RODIAN]: [ClientRace.TRANDOSHAN, ClientRace.AQUALISH],
+    [ClientRace.AQUALISH]: [ClientRace.RODIAN, ClientRace.ITHORIAN],
+    [ClientRace.ITHORIAN]: [ClientRace.TRANDOSHAN, ClientRace.AQUALISH],
+};
+
+export interface ClientRacePresentation {
+    readonly label: string;
+    readonly placeholderColor: number;
+}
+
+export const CLIENT_RACE_PRESENTATION: Readonly<Record<ClientRace, ClientRacePresentation>> = {
+    [ClientRace.WOOKIEE]: { label: 'Wookiee', placeholderColor: 0x79543b },
+    [ClientRace.TRANDOSHAN]: { label: 'Trandoshano', placeholderColor: 0x87933f },
+    [ClientRace.RODIAN]: { label: 'Rodiano', placeholderColor: 0x42a34b },
+    [ClientRace.AQUALISH]: { label: 'Aqualish', placeholderColor: 0x536f83 },
+    [ClientRace.ITHORIAN]: { label: 'Ithoriano', placeholderColor: 0xb48272 },
+};
+
+/** Selects a client archetype from the immutable race list. */
+export function chooseClientRace(randomValue: number = Math.random()): ClientRace {
+    const index = Math.min(CLIENT_RACES.length - 1, Math.floor(randomValue * CLIENT_RACES.length));
+    return CLIENT_RACES[index] ?? ClientRace.WOOKIEE;
+}
+
 export type OrderItemId = 'FILLED_CUP' | 'FOOD_PLATE';
 
 export interface PatienceDurationConfig {
@@ -32,10 +72,7 @@ export interface EconomyConfig {
     readonly coinColor: number;
     readonly coinOutlineColor: number;
     readonly coinOutlineWidth: number;
-    readonly launchSpeedMin: number;
-    readonly launchSpeedMax: number;
-    readonly coinSpreadRadius: number;
-    readonly drag: number;
+    readonly coinPlacementSearchRadiusTiles: number;
 }
 
 export interface GameRegistry {
@@ -50,6 +87,10 @@ export interface GameRegistry {
         readonly leaveFadeMs: number;
         readonly exitRetryMs: number;
         readonly exitBlockedColor: number;
+        readonly affinityWarningOffsetY: number;
+        readonly affinityWarningFontSize: number;
+        readonly affinityWarningColor: number;
+        readonly affinityWarningStrokeWidth: number;
         readonly patienceWarningRatio: number;
         readonly patienceCriticalRatio: number;
         readonly patienceHealthyColor: number;
@@ -67,6 +108,8 @@ export interface GameRegistry {
         readonly orderBubbleCriticalColor: number;
         readonly bodyWidth: number;
         readonly bodyHeight: number;
+        readonly collisionBodyWidth: number;
+        readonly collisionBodyHeight: number;
         readonly queueIndicatorOffsetY: number;
         readonly queueIndicatorRadius: number;
         readonly queueIndicatorStrokeWidth: number;
@@ -103,10 +146,7 @@ export const GAME_REGISTRY = {
         coinColor: 0xf6c453,
         coinOutlineColor: 0x8c5b1a,
         coinOutlineWidth: 2,
-        launchSpeedMin: 20,
-        launchSpeedMax: 65,
-        coinSpreadRadius: 14,
-        drag: 80,
+        coinPlacementSearchRadiusTiles: 4,
     },
     clients: {
         spawnIntervalMs: 8_000,
@@ -116,6 +156,10 @@ export const GAME_REGISTRY = {
         leaveFadeMs: 350,
         exitRetryMs: 1_000,
         exitBlockedColor: 0xff2020,
+        affinityWarningOffsetY: -76,
+        affinityWarningFontSize: 18,
+        affinityWarningColor: 0xff2020,
+        affinityWarningStrokeWidth: 3,
         patienceWarningRatio: 0.6,
         patienceCriticalRatio: 0.25,
         patienceHealthyColor: 0x00ff00,
@@ -133,6 +177,8 @@ export const GAME_REGISTRY = {
         orderBubbleCriticalColor: 0xe53935,
         bodyWidth: 22,
         bodyHeight: 30,
+        collisionBodyWidth: 18,
+        collisionBodyHeight: 20,
         queueIndicatorOffsetY: -24,
         queueIndicatorRadius: 7,
         queueIndicatorStrokeWidth: 2,

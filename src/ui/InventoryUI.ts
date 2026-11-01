@@ -1,4 +1,4 @@
-import { GameObjects, Input, Scene } from 'phaser';
+import { GameObjects, Geom, Input, Scene } from 'phaser';
 
 import {
     FURNITURE_REGISTRY,
@@ -6,7 +6,13 @@ import {
     getFurnitureConfig,
     type FurnitureConfig,
 } from '../data/FurnitureRegistry';
-import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
+import {
+    AFFINITY_RULES,
+    CLIENT_RACES,
+    CLIENT_RACE_PRESENTATION,
+    CREDITS_REGISTRY_KEY,
+    GAME_REGISTRY,
+} from '../data/GameRegistry';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_COIN_COLLECTED,
@@ -50,6 +56,18 @@ const BUILD_MODE_BUTTON_Y = 72;
 const CREDITS_DISPLAY_X = 12;
 const CREDITS_DISPLAY_Y = 12;
 const CREDITS_DISPLAY_DEPTH = 1_000;
+const GUIDE_BUTTON_WIDTH = 128;
+const GUIDE_BUTTON_HEIGHT = 34;
+const GUIDE_BUTTON_X_OFFSET = 252;
+const GUIDE_BUTTON_Y = 28;
+const GUIDE_PANEL_WIDTH = 480;
+const GUIDE_PANEL_HEIGHT = 300;
+const GUIDE_PANEL_DEPTH = 1_500;
+const GUIDE_BUTTON_DEPTH = 1_600;
+const GUIDE_PANEL_BACKGROUND_COLOR = 0x211b16;
+const GUIDE_PANEL_BORDER_COLOR = 0xd4a359;
+const GUIDE_PANEL_BACKDROP_COLOR = 0x000000;
+const GUIDE_PANEL_BACKDROP_ALPHA = 0.72;
 
 /** Border colour used for the default (non-hovered) slot state. */
 const SLOT_BORDER_COLOR = 0xd4a359;
@@ -82,6 +100,10 @@ export class InventoryUI {
     private readonly barContainer: GameObjects.Container;
     private readonly openButtonContainer: GameObjects.Container;
     private readonly buildModeButtonContainer: GameObjects.Container;
+    private readonly guideButtonContainer: GameObjects.Container;
+    private readonly guidePanelContainer: GameObjects.Container;
+    private readonly guideBackdrop: GameObjects.Rectangle;
+    private readonly guidePanelBackground: GameObjects.Rectangle;
     private readonly creditsText: GameObjects.Text;
     private readonly slots: Map<string, SlotElements> = new Map();
     private isBuildModeEnabled = true;
@@ -101,6 +123,7 @@ export class InventoryUI {
         this.setBuildModeEnabled(preOpening);
         this.buildModeButtonContainer.setVisible(true);
         this.openButtonContainer.setVisible(preOpening);
+        this.guideButtonContainer.setVisible(true);
     };
 
     private readonly onCoinCollectedBound = (data: CoinCollectedData): void => {
@@ -119,6 +142,16 @@ export class InventoryUI {
         this.barContainer = this.scene.add.container(0, 0);
         this.openButtonContainer = this.scene.add.container(0, 0);
         this.buildModeButtonContainer = this.scene.add.container(0, 0);
+        this.guideButtonContainer = this.scene.add.container(0, 0).setDepth(GUIDE_BUTTON_DEPTH);
+        this.guidePanelContainer = this.scene.add.container(0, 0)
+            .setDepth(GUIDE_PANEL_DEPTH)
+            .setVisible(false);
+        this.guideBackdrop = this.scene.add.rectangle(
+            0, 0, 1, 1, GUIDE_PANEL_BACKDROP_COLOR, GUIDE_PANEL_BACKDROP_ALPHA,
+        ).setInteractive();
+        this.guidePanelBackground = this.scene.add.rectangle(
+            0, 0, GUIDE_PANEL_WIDTH, GUIDE_PANEL_HEIGHT, GUIDE_PANEL_BACKGROUND_COLOR, 0.98,
+        );
         const initialCredits = this.scene.registry.get(CREDITS_REGISTRY_KEY);
         this.credits = typeof initialCredits === 'number'
             ? initialCredits
@@ -135,6 +168,8 @@ export class InventoryUI {
         this.createBottomBar();
         this.createOpenButton();
         this.createBuildModeButton();
+        this.createAffinityGuideButton();
+        this.createAffinityGuidePanel();
         this.barContainer.setVisible(this.isBuildModeEnabled);
         this.reposition();
 
@@ -184,6 +219,13 @@ export class InventoryUI {
         this.barContainer.setPosition(width / 2, height - 38);
         this.openButtonContainer.setPosition(width - 92, 28);
         this.buildModeButtonContainer.setPosition(width - 102, BUILD_MODE_BUTTON_Y);
+        this.guideButtonContainer.setPosition(width - GUIDE_BUTTON_X_OFFSET, GUIDE_BUTTON_Y);
+        this.guidePanelContainer.setPosition(width / 2, height / 2);
+        this.guideBackdrop.setSize(width, height);
+        this.guideBackdrop.setInteractive(
+            new Geom.Rectangle(-width / 2, -height / 2, width, height),
+            Geom.Rectangle.Contains,
+        );
     }
 
     /**
@@ -202,6 +244,8 @@ export class InventoryUI {
         this.barContainer.destroy(true);
         this.openButtonContainer.destroy(true);
         this.buildModeButtonContainer.destroy(true);
+        this.guideButtonContainer.destroy(true);
+        this.guidePanelContainer.destroy(true);
         this.creditsText.destroy();
         this.slots.clear();
     }
@@ -369,6 +413,69 @@ export class InventoryUI {
         this.buildModeButtonContainer.add([background, this.buildModeButtonText]);
         background.on('pointerdown', () => this.setBuildModeEnabled(!this.isBuildModeEnabled));
         this.refreshBuildModeButton();
+    }
+
+    private createAffinityGuideButton(): void {
+        const background = this.scene.add.rectangle(
+            0, 0, GUIDE_BUTTON_WIDTH, GUIDE_BUTTON_HEIGHT, 0x34495e, 0.96,
+        );
+        background.setStrokeStyle(1.5, GUIDE_PANEL_BORDER_COLOR, 1);
+        background.setInteractive({ useHandCursor: true });
+        const label = this.scene.add.text(0, 0, 'GUÍA DE CLIENTES', {
+            fontFamily: 'sans-serif',
+            fontSize: '10px',
+            color: '#ffffff',
+        }).setOrigin(0.5);
+        this.guideButtonContainer.add([background, label]);
+        background.on('pointerdown', () => {
+            this.guidePanelContainer.setVisible(!this.guidePanelContainer.visible);
+        });
+    }
+
+    private createAffinityGuidePanel(): void {
+        const title = this.scene.add.text(0, -GUIDE_PANEL_HEIGHT / 2 + 34, 'GUÍA DE CLIENTES', {
+            fontFamily: 'monospace',
+            fontSize: '20px',
+            color: '#ffd166',
+            stroke: '#241e18',
+            strokeThickness: 3,
+        }).setOrigin(0.5);
+        const body = this.scene.add.text(
+            0,
+            -GUIDE_PANEL_HEIGHT / 2 + 76,
+            this.createAffinityGuideText(),
+            {
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                color: '#f4ead8',
+                align: 'left',
+                lineSpacing: 13,
+            },
+        ).setOrigin(0.5, 0).setWordWrapWidth(GUIDE_PANEL_WIDTH - 64);
+        const hint = this.scene.add.text(
+            0,
+            GUIDE_PANEL_HEIGHT / 2 - 24,
+            'Pulsa «GUÍA DE CLIENTES» para cerrar',
+            { fontFamily: 'monospace', fontSize: '10px', color: '#c8b99f' },
+        ).setOrigin(0.5);
+
+        this.guidePanelBackground.setStrokeStyle(2, GUIDE_PANEL_BORDER_COLOR, 1);
+        this.guidePanelContainer.add([
+            this.guideBackdrop,
+            this.guidePanelBackground,
+            title,
+            body,
+            hint,
+        ]);
+    }
+
+    private createAffinityGuideText(): string {
+        return CLIENT_RACES.map((race) => {
+            const enemies = AFFINITY_RULES[race]
+                .map((enemy) => CLIENT_RACE_PRESENTATION[enemy].label)
+                .join(', ');
+            return `${CLIENT_RACE_PRESENTATION[race].label} — Enemistad: ${enemies}`;
+        }).join('\n\n');
     }
 
     private setBuildModeEnabled(enabled: boolean): void {

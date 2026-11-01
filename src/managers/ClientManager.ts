@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Physics, Scene } from 'phaser';
 import { GAME_REGISTRY, samplePatienceDuration } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
 import { Client, type ClientPosition } from '../entities/Client';
@@ -10,14 +10,17 @@ import {
     eventBus,
     EVENT_CLIENT_SATISFIED,
     EVENT_CLIENT_SEATED,
+    EVENT_CLIENT_LEAVING,
     EVENT_CLIENT_EXIT_PATH_FAILED,
     type ClientExitPathFailedData,
     type ClientSatisfiedData,
     type ClientSeatedData,
+    type ClientLeavingData,
 } from '../utils/EventBus';
 
 export class ClientManager {
     private readonly clients = new Set<Client>();
+    private readonly collisionGroup: Physics.Arcade.Group;
     private readonly queueTiles: readonly ClientPosition[];
     private elapsedMs = 0;
     private queueIndex = 0;
@@ -32,6 +35,7 @@ export class ClientManager {
         private readonly pathfinding: PathfindingManager,
     ) {
         this.queueTiles = this.grid.getObjectZoneTiles('zonaColaEntrada');
+        this.collisionGroup = this.scene.physics.add.group();
     }
 
     public setEnabled(enabled: boolean): void { this.enabled = enabled; }
@@ -98,13 +102,26 @@ export class ClientManager {
         );
         client.setData('clientId', clientId);
         this.clients.add(client);
+        this.collisionGroup.add(client);
+        client.once('queue-abandoned', () => this.fadeClientOut(client));
         client.once('exited', () => this.fadeClientOut(client));
+        client.once('leaving', () => {
+            const data: ClientLeavingData = { clientId: client.clientId };
+            eventBus.emit(EVENT_CLIENT_LEAVING, data);
+        });
         client.on('exit-path-failed', (data: ClientExitPathFailedData) => {
             console.error('No existe una ruta transitable hasta la salida para el cliente.', data);
             eventBus.emit(EVENT_CLIENT_EXIT_PATH_FAILED, data);
         });
         client.once('seated', () => {
-            const data: ClientSeatedData = { clientId: client.getData('clientId') as number };
+            const seat = client.assignedSeat;
+            if (seat === null) return;
+            const data: ClientSeatedData = {
+                clientId: client.clientId,
+                race: client.race,
+                tileX: seat.tileX,
+                tileY: seat.tileY,
+            };
             eventBus.emit(EVENT_CLIENT_SEATED, data);
         });
         client.once('satisfied', () => {
@@ -123,6 +140,14 @@ export class ClientManager {
 
     public getWaitingClients(): readonly Client[] {
         return [...this.clients].filter((client) => client.clientState === 'WAITING_IN_LINE');
+    }
+
+    public getClientById(clientId: number): Client | null {
+        return [...this.clients].find((client) => client.clientId === clientId) ?? null;
+    }
+
+    public getCollisionGroup(): Physics.Arcade.Group {
+        return this.collisionGroup;
     }
 
     public getOccupiedPositions(exceptClientId?: number): readonly ClientPosition[] {
@@ -145,12 +170,14 @@ export class ClientManager {
     }
 
     public destroy(): void {
+        this.collisionGroup.clear(false, false);
         for (const client of this.clients) client.destroy();
         this.clients.clear();
     }
 
     private fadeClientOut(client: Client): void {
         this.clients.delete(client);
+        this.collisionGroup.remove(client, false, false);
         this.scene.tweens.add({
             targets: client,
             alpha: 0,

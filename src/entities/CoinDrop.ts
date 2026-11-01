@@ -1,4 +1,4 @@
-import { Physics, Scene, Types } from 'phaser';
+import { Physics, Scene } from 'phaser';
 
 import { GAME_REGISTRY, type EconomyConfig } from '../data/GameRegistry';
 
@@ -14,7 +14,6 @@ export class CoinDrop extends Physics.Arcade.Image {
         x: number,
         y: number,
         value: number,
-        launchVelocity: Types.Math.Vector2Like,
         economy: EconomyConfig = GAME_REGISTRY.economy,
     ) {
         CoinDrop.ensureTexture(scene, economy);
@@ -29,8 +28,6 @@ export class CoinDrop extends Physics.Arcade.Image {
         if (body instanceof Physics.Arcade.Body) {
             body.setAllowGravity(false);
         }
-        this.setDrag(economy.drag);
-        this.setVelocity(launchVelocity.x, launchVelocity.y);
         this.setDepth(y);
     }
 

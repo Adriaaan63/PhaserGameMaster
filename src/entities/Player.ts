@@ -14,6 +14,7 @@ import type { Station } from './stations/Station';
 import {
     GridManager,
     TILE_TYPE_BAR,
+    TILE_TYPE_CHAIR,
     TILE_TYPE_TABLE,
 } from '../managers/GridManager';
 import {
@@ -389,7 +390,12 @@ export class Player extends Physics.Arcade.Sprite {
      * Comprueba e interactúa con el tile o estación frente al jugador.
      */
     private interactWithTileInFront(tileX: number, tileY: number, station: Station | null): void {
-        const resolvedStation = station ?? this.gridManager.getStationAt(tileX, tileY);
+        const surfaceTile = this.resolveSurfaceInteractionTile(tileX, tileY);
+        const targetTileX = surfaceTile?.tileX ?? tileX;
+        const targetTileY = surfaceTile?.tileY ?? tileY;
+        const resolvedStation = station
+            ?? this.gridManager.getStationAt(tileX, tileY)
+            ?? this.gridManager.getStationAt(targetTileX, targetTileY);
 
         // Interacción con Parrilla
         if (resolvedStation instanceof Grill) {
@@ -459,7 +465,7 @@ export class Player extends Physics.Arcade.Sprite {
 
         // Recoger objeto existente en superficie (mesa o barra)
         if (this.heldObject === null) {
-            const object = this.gridManager.removeInteractableObject(tileX, tileY);
+            const object = this.gridManager.removeInteractableObject(targetTileX, targetTileY);
             if (object !== null) {
                 this.heldObject = object;
                 object.pickUp();
@@ -468,15 +474,30 @@ export class Player extends Physics.Arcade.Sprite {
         }
 
         // Depositar objeto acarreado sobre superficie válida (mesa o barra)
-        const tileType = this.gridManager.getTileTypeAtGrid(tileX, tileY);
+        const tileType = this.gridManager.getTileTypeAtGrid(targetTileX, targetTileY);
         const isValidSurface = tileType === TILE_TYPE_TABLE || tileType === TILE_TYPE_BAR;
-        if (isValidSurface && this.gridManager.getInteractableObjectAt(tileX, tileY) === null) {
+        if (isValidSurface && this.gridManager.getInteractableObjectAt(targetTileX, targetTileY) === null) {
             const object = this.heldObject;
-            object.drop(tileX, tileY);
-            if (this.gridManager.registerInteractableObject(object, tileX, tileY)) {
+            object.drop(targetTileX, targetTileY);
+            if (this.gridManager.registerInteractableObject(object, targetTileX, targetTileY)) {
                 this.heldObject = null;
             }
         }
+    }
+
+    /** Uses a table or bar from the far side of one chair tile. */
+    private resolveSurfaceInteractionTile(
+        tileX: number,
+        tileY: number,
+    ): { readonly tileX: number; readonly tileY: number } | null {
+        if (this.gridManager.getTileTypeAtGrid(tileX, tileY) !== TILE_TYPE_CHAIR) return null;
+
+        const targetTileX = tileX + this.facingDirection.x;
+        const targetTileY = tileY + this.facingDirection.y;
+        const targetType = this.gridManager.getTileTypeAtGrid(targetTileX, targetTileY);
+        return targetType === TILE_TYPE_TABLE || targetType === TILE_TYPE_BAR
+            ? { tileX: targetTileX, tileY: targetTileY }
+            : null;
     }
 
     private getFrontTile(): { tileX: number; tileY: number } | null {

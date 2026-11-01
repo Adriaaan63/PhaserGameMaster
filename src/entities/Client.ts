@@ -1,7 +1,11 @@
-import { GameObjects, Scene } from 'phaser';
+import { GameObjects, Physics, Scene } from 'phaser';
 import {
+    AFFINITY_PENALTY_MULTIPLIER,
+    chooseClientRace,
+    CLIENT_RACE_PRESENTATION,
     GAME_REGISTRY,
     samplePatienceDuration,
+    type ClientRace,
     type GameRegistry,
     type OrderOption,
 } from '../data/GameRegistry';
@@ -14,6 +18,7 @@ import type { CoinManager } from '../managers/CoinManager';
 
 export type ClientState =
     | 'WAITING_IN_LINE'
+    | 'QUEUE_LEAVING'
     | 'MOVING_TO_CHAIR'
     | 'SEATED_WAITING_ORDER'
     | 'SATISFIED'
@@ -26,6 +31,7 @@ export class Client extends GameObjects.Container {
     private readonly registry: GameRegistry;
     private readonly indicator: GameObjects.Arc;
     private readonly bodyGraphic: GameObjects.Rectangle;
+    private readonly affinityWarning: GameObjects.Text;
     private patienceRemainingMs: number;
     private patienceTotalMs: number;
     private currentState: ClientState = 'WAITING_IN_LINE';
@@ -41,6 +47,8 @@ export class Client extends GameObjects.Container {
     private exitFailureReported = false;
     private seatReleased = false;
     private seatWasOccupied = false;
+    private patienceMultiplier = 1;
+    public readonly race: ClientRace;
 
     public constructor(
         scene: Scene,
@@ -55,6 +63,7 @@ export class Client extends GameObjects.Container {
     ) {
         super(scene, position.tileX * TILE + TILE / 2, position.tileY * TILE + TILE / 2);
         this.registry = registry;
+        this.race = chooseClientRace();
         this.patienceRemainingMs = queuePatienceMs;
         this.patienceTotalMs = queuePatienceMs;
         this.bodyGraphic = scene.add.rectangle(
@@ -62,7 +71,7 @@ export class Client extends GameObjects.Container {
             0,
             registry.clients.bodyWidth,
             registry.clients.bodyHeight,
-            registry.clients.bodyColor,
+            CLIENT_RACE_PRESENTATION[this.race].placeholderColor,
         );
         this.indicator = scene.add.arc(
             0,
@@ -77,8 +86,37 @@ export class Client extends GameObjects.Container {
             registry.clients.queueIndicatorStrokeWidth,
             registry.clients.queueIndicatorOutlineColor,
         );
-        this.add([this.bodyGraphic, this.indicator]);
+        this.affinityWarning = scene.add.text(
+            0,
+            registry.clients.affinityWarningOffsetY,
+            '!!',
+            {
+                fontFamily: 'monospace',
+                fontSize: `${registry.clients.affinityWarningFontSize}px`,
+                color: `#${registry.clients.affinityWarningColor.toString(16).padStart(6, '0')}`,
+                fontStyle: 'bold',
+                stroke: '#3b1010',
+                strokeThickness: registry.clients.affinityWarningStrokeWidth,
+            },
+        ).setOrigin(0.5).setVisible(false);
+        this.add([this.bodyGraphic, this.indicator, this.affinityWarning]);
         scene.add.existing(this);
+        scene.physics.add.existing(this);
+        const body = this.body;
+        if (!(body instanceof Physics.Arcade.Body)) {
+            throw new Error('No se pudo crear el cuerpo físico del cliente.');
+        }
+        body
+            .setSize(registry.clients.collisionBodyWidth, registry.clients.collisionBodyHeight)
+            .setOffset(
+                -registry.clients.collisionBodyWidth / 2,
+                -registry.clients.collisionBodyHeight / 2,
+            )
+            .setAllowGravity(false)
+            .setImmovable(true);
+        // Pathfinding owns client movement; Arcade Physics only blocks Wuher from overlapping them.
+        body.pushable = false;
+        body.moves = false;
         this.setDepth(this.y);
     }
 
@@ -89,6 +127,16 @@ export class Client extends GameObjects.Container {
 
     public get orderItemId(): OrderOption['itemId'] | null { return this.activeOrder?.itemId ?? null; }
     public get assignedSeat(): ClientPosition | null { return this.seatPosition; }
+
+    public applyAffinityPenalty(): void {
+        this.patienceMultiplier = AFFINITY_PENALTY_MULTIPLIER;
+        this.affinityWarning.setVisible(true);
+    }
+
+    public removeAffinityPenalty(): void {
+        this.patienceMultiplier = 1;
+        this.affinityWarning.setVisible(false);
+    }
 
     public receiveOrder(itemId: InteractableObjectType): boolean {
         if (
@@ -129,19 +177,22 @@ export class Client extends GameObjects.Container {
             this.patienceRemainingMs = Math.max(0, this.patienceRemainingMs - deltaMs);
             this.refreshQueueIndicator();
             if (this.patienceRemainingMs === 0) {
-                this.leave('patience-expired');
+                this.abandonQueue();
             }
         } else if (this.currentState === 'MOVING_TO_CHAIR') {
             this.advanceAlongRoute(deltaMs, blockedPositions);
         } else if (this.currentState === 'SEATED_WAITING_ORDER') {
-            this.patienceRemainingMs = Math.max(0, this.patienceRemainingMs - deltaMs);
+            this.patienceRemainingMs = Math.max(
+                0,
+                this.patienceRemainingMs - deltaMs * this.patienceMultiplier,
+            );
             this.refreshOrderBubble();
             if (this.patienceRemainingMs === 0) {
-                this.leave('service-expired');
+                this.leaveService();
             }
         } else if (this.currentState === 'SATISFIED') {
             this.satisfiedRemainingMs = Math.max(0, this.satisfiedRemainingMs - deltaMs);
-            if (this.satisfiedRemainingMs === 0) this.leave('service-expired');
+            if (this.satisfiedRemainingMs === 0) this.leaveService();
         } else if (this.currentState === 'LEAVING') {
             this.advanceAlongRoute(deltaMs, blockedPositions);
         } else if (this.currentState === 'EXIT_BLOCKED') {
@@ -177,8 +228,8 @@ export class Client extends GameObjects.Container {
                 this.currentState = 'SEATED_WAITING_ORDER';
                 this.seatWasOccupied = true;
                 this.indicator.setVisible(false);
-                this.startOrderService();
                 this.emit('seated', this);
+                this.startOrderService();
             }
             return;
         }
@@ -217,7 +268,7 @@ export class Client extends GameObjects.Container {
     private startOrderService(): void {
         const selectedOrder = this.chooseOrder();
         if (selectedOrder === null) {
-            this.leave('service-expired');
+            this.leaveService();
             return;
         }
 
@@ -291,8 +342,15 @@ export class Client extends GameObjects.Container {
         progress.setScale(1, ratio);
     }
 
-    private leave(_reason: 'patience-expired' | 'service-expired'): void {
+    private abandonQueue(): void {
+        this.currentState = 'QUEUE_LEAVING';
+        this.indicator.setVisible(false);
+        this.emit('queue-abandoned', this);
+    }
+
+    private leaveService(): void {
         this.currentState = 'LEAVING';
+        this.emit('leaving', this);
         this.orderBubble?.destroy();
         this.orderBubble = null;
         this.orderProgress = null;

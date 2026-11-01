@@ -15,6 +15,10 @@ const NEIGHBORS: readonly ClientPosition[] = [
     { tileX: 0, tileY: 1 }, { tileX: 0, tileY: -1 },
 ];
 
+export interface ReachableFloorTile extends ClientPosition {
+    readonly distanceFromStart: number;
+}
+
 export class PathfindingManager {
     public constructor(private readonly grid: GridManager) {}
 
@@ -41,6 +45,46 @@ export class PathfindingManager {
         return null;
     }
 
+    /**
+     * Finds open floor tiles reachable by the player within a bounded number of steps.
+     * The result excludes furniture, chairs and collision tiles so physical pickups can
+     * be placed where the player can actually walk over them.
+     */
+    public getReachableFloorTiles(
+        start: ClientPosition,
+        maxSteps: number,
+        blockedPositions: readonly ClientPosition[] = [],
+    ): readonly ReachableFloorTile[] {
+        const blockedKeys = new Set(blockedPositions.map((position) => this.key(position)));
+        blockedKeys.delete(this.key(start));
+
+        const queue: ClientPosition[] = [start];
+        const distances = new Map<string, number>([[this.key(start), 0]]);
+        const reachable: ReachableFloorTile[] = [];
+
+        for (let head = 0; head < queue.length; head++) {
+            const current = queue[head];
+            if (current === undefined) continue;
+            const distance = distances.get(this.key(current));
+            if (distance === undefined) continue;
+
+            if (this.isOpenFloor(current, blockedKeys)) {
+                reachable.push({ ...current, distanceFromStart: distance });
+            }
+            if (distance >= maxSteps) continue;
+
+            for (const offset of NEIGHBORS) {
+                const next = { tileX: current.tileX + offset.tileX, tileY: current.tileY + offset.tileY };
+                const key = this.key(next);
+                if (distances.has(key) || !this.isOpenFloor(next, blockedKeys)) continue;
+                distances.set(key, distance + 1);
+                queue.push(next);
+            }
+        }
+
+        return reachable;
+    }
+
     private isWalkable(position: ClientPosition, goal: ClientPosition, blockedKeys: ReadonlySet<string>): boolean {
         if (position.tileX < 0 || position.tileY < 0 || position.tileX >= this.grid.tilemap.width || position.tileY >= this.grid.tilemap.height) return false;
         if (blockedKeys.has(this.key(position))) return false;
@@ -52,23 +96,52 @@ export class PathfindingManager {
         if (type === TILE_TYPE_CHAIR && !isGoal) return false;
         if (isGoal && type !== TILE_TYPE_CHAIR && !isDoorPortal) return false;
 
+        if (this.hasBlockingLayerTile(position, isDoorPortal, isGoal && type === TILE_TYPE_CHAIR)) return false;
+        const floor = this.grid.tilemap.getTileAt(position.tileX, position.tileY, false, 'suelo');
+        return floor !== null && floor.index > 0;
+    }
+
+    private isOpenFloor(position: ClientPosition, blockedKeys: ReadonlySet<string>): boolean {
+        if (
+            position.tileX < 0
+            || position.tileY < 0
+            || position.tileX >= this.grid.tilemap.width
+            || position.tileY >= this.grid.tilemap.height
+            || blockedKeys.has(this.key(position))
+        ) return false;
+
+        const type = this.grid.getTileTypeAtGrid(position.tileX, position.tileY);
+        if (
+            type === TILE_TYPE_TABLE
+            || type === TILE_TYPE_BAR
+            || type === TILE_TYPE_CHAIR
+            || type === TILE_TYPE_BACK_DOOR
+            || type === TILE_TYPE_MAIN_DOOR
+        ) return false;
+
+        if (this.hasBlockingLayerTile(position, false, false)) return false;
+        const floor = this.grid.tilemap.getTileAt(position.tileX, position.tileY, false, 'suelo');
+        return floor !== null && floor.index > 0;
+    }
+
+    private hasBlockingLayerTile(
+        position: ClientPosition,
+        isDoorPortal: boolean,
+        isChairGoal: boolean,
+    ): boolean {
         for (const layerName of BLOCKING_LAYER_NAMES) {
             const layer = this.grid.tilemap.getLayer(layerName);
             const tile = layer?.data[position.tileY]?.[position.tileX];
-            if (tile !== undefined && tile !== null && tile.index > 0) {
-                const properties = tile.properties as Record<string, unknown> | undefined;
-                const chairGoalTile = isGoal && type === TILE_TYPE_CHAIR && layerName === 'mobiliario';
-                if (
-                    !isDoorPortal
-                    && !chairGoalTile
-                    && (tile.collides || properties?.collides === true || layerName === 'paredes')
-                ) {
-                    return false;
-                }
-            }
+            if (tile === undefined || tile === null || tile.index <= 0) continue;
+            const properties = tile.properties as Record<string, unknown> | undefined;
+            const chairGoalTile = isChairGoal && layerName === 'mobiliario';
+            if (
+                !isDoorPortal
+                && !chairGoalTile
+                && (tile.collides || properties?.collides === true || layerName === 'paredes')
+            ) return true;
         }
-        const floor = this.grid.tilemap.getTileAt(position.tileX, position.tileY, false, 'suelo');
-        return floor !== null && floor.index > 0;
+        return false;
     }
 
     private reconstruct(cameFrom: Map<string, ClientPosition | null>, end: ClientPosition): ClientPosition[] {
