@@ -22,6 +22,15 @@ export const TEXTURE_FOOD = 'kitchen_props2_4';
 export const TEXTURE_DRINK_FULL = 'kitchen_props_3';
 export const TEXTURE_DRINK_EMPTY = 'kitchen_props2_25';
 
+/** Texture keys for the reusable pixel-art HUD frames and action icons. */
+export const UI_HUD_FRAME_KEY = 'ui-hud-holder-frame';
+export const UI_GUIDE_ICON_KEY = 'ui-guide-icon';
+export const UI_MATERIALS_ICON_KEY = 'ui-materials-icon';
+export const UI_BUILD_ICON_KEY = 'ui-build-icon';
+export const UI_OPEN_ICON_KEY = 'ui-open-icon';
+export const UI_TIME_ICON_KEY = 'ui-time-icon';
+export const UI_PHASE_ICON_KEY = 'ui-phase-icon';
+
 /** Station timing and animation configuration. */
 export const COOKING_TIME_MS = 4000;
 export const COOKING_ALPHA_MIN = 0.35;

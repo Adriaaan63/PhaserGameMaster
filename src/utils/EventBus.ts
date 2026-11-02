@@ -15,7 +15,10 @@ export const EVENT_FURNITURE_REMOVED = 'furniture:removed';
 export const EVENT_CANTINA_OPEN = 'cantina:open';
 export const EVENT_GAME_MODE_CHANGED = 'game:mode-changed';
 export const EVENT_GAME_WARNING = 'game:warning';
-export const EVENT_BEVERAGE_FILL_PROGRESS = 'station:beverage-fill-progress';
+export const EVENT_TOGGLE_CLIENT_GUIDE = 'ui:toggle-client-guide';
+export const EVENT_TOGGLE_MATERIALS = 'ui:toggle-materials';
+export const EVENT_NIGHT_TIMER_UPDATED = 'game:night-timer-updated';
+export const EVENT_PLAYER_ACTION_PROGRESS = 'player:action-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
@@ -39,6 +42,14 @@ export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
+export interface ToggleClientGuideData { readonly enabled: boolean; }
+export interface ToggleMaterialsData { readonly enabled: boolean; }
+export interface NightTimerUpdatedData { readonly remainingMs: number; }
+export interface PlayerActionProgressData {
+    readonly active: boolean;
+    readonly progress: number;
+    readonly action: 'FILLING' | 'CLEANING';
+}
 
 export interface ClientSelectedData { readonly clientId: number; }
 export interface ChairAssignedData { readonly clientId: number; readonly tileX: number; readonly tileY: number; }
@@ -161,11 +172,6 @@ export interface FurnitureRemovedData {
     readonly furnitureId: string;
     readonly tileX: number;
     readonly tileY: number;
-}
-
-export interface BeverageFillProgressData {
-    readonly progress: number;
-    readonly active: boolean;
 }
 
 export interface FoodStockUpdatedData {

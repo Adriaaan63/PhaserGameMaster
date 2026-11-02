@@ -3,9 +3,9 @@ import { GameObjects, Scene } from 'phaser';
 import { BEVERAGE_FILL_DURATION_MS, TILE } from '../../data/constants';
 import { InteractableObject } from '../InteractableObject';
 import {
-    EVENT_BEVERAGE_FILL_PROGRESS,
+    EVENT_PLAYER_ACTION_PROGRESS,
     eventBus,
-    type BeverageFillProgressData,
+    type PlayerActionProgressData,
 } from '../../utils/EventBus';
 import type { Station } from './Station';
 
@@ -110,11 +110,12 @@ export class BeverageTower extends GameObjects.Zone implements Station {
     }
 
     private emitProgress(active: boolean): void {
-        const data: BeverageFillProgressData = {
+        const data: PlayerActionProgressData = {
             progress: this.fillProgress,
             active,
+            action: 'FILLING',
         };
-        eventBus.emit(EVENT_BEVERAGE_FILL_PROGRESS, data);
+        eventBus.emit(EVENT_PLAYER_ACTION_PROGRESS, data);
     }
 
     private cleanup(): void {

@@ -5,9 +5,6 @@ import { TILE } from '../data/constants';
 
 /** Persistent, blocking corpse and blood pool created after an unresolved fight. */
 export class DeadBodyEntity extends GameObjects.Container {
-    private readonly progressBackground: GameObjects.Rectangle;
-    private readonly progressFill: GameObjects.Rectangle;
-
     public constructor(
         scene: Scene,
         public readonly tileX: number,
@@ -31,21 +28,7 @@ export class DeadBodyEntity extends GameObjects.Container {
             aftermath.bloodBodyHeight,
             registry.combat.corpseColor,
         ).setAngle(registry.combat.corpseRotation).setAlpha(registry.combat.corpseAlpha);
-        this.progressBackground = scene.add.rectangle(
-            0,
-            aftermath.progressBarOffsetY,
-            aftermath.progressBarWidth,
-            aftermath.progressBarHeight,
-            aftermath.progressBarBackgroundColor,
-        ).setVisible(false);
-        this.progressFill = scene.add.rectangle(
-            -aftermath.progressBarWidth / 2,
-            aftermath.progressBarOffsetY,
-            aftermath.progressBarWidth,
-            aftermath.progressBarHeight,
-            aftermath.progressBarFillColor,
-        ).setOrigin(0, 0.5).setScale(0, 1).setVisible(false);
-        this.add([blood, corpse, this.progressBackground, this.progressFill]);
+        this.add([blood, corpse]);
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
@@ -63,13 +46,4 @@ export class DeadBodyEntity extends GameObjects.Container {
         this.setDepth(this.y);
     }
 
-    public setCleaningProgress(ratio: number): void {
-        this.progressBackground.setVisible(true);
-        this.progressFill.setVisible(true).setScale(Math.max(0, Math.min(1, ratio)), 1);
-    }
-
-    public resetCleaningProgress(): void {
-        this.progressBackground.setVisible(false);
-        this.progressFill.setVisible(false).setScale(0, 1);
-    }
 }

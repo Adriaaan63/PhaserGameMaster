@@ -376,17 +376,28 @@ Para dotar de legibilidad inmediata al caos de la cantina, los clientes se divid
 ## 9. Interface
 
 * **9.1. Visual System:**
-* **9.1.1. HUD:** Cuenta con iconos sobre las cabezas de los clientes (globos con sus pedidos de comida, música o bebida), un icono de advertencia sobre asientos mal ubicados, temporizadores circulares de paciencia y un icono de "¡Soplón!" si el jugador delata a alguien en público.
-    * En modo **Pre-Apertura**: 
-        * **Botón Toggle "Modo Construcción":** 
-            * En la fase de Pre-Apertura (y opcionalmente durante el día), el HUD muestra un botón flotante (icono de un martillo o plano) que permite alternar el "Modo Construcción".
-            * **Al activarlo:** Despliega la "Barra de Herramientas del Inventario" en la parte inferior de la pantalla y habilita la manipulación de muebles en el mapa (Drag & Drop y eliminación). Muestra iconos de los muebles disponibles con un número de *stock*. Durante el arrastre (*Drag & Drop*), el HUD dibuja dinámicamente un cuadrado verde o rojo transparente sobre la celda (*tile*) seleccionada por el puntero.
-            * **Al desactivarlo:** Oculta la barra de inventario y bloquea cualquier interacción de construcción con los muebles, despejando la pantalla y los controles (inputs) para las mecánicas de servicio y asignación de clientes.
-        * Incluye un gran botón flotante de "Abrir Cantina" en la esquina superior derecha. 
-    * En modo **Nocturno (Apertura)**:
-        * **Inventario Dinámico de Suministros:** Durante el servicio nocturno, se mostrará en una esquina de la pantalla (ej. superior izquierda) un contador visual de los suministros de comida conseguidos en el exterior (ej. icono de un filete de Bantha: "x5"). Este número disminuye en tiempo real cada vez que Wuher saca un plato de la Parrilla. Si llega a 0, el icono se vuelve gris o muestra un aspa roja para indicar agotamiento.
-        * **Barra de Progreso de Interacción:** Al mantener pulsado `Espacio` en la Torre Central, aparecerá una pequeña barra de carga (progress bar) flotando justo encima de Wuher o del surtidor, llenándose de izquierda a derecha. Se vacía inmediatamente si el jugador suelta el botón antes de tiempo.
+* **9.1.1. HUD:** 
+La interfaz de usuario de `NightCantinaScene` se orquesta en una capa superior de HUD unificada, visible y responsive, que utiliza la estética pixel-art de tecnología desgastada y "smartphone de bolsillo" (marcos metálicos oscuros, botones cuadrados con rebordes reforzados e iconos ilustrativos).
 
+    **A. El Panel Superior de Estado (HUD Zona Superior):**
+Se sitúa en el margen superior de la pantalla, alineado horizontalmente y dividido en compartimentos (slots):
+    1. **Compartimento de Fase:** Muestra en formato de texto digital la etapa actual de la cantina: `PRE-APERTURA`, `NOCTURNA` o `DÍA`.
+    2. **Indicador de Comida:** Icono ilustrativo de ración/plato junto al contador numérico de raciones que Wuher puede preparar (ej. "x5").
+    3. **Contador de Créditos:** Icono de moneda/crédito imperial animado junto al total acumulado de dinero del jugador.
+    4. **Reloj de Tiempo:** Muestra la cuenta atrás digital (`00:00`) que resta para finalizar la Fase Nocturna.
+    5. **Botón Guía de Clientes (Interactuable):** Botón cuadrado con icono de libro/guía. Abre el panel de la rueda de afinidades.
+    6. **Botón de Materiales (Interactuable):** Botón cuadrado con icono de chatarra/inventario. Abre el menú de materiales (chatarra, comida, etc.).
+    7. **Botón de Construcción (Interactuable - Toggle):** Botón cuadrado con icono de martillo/plano. Activa o desactiva visualmente el Modo Construcción e inventario inferior.
+    8. **Botón de Apertura (Interactuable):** Botón cuadrado con icono de puerta/blaster. Disponible únicamente en la Pre-Apertura para abrir el local, quedando desactivado y ensombrecido el resto del tiempo.
+
+    **B. Sistema de Progreso Sobre el Jugador (Overhead Progress Bars):**
+    * Para evitar que la acción del juego o el propio mapa oculten información crítica, todas las barras de progreso interactivo (como el llenado de recipientes o la acción de fregar la sangre) se renderizan **directamente encima de la cabeza de Wuher** (`Overhead Canvas`).
+    * Estas barras son pequeñas, se mueven junto con el contenedor del jugador en todo momento y utilizan rebordes metálicos con un relleno de color progresivo que no puede ocultarse por los elementos visuales de la escena (depth superior), garantizando que el jugador siempre sepa cuánto tiempo de interacción le resta para completar la acción de forma realista.
+
+    **C. Feedbacks de Acciones en Pantalla:**
+    * Cualquier mensaje de aviso (como advertencias, errores de asignación, logros de dinero o recordatorios) se proyecta de forma flotante en el centro de la pantalla, justo debajo del HUD superior, con un fundido (fade-out) tras unos segundos para no entorpecer la vista de la cantina.
+
+    **D. UI Diegética:**
     * El sistema de información en pantalla integra el *feedback* directamente sobre los objetos del mundo (*Diegetic HUD*) para evitar saturar la interfaz de pantalla:
         * **Temporizador de Paciencia (Cola):**
             * Sobre la cabeza de cada cliente esperando en la entrada, aparece un pequeño globo de pensamiento o un icono circular que actúa como temporizador (similar a un reloj de arena o un diagrama de tarta vaciándose).

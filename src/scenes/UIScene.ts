@@ -17,6 +17,7 @@ export class UIScene extends Scene {
     }
 
     public create(): void {
+        this.input.setTopOnly(true);
         this.inventoryUI = new InventoryUI(this);
         this.hud = new HUD(this);
     }

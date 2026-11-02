@@ -8,8 +8,10 @@ import {
     EVENT_CLIENT_MURDERED,
     EVENT_DEAD_BODY_CLEANED,
     EVENT_DEAD_BODY_CREATED,
+    EVENT_PLAYER_ACTION_PROGRESS,
     type ClientMurderedData,
     type DeadBodyData,
+    type PlayerActionProgressData,
 } from '../utils/EventBus';
 import { GridManager } from './GridManager';
 
@@ -71,7 +73,7 @@ export class DeadBodyManager {
             this.cleaningProgressMs + deltaMs,
         );
         const progress = this.cleaningProgressMs / this.registry.aftermath.cleaningTimeMs;
-        body.setCleaningProgress(progress);
+        this.emitCleaningProgress(true, progress * 100);
         if (progress >= 1) this.finishCleaning(key, body);
         return true;
     }
@@ -105,14 +107,21 @@ export class DeadBodyManager {
         body.destroy();
         this.cleaningKey = null;
         this.cleaningProgressMs = 0;
+        this.emitCleaningProgress(false, 0);
         const data: DeadBodyData = { tileX: body.tileX, tileY: body.tileY };
         eventBus.emit(EVENT_DEAD_BODY_CLEANED, data);
     }
 
     private cancelCleaning(): void {
-        if (this.cleaningKey !== null) this.bodies.get(this.cleaningKey)?.resetCleaningProgress();
+        const wasCleaning = this.cleaningKey !== null;
         this.cleaningKey = null;
         this.cleaningProgressMs = 0;
+        if (wasCleaning) this.emitCleaningProgress(false, 0);
+    }
+
+    private emitCleaningProgress(active: boolean, progress: number): void {
+        const data: PlayerActionProgressData = { active, progress, action: 'CLEANING' };
+        eventBus.emit(EVENT_PLAYER_ACTION_PROGRESS, data);
     }
 
     private key(tileX: number, tileY: number): string {

@@ -138,6 +138,26 @@ export interface RepairConfig {
     readonly scrapsPerFurniture: number;
 }
 
+export interface UiConfig {
+    readonly topBarHeight: number;
+    readonly topBarMargin: number;
+    readonly topBarDepth: number;
+    readonly slotPadding: number;
+    readonly slotIconSize: number;
+    readonly feedbackOffsetY: number;
+    readonly feedbackDurationMs: number;
+    readonly feedbackFadeMs: number;
+    readonly feedbackFontSize: number;
+    readonly feedbackColor: number;
+    readonly feedbackErrorColor: number;
+    readonly playerProgressWidth: number;
+    readonly playerProgressHeight: number;
+    readonly playerProgressOffsetY: number;
+    readonly playerProgressDepthOffset: number;
+    readonly playerProgressBackgroundColor: number;
+    readonly playerProgressFillColor: number;
+}
+
 export interface GameRegistry {
     readonly patience: PatienceConfig;
     readonly orders: OrderConfig;
@@ -146,6 +166,7 @@ export interface GameRegistry {
     readonly threat: ThreatConfig;
     readonly aftermath: AftermathConfig;
     readonly repairs: RepairConfig;
+    readonly ui: UiConfig;
     readonly clients: {
         readonly spawnIntervalMs: number;
         readonly maxWaiting: number;
@@ -272,6 +293,25 @@ export const GAME_REGISTRY = {
     repairs: {
         startingScraps: 4,
         scrapsPerFurniture: 2,
+    },
+    ui: {
+        topBarHeight: 64,
+        topBarMargin: 4,
+        topBarDepth: 20_000,
+        slotPadding: 3,
+        slotIconSize: 20,
+        feedbackOffsetY: 60,
+        feedbackDurationMs: 2_500,
+        feedbackFadeMs: 650,
+        feedbackFontSize: 16,
+        feedbackColor: 0xffd166,
+        feedbackErrorColor: 0xff6b6b,
+        playerProgressWidth: 24,
+        playerProgressHeight: 4,
+        playerProgressOffsetY: -43,
+        playerProgressDepthOffset: 100_000,
+        playerProgressBackgroundColor: 0x242020,
+        playerProgressFillColor: 0xf1c75b,
     },
     clients: {
         spawnIntervalMs: 8_000,

@@ -6,6 +6,7 @@ import {
     PLAYER_HAND_OFFSET_Y,
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
+import { GAME_REGISTRY } from '../data/GameRegistry';
 import { InteractableObject } from './InteractableObject';
 import type { InteractableObjectType } from './InteractableObject';
 import type { ClientPosition } from './Client';
@@ -20,8 +21,10 @@ import {
 } from '../managers/GridManager';
 import {
     EVENT_GAME_WARNING,
+    EVENT_PLAYER_ACTION_PROGRESS,
     GAME_MODE_NIGHT,
     eventBus,
+    type PlayerActionProgressData,
 } from '../utils/EventBus';
 
 /**
@@ -72,6 +75,8 @@ export class Player extends Physics.Arcade.Sprite {
     private readonly interactionKey: Input.Keyboard.Key;
     private heldObject: InteractableObject | null = null;
     private fillingStation: BeverageTower | null = null;
+    private readonly actionProgressBackground: GameObjects.Rectangle;
+    private readonly actionProgressFill: GameObjects.Rectangle;
 
     private facing: FacingDirection = 'down';
     private facingDirection: DirectionVector = VECTOR_DOWN;
@@ -127,6 +132,23 @@ export class Player extends Physics.Arcade.Sprite {
         // Huella de colisión en los pies (28x24 px centrada en el frame de 150x150)
         this.setSize(28, 24);
         this.setOffset(61, 115);
+
+        const progressConfig = GAME_REGISTRY.ui;
+        this.actionProgressBackground = scene.add.rectangle(
+            x,
+            y + progressConfig.playerProgressOffsetY,
+            progressConfig.playerProgressWidth,
+            progressConfig.playerProgressHeight,
+            progressConfig.playerProgressBackgroundColor,
+        ).setStrokeStyle(1, 0x0b0b0b, 1).setVisible(false);
+        this.actionProgressFill = scene.add.rectangle(
+            x - progressConfig.playerProgressWidth / 2,
+            y + progressConfig.playerProgressOffsetY,
+            progressConfig.playerProgressWidth,
+            progressConfig.playerProgressHeight,
+            progressConfig.playerProgressFillColor,
+        ).setOrigin(0, 0.5).setScale(0, 1).setVisible(false);
+        eventBus.on(EVENT_PLAYER_ACTION_PROGRESS, this.handleActionProgress, this);
 
         // Estado inicial de animación
         this.playAnimation(PLAYER_ANIM_KEYS.IDLE_DOWN);
@@ -242,6 +264,7 @@ export class Player extends Physics.Arcade.Sprite {
             this.nightHoldInteractionHandler(null, false, this.heldObject === null, delta);
             this.cancelFilling();
             this.updateHeldObjectPosition();
+            this.updateActionProgressPosition();
             return;
         }
 
@@ -254,6 +277,7 @@ export class Player extends Physics.Arcade.Sprite {
         if (holdInteractionHandled) {
             this.cancelFilling();
             this.updateHeldObjectPosition();
+            this.updateActionProgressPosition();
             return;
         }
 
@@ -282,6 +306,7 @@ export class Player extends Physics.Arcade.Sprite {
         }
 
         this.updateHeldObjectPosition();
+        this.updateActionProgressPosition();
     }
 
     /** Registers a scene-owned contextual handler; return true when it consumed the action. */
@@ -344,6 +369,28 @@ export class Player extends Physics.Arcade.Sprite {
             this.fillingStation.cancelFilling();
             this.fillingStation = null;
         }
+    }
+
+    private handleActionProgress(data: PlayerActionProgressData): void {
+        if (!data.active) {
+            this.actionProgressBackground.setVisible(false);
+            this.actionProgressFill.setVisible(false).setScale(0, 1);
+            return;
+        }
+
+        const progress = Math.max(0, Math.min(1, data.progress / 100));
+        this.actionProgressBackground.setVisible(true);
+        this.actionProgressFill.setVisible(true).setScale(progress, 1);
+    }
+
+    private updateActionProgressPosition(): void {
+        const config = GAME_REGISTRY.ui;
+        const progressY = this.y + config.playerProgressOffsetY;
+        const depth = this.depth + config.playerProgressDepthOffset;
+        this.actionProgressBackground.setPosition(this.x, progressY).setDepth(depth);
+        this.actionProgressFill
+            .setPosition(this.x - config.playerProgressWidth / 2, progressY)
+            .setDepth(depth + 1);
     }
 
     /**
@@ -555,6 +602,9 @@ export class Player extends Physics.Arcade.Sprite {
      * Limpia los listeners de teclado asociados para prevenir fugas de memoria al cambiar de escena.
      */
     private cleanup(): void {
+        eventBus.off(EVENT_PLAYER_ACTION_PROGRESS, this.handleActionProgress, this);
+        this.actionProgressBackground.destroy();
+        this.actionProgressFill.destroy();
         const keyboard = this.scene.input.keyboard;
         if (keyboard !== null) {
             keyboard.removeKey(this.movementKeys.up);
