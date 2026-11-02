@@ -109,6 +109,15 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * **Penalización:** La "Barra de Paciencia de Servicio" de ambos clientes decaerá el **doble de rápido (x2)** de su velocidad normal.
     * **Feedback Visual:** Aparecerá un icono de "rayos rojos" u odio entre los sprites de ambos clientes afectados, advirtiendo al jugador del error táctico.
 
+* **Reglas de Escalada y Combate en la Cantina:**
+    * Si el temporizador de paciencia de dos clientes de razas incompatibles (sentados juntos) llega a cero simultáneamente (o durante la ventana de penalización por proximidad), no abandonan el local pacíficamente. Entran en un estado de **PELEA**.
+    * Una pelea es un evento crítico con un temporizador oculto. Si Wuher no interviene a tiempo, la pelea culmina en un golpe letal o disparo de bláster, resultando en un cadáver.
+    * **Consecuencias de la Muerte:**
+        1. **Cero Ingresos:** Ninguno de los involucrados paga su cuenta. El asesino abandona inmediatamente el local corriendo por la puerta trasera.
+        2. **Daño Colateral:** La silla o mesa involucrada pasa a estado `DESTRUIDO`, inutilizándola por el resto del turno nocturno.
+        3. **Suciedad Traumática:** Un cadáver y un charco de sangre ocupan los *tiles*. Los clientes evitarán sentarse cerca y su paciencia bajará más rápido por el asco/miedo, hasta que Wuher limpie la zona.
+        4. **Heat (Alerta Imperial):** incrementa drásticamente la "Barra de Alerta Imperial" de la noche.
+
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
 
@@ -117,17 +126,23 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **4.2. Model of the game universe:** El universo se divide mecánicamente en *capas lógicas de cuadrícula*. El interior de la cantina no es solo un suelo plano, sino que cuenta con un mapa de metadatos (zonas) invisible para el jugador pero crítico para el sistema. El `GridManager` clasifica cada tile (ej. Tile 5x8 = "Suelo Libre", Tile 12x4 = "Zona Prohibida: Banda"). Todas las piezas interactúan bajo este modelo: los clientes buscan "Suelos Libres" adyacentes a "Mesas" para caminar, el jugador solo puede colocar muebles en "Suelos Libres", y las ratas generan sus rutas de robo desde los *tiles* catalogados como `spawnRatas`.
 El universo de la cantina modela a los clientes no como simples *sprites*, sino como **Agentes Estatales Dinámicos** vinculados al `GridManager`.
     * **Máquina de Estados del Cliente Expandida:**
-        1. `WAITING_IN_LINE` -> 2. `MOVING_TO_CHAIR` -> 3. `SEATED_WAITING_ORDER` (El cliente genera un pedido y su paciencia decae) -> 4. `SATISFIED` (Recibe el ítem, lanza monedas y se levanta) -> 5. `LEAVING`.
-    1. **Fase Espera:** El cliente existe en un tile de la `zonaColaEntrada`. El universo verifica por cada cliente su "paciencia", siendo un temporizador que decae.
-    2. **Fase Asignación (Jugador):** El universo entra en un modo de "selección". El jugador, al interactuar con el cliente, habilita un sub-sistema que escanea todas las sillas del `GridManager`. Filtra y resalta únicamente aquellas que tienen el estado `ACTIVA` (conectadas a mesa/barra y libres).
-    3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* para trazar una ruta sobre la cuadrícula, esquivando obstáculos y las posiciones reservadas por otros clientes. Si una ruta queda bloqueada durante el movimiento, se recalcula; los clientes no pueden ocupar simultáneamente el mismo tile.
-    4. **Fase Éxodo (Salida):** Cuando el cliente termina su ciclo en la silla (ya sea por estado `SATISFIED` tras recibir su pedido, o `LEAVING` enfadado porque su paciencia llegó a cero), el universo invoca nuevamente al sistema de *Pathfinding*.
-        * El `GridManager` identifica la Puerta Trasera como un portal transitable en la cuadrícula, incluso si comparte tiles con la capa visual de paredes.
-        * El cliente conserva su reserva de silla mientras siga sobre ella. La silla queda disponible al abandonar su tile, evitando que otro cliente sea enviado al mismo asiento antes de que se despeje.
-        * Si no existe una ruta al portal, el cliente permanece en estado `EXIT_BLOCKED`, muestra feedback rojo y reintenta la ruta. No desaparece como si hubiese alcanzado la puerta.
-        * Durante el trayecto, el cliente ignora interacciones con el jugador. Al alcanzar la puerta trasera, el cliente se retira de la escena.
+         `WAITING_IN_LINE` -> 2. `MOVING_TO_CHAIR` -> 3. `SEATED_WAITING_ORDER` (El cliente genera un pedido y su paciencia decae) -> 4. `SATISFIED` (Recibe el ítem, lanza monedas y se levanta) -> 5. `LEAVING`.
+
+        1. **Fase Espera:** El cliente existe en un tile de la `zonaColaEntrada`. El universo verifica por cada cliente su "paciencia", siendo un temporizador que decae.
+        2. **Fase Asignación (Jugador):** El universo entra en un modo de "selección". El jugador, al interactuar con el cliente, habilita un sub-sistema que escanea todas las sillas del `GridManager`. Filtra y resalta únicamente aquellas que tienen el estado `ACTIVA` (conectadas a mesa/barra y libres).
+        3. **Fase Tránsito:** Una vez que el jugador vincula al cliente con la silla destino, el cliente cambia su estado a `MOVIÉNDOSE`. El universo invoca al sistema de *Pathfinding* para trazar una ruta sobre la cuadrícula, esquivando obstáculos y las posiciones reservadas por otros clientes. Si una ruta queda bloqueada durante el movimiento, se recalcula; los clientes no pueden ocupar simultáneamente el mismo tile.
+        4. **Fase Éxodo (Salida):** Cuando el cliente termina su ciclo en la silla (ya sea por estado `SATISFIED` tras recibir su pedido, o `LEAVING` enfadado porque su paciencia llegó a cero), el universo invoca nuevamente al sistema de *Pathfinding*.
+            * El `GridManager` identifica la Puerta Trasera como un portal transitable en la cuadrícula, incluso si comparte tiles con la capa visual de paredes.
+            * El cliente conserva su reserva de silla mientras siga sobre ella. La silla queda disponible al abandonar su tile, evitando que otro cliente sea enviado al mismo asiento antes de que se despeje.
+            * Si no existe una ruta al portal, el cliente permanece en estado `EXIT_BLOCKED`, muestra feedback rojo y reintenta la ruta. No desaparece como si hubiese alcanzado la puerta.
+            * Durante el trayecto, el cliente ignora interacciones con el jugador. Al alcanzar la puerta trasera, el cliente se retira de la escena.
 
     * **Entidades Económicas:** Las monedas (Créditos) se modelan como entidades físicas persistentes (`CoinDrop`) administradas por `CoinManager`. Wuher puede recogerlas por solapamiento y las ratas pueden robarlas mediante el mismo gestor.
+
+    * **Máquina de Estados de Combate (Expansión):**
+    De `SEATED_WAITING_ORDER` con penalización $\rightarrow$ 4. `APPROACHING_FIGHT` (El cliente que agota antes su paciencia se levanta y camina hacia el asiento de su rival) $\rightarrow$ 5. `FIGHTING` (Ambos entran en combate cuerpo a cuerpo) $\rightarrow$ Consecuencias (`DEAD`/`FLEEING` o interrupción de Wuher).
+
+    * **Sistema de Heat (Alerta Imperial):** Un medidor oculto o sutil en el universo que rastrea el nivel de ruido, sangre y disparos. Si este medidor supera un umbral durante la noche, el motor genera un evento de incursión de los *Sandtroopers* para cerrar el local.
 
 
 * **4.3. Physics:** El mundo funciona en una cuadrícula 2D, utilizando *pathfinding* para que los clientes se muevan por las puertas sin chocar.
@@ -170,6 +185,10 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
         * **Recoger de la Parrilla:** Cuando un cliente pide comida, Wuher se acerca a la Parrilla con las manos vacías (estado `EMPTY`). Al pulsar `Espacio`, se resta una unidad del inventario global de comida de esa noche, y Wuher pasa al estado `HOLDING` con un "Plato de Comida" en las manos, listo para ser entregado.
     * **Objetos Consumibles (Físicos):** Las monedas ("Créditos") son objetos instanciados dinámicamente en el suelo. Se recogen simplemente caminando sobre ellas. Su recolección es independiente del sistema de "Manos Ocupadas" (estado `HOLDING`), por lo que Wuher puede recoger monedas del suelo incluso si lleva un plato de comida en las manos.
 
+    * **Interacción con la Destrucción y Limpieza:**
+        * **Cadáveres y Charcos:** Son tratados como objetos físicos estáticos con un "aura" negativa. Wuher debe acercarse con las manos vacías y mantener pulsado `Espacio` durante un tiempo (barra de progreso) para limpiar el charco y tirar el cadáver (o despiezarlo para recursos si se tiene la mejora correspondiente).
+        * **Mobiliario Destruido:** Los muebles en estado `DESTRUIDO` cambian su *sprite*. No pueden recogerse en el inventario normal ni limpiarse durante la noche. Requieren ser reparados en la fase diurna gastando "Chatarra" (*scraps*).
+
 
 * **4.7. Actions:** 
 * **Ratón (Clic Izquierdo):** Su función principal es sensible al contexto y se divide en dos estados controlados por un "Botón de Modo Construcción" en el HUD:
@@ -185,7 +204,7 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * *Frente a la Parrilla:* Si hay comida disponible en el inventario del HUD, recoge un plato de comida (pasa a estado `HOLDING`). Si el inventario es 0, no ocurre nada o suena un error.
             * *Frente a un vaso vacío:* Lo recoge (pasa a `HOLDING`).
             * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
-            * *Frente a una pelea / rata:* Usa el garrote para atacar/espantar.
+            * **Frente a una Pelea:** Si Wuher tiene las manos vacías y se acerca a dos clientes en estado `FIGHTING`, presionar (o mantener, según balanceo) `Espacio` obligará a los clientes a separarse y marcharse del local (`LEAVING`). No se gana dinero, pero se evita el cadáver, la destrucción del mobiliario y el *Heat* imperial.
         * **Con las manos OCUPADAS (`State: HOLDING`):**
             * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
             * *Frente a la Mesa:* apoya el objeto.
@@ -200,7 +219,12 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * *Feedback Negativo:* Si el jugador intenta asignar al cliente a una `SILLA_INACTIVA` (silla huérfana), sonará un efecto de sonido de error (buzzer) y la acción no se registrará.
 
 * **4.8. Combat:**
-* **En la Cantina:** Si la paciencia entre clientes rivales llega a cero, entran en estado `PELEA`. El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
+* **En la Cantina (Gestión de Conflictos):** El combate en el interior no es mecánico para el jugador (Wuher no ataca con combos), sino que es un **evento de crisis de tiempo**. La tensión reside en abandonar la cadena de pedidos (sacrificar propinas de otras mesas) para correr a separar a dos clientes incompatibles antes de que salten chispas y uno acabe muerto, arruinando el servicio de esa zona y atrayendo al Imperio. Si la paciencia entre clientes rivales llega a cero, pasa lo siguiente: 
+
+    * **Fase de Escalamiento (Aproximación):** La pelea no estalla mágicamente a distancia. Cuando la paciencia de un cliente afectado por la afinidad llega a cero, este se convierte en el "Agresor". Abandona su asiento y entra en un modo de movimiento hostil hacia la silla del cliente objetivo.
+    * **Fase de Confrontación (Visuales):** Una vez que el agresor alcanza el tile adyacente o el mismo tile de su rival, la pelea comienza oficialmente. A nivel visual, se instancia un efecto de "nube de polvo/humo de dibujos animados" que cubre los sprites de los combatientes. El feedback visual textual (¡Pelea!) sigue mostrándose flotando por encima de esta nube de humo para garantizar que el jugador lo vea incluso desde lejos.
+
+    El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
 
 
 * **En las Afueras:** Las incursiones son combates *top-down* de esquiva y golpe contra bestias o campamentos.
@@ -374,6 +398,9 @@ Para dotar de legibilidad inmediata al caos de la cantina, los clientes se divid
             * Tan pronto como un cliente se sienta, aparece sobre su cabeza un **globo o bocadillo cuadrado** (similar al estilo de *Meadgard*).
             * En el centro de este cuadrado se renderiza un icono que identifica claramente lo que desea (ej. un filete para Comida, una jarra para Bebida).
             * **Paciencia Dinámica Integrada:** El fondo de este bocadillo cuadrado, actúa como el temporizador visual. Se vacía progresivamente (como una barra vertical de color) cambiando de Verde a Rojo, indicando al jugador exactamente cuánto tiempo le queda para completar ese servicio específico antes de fracasar.
+
+    * **Feedback Visual de Pelea:** Sobre las cabezas de los clientes en disputa aparece un globo de diálogo grande o una nube estilo cómic (bocadillo temblando con símbolos de insultos, polvo y golpes) para avisar al jugador de que la crisis es inminente y requiere su atención inmediata.
+        * **Aura de Miedo/Asco:** Una sutil viñeta o tintado en el suelo alrededor de un cadáver que indica visualmente el área de efecto (AOE) donde los nuevos clientes se negarán a sentarse.
 
 * **9.1.2. Menus:** 
     * El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.

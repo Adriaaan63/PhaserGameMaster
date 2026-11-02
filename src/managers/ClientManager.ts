@@ -42,8 +42,12 @@ export class ClientManager {
 
     public update(deltaMs: number): void {
         const orderedClients = [...this.clients].sort((left, right) => {
-            const leftPriority = left.clientState === 'LEAVING' ? 0 : 1;
-            const rightPriority = right.clientState === 'LEAVING' ? 0 : 1;
+            const leftPriority = left.clientState === 'LEAVING'
+                || left.clientState === 'FLEEING'
+                || left.clientState === 'APPROACHING_FIGHT' ? 0 : 1;
+            const rightPriority = right.clientState === 'LEAVING'
+                || right.clientState === 'FLEEING'
+                || right.clientState === 'APPROACHING_FIGHT' ? 0 : 1;
             return leftPriority - rightPriority || left.clientId - right.clientId;
         });
         const currentPositions = new Map<number, ClientPosition>(
@@ -56,6 +60,7 @@ export class ClientManager {
                 .filter((other) => other !== client)
                 .map((other) => currentPositions.get(other.clientId))
                 .filter((position): position is ClientPosition => position !== undefined);
+            blockedPositions.push(...this.grid.getDeadBodyPositions());
             for (const claim of nextTileClaims.values()) {
                 if (claim.ownerId !== client.clientId) blockedPositions.push(claim.position);
             }
@@ -146,6 +151,14 @@ export class ClientManager {
         return [...this.clients].find((client) => client.clientId === clientId) ?? null;
     }
 
+    public removeMurderedClient(clientId: number): void {
+        const client = this.getClientById(clientId);
+        if (client === null) return;
+        this.clients.delete(client);
+        this.collisionGroup.remove(client, false, false);
+        client.destroy();
+    }
+
     public getCollisionGroup(): Physics.Arcade.Group {
         return this.collisionGroup;
     }
@@ -165,6 +178,17 @@ export class ClientManager {
             ) {
                 return client;
             }
+        }
+        return null;
+    }
+
+    public getFightingClientAt(tileX: number, tileY: number): Client | null {
+        for (const client of this.clients) {
+            if (
+                client.clientState === 'FIGHTING'
+                && Math.floor(client.x / TILE) === tileX
+                && Math.floor(client.y / TILE) === tileY
+            ) return client;
         }
         return null;
     }

@@ -2,7 +2,10 @@ import {
     GridManager,
     TILE_TYPE_BACK_DOOR,
     TILE_TYPE_BAR,
+    TILE_TYPE_BROKEN_FURNITURE,
     TILE_TYPE_CHAIR,
+    TILE_TYPE_EMPTY,
+    TILE_TYPE_FLOOR,
     TILE_TYPE_MAIN_DOOR,
     TILE_TYPE_TABLE,
 } from './GridManager';
@@ -14,6 +17,7 @@ const NEIGHBORS: readonly ClientPosition[] = [
     { tileX: 1, tileY: 0 }, { tileX: -1, tileY: 0 },
     { tileX: 0, tileY: 1 }, { tileX: 0, tileY: -1 },
 ];
+const CARDINAL_APPROACH_TILES: readonly ClientPosition[] = NEIGHBORS;
 
 export interface ReachableFloorTile extends ClientPosition {
     readonly distanceFromStart: number;
@@ -43,6 +47,25 @@ export class PathfindingManager {
             }
         }
         return null;
+    }
+
+    /** Finds the shortest valid route to an open tile orthogonally adjacent to a target. */
+    public findPathToAdjacent(
+        start: ClientPosition,
+        target: ClientPosition,
+        blockedPositions: readonly ClientPosition[] = [],
+    ): readonly ClientPosition[] | null {
+        let shortestRoute: readonly ClientPosition[] | null = null;
+        for (const offset of CARDINAL_APPROACH_TILES) {
+            const goal = { tileX: target.tileX + offset.tileX, tileY: target.tileY + offset.tileY };
+            const goalType = this.grid.getTileTypeAtGrid(goal.tileX, goal.tileY);
+            if (goalType !== TILE_TYPE_EMPTY && goalType !== TILE_TYPE_FLOOR) continue;
+            const route = this.findPath(start, goal, blockedPositions);
+            if (route !== null && (shortestRoute === null || route.length < shortestRoute.length)) {
+                shortestRoute = route;
+            }
+        }
+        return shortestRoute;
     }
 
     /**
@@ -90,11 +113,14 @@ export class PathfindingManager {
         if (blockedKeys.has(this.key(position))) return false;
 
         const isGoal = position.tileX === goal.tileX && position.tileY === goal.tileY;
+        if (this.grid.isDeadBodyAt(position.tileX, position.tileY)) return false;
         const type = this.grid.getTileTypeAtGrid(position.tileX, position.tileY);
         const isDoorPortal = type === TILE_TYPE_BACK_DOOR || type === TILE_TYPE_MAIN_DOOR;
         if (type === TILE_TYPE_TABLE || type === TILE_TYPE_BAR) return false;
+        if (type === TILE_TYPE_BROKEN_FURNITURE) return false;
         if (type === TILE_TYPE_CHAIR && !isGoal) return false;
-        if (isGoal && type !== TILE_TYPE_CHAIR && !isDoorPortal) return false;
+        const isOpenFloorGoal = type === TILE_TYPE_EMPTY || type === TILE_TYPE_FLOOR;
+        if (isGoal && type !== TILE_TYPE_CHAIR && !isDoorPortal && !isOpenFloorGoal) return false;
 
         if (this.hasBlockingLayerTile(position, isDoorPortal, isGoal && type === TILE_TYPE_CHAIR)) return false;
         const floor = this.grid.tilemap.getTileAt(position.tileX, position.tileY, false, 'suelo');
@@ -110,11 +136,14 @@ export class PathfindingManager {
             || blockedKeys.has(this.key(position))
         ) return false;
 
+        if (this.grid.isDeadBodyAt(position.tileX, position.tileY)) return false;
+
         const type = this.grid.getTileTypeAtGrid(position.tileX, position.tileY);
         if (
             type === TILE_TYPE_TABLE
             || type === TILE_TYPE_BAR
             || type === TILE_TYPE_CHAIR
+            || type === TILE_TYPE_BROKEN_FURNITURE
             || type === TILE_TYPE_BACK_DOOR
             || type === TILE_TYPE_MAIN_DOOR
         ) return false;

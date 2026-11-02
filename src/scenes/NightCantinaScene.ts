@@ -1,6 +1,6 @@
 import { Input, Scene } from 'phaser';
 
-import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
+import { CREDITS_REGISTRY_KEY, GAME_REGISTRY, SCRAPS_REGISTRY_KEY } from '../data/GameRegistry';
 import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
 import { BeverageTower } from '../entities/stations/BeverageTower';
@@ -12,23 +12,33 @@ import { Client } from '../entities/Client';
 import { ClientManager } from '../managers/ClientManager';
 import { AffinityManager } from '../managers/AffinityManager';
 import { CoinManager } from '../managers/CoinManager';
+import { DeadBodyManager } from '../managers/DeadBodyManager';
+import { FightManager } from '../managers/FightManager';
+import { HazardManager } from '../managers/HazardManager';
 import { PathfindingManager } from '../managers/PathfindingManager';
 import { SeatingManager } from '../managers/SeatingManager';
+import { ThreatManager } from '../managers/ThreatManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
     EVENT_GAME_WARNING,
     EVENT_FURNITURE_PLACED,
     EVENT_FURNITURE_REMOVED,
+    EVENT_FURNITURE_REPAIRED,
     EVENT_CLIENT_SELECTED,
     EVENT_CHAIR_ASSIGNED,
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_CLIENT_SATISFIED,
+    EVENT_CLIENT_MURDERED,
+    EVENT_DEAD_BODY_CLEANED,
+    EVENT_DEAD_BODY_CREATED,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
     type BuildModeToggledData,
     type ClientSatisfiedData,
+    type ClientMurderedData,
+    type DeadBodyData,
     type GameModeChangedData,
 } from '../utils/EventBus';
 
@@ -95,6 +105,10 @@ export class NightCantinaScene extends Scene {
     private affinityManager!: AffinityManager;
     private seatingManager!: SeatingManager;
     private pathfindingManager!: PathfindingManager;
+    private fightManager!: FightManager;
+    private threatManager!: ThreatManager;
+    private deadBodyManager!: DeadBodyManager;
+    private hazardManager!: HazardManager;
     private selectedClient: Client | null = null;
     private cancelAssignmentKey!: Input.Keyboard.Key;
     private buildModeEnabled = true;
@@ -119,6 +133,9 @@ export class NightCantinaScene extends Scene {
         this.registry.set('gameMode', GAME_MODE_PRE_OPENING);
         if (typeof this.registry.get(CREDITS_REGISTRY_KEY) !== 'number') {
             this.registry.set(CREDITS_REGISTRY_KEY, GAME_REGISTRY.economy.startingCredits);
+        }
+        if (typeof this.registry.get(SCRAPS_REGISTRY_KEY) !== 'number') {
+            this.registry.set(SCRAPS_REGISTRY_KEY, GAME_REGISTRY.repairs.startingScraps);
         }
         eventBus.on(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
         this.events.once('shutdown', this.cleanupModeEvents, this);
@@ -172,9 +189,9 @@ export class NightCantinaScene extends Scene {
         this.createTestInteractableObjects();
         this.createServiceStations(map);
 
-        // Initialize the Pre-Opening placement manager (Drag & Drop furniture).
-        this.placementManager = new PlacementManager(this, this.gridManager, this.player);
         this.seatingManager = new SeatingManager(this, this.gridManager);
+        // Placement receives seating state so it cannot remove reserved chairs.
+        this.placementManager = new PlacementManager(this, this.gridManager, this.player, this.seatingManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
         this.coinManager = new CoinManager(this, this.player, this.pathfindingManager);
         this.clientManager = new ClientManager(
@@ -185,12 +202,21 @@ export class NightCantinaScene extends Scene {
             this.pathfindingManager,
         );
         this.coinManager.setBlockedPositionProvider(() => this.clientManager.getOccupiedPositions());
-        this.affinityManager = new AffinityManager(this.clientManager);
+        this.deadBodyManager = new DeadBodyManager(this, this.gridManager);
+        this.affinityManager = new AffinityManager(this.clientManager, this.gridManager);
+        this.hazardManager = new HazardManager(this.clientManager, this.gridManager);
+        this.fightManager = new FightManager(this.clientManager, this.pathfindingManager);
+        this.threatManager = new ThreatManager(this);
         this.player.setNightInteractionHandler(this.handleNightInteraction);
+        this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        eventBus.on(EVENT_FURNITURE_REPAIRED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
+        eventBus.on(EVENT_CLIENT_MURDERED, this.handleClientMurdered, this);
+        eventBus.on(EVENT_DEAD_BODY_CREATED, this.handleDeadBodyChanged, this);
+        eventBus.on(EVENT_DEAD_BODY_CLEANED, this.handleDeadBodyChanged, this);
         this.input.on('pointerdown', this.handlePointerDown, this);
         this.events.once('shutdown', this.cleanupClientSystems, this);
         this.events.once('destroy', this.cleanupClientSystems, this);
@@ -203,6 +229,7 @@ export class NightCantinaScene extends Scene {
             }
         }
         this.physics.add.collider(this.player, this.clientManager.getCollisionGroup());
+        this.physics.add.collider(this.player, this.deadBodyManager.getCollisionGroup());
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
         this.cameras.main.setViewport(
@@ -231,6 +258,7 @@ export class NightCantinaScene extends Scene {
         this.player.update(delta);
         this.updatePlayerDepth();
         this.placementManager.update();
+        this.fightManager.update(delta);
         this.clientManager.update(delta);
         this.coinManager.update();
     }
@@ -425,8 +453,24 @@ export class NightCantinaScene extends Scene {
 
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
         if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
+
+        if (this.deadBodyManager.hasBodyAt(tileX, tileY)) {
+            if (this.player.getHeldObjectType() !== null) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para limpiar el cadáver.' });
+            }
+            return true;
+        }
         if (this.selectedClient !== null && this.selectedClient.clientState !== 'WAITING_IN_LINE') {
             this.clearClientSelection();
+        }
+
+        const fightingClient = this.clientManager.getFightingClientAt(tileX, tileY);
+        if (fightingClient !== null) {
+            if (this.player.getHeldObjectType() !== null) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para separar la pelea.' });
+                return true;
+            }
+            return this.fightManager.intervene(fightingClient.clientId);
         }
 
         const orderClient = this.clientManager.getClientWaitingForOrderAt(tileX, tileY);
@@ -460,6 +504,13 @@ export class NightCantinaScene extends Scene {
         eventBus.emit(EVENT_CLIENT_SELECTED, { clientId: client.clientId });
         return true;
     };
+
+    private handleNightHoldInteraction = (
+        target: { readonly tileX: number; readonly tileY: number } | null,
+        interactionHeld: boolean,
+        handsEmpty: boolean,
+        deltaMs: number,
+    ): boolean => this.deadBodyManager?.updateCleaning(target, interactionHeld, handsEmpty, deltaMs) ?? false;
 
     private handlePointerDown(pointer: Phaser.Input.Pointer): void {
         if (
@@ -535,14 +586,23 @@ export class NightCantinaScene extends Scene {
         eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
+        eventBus.off(EVENT_FURNITURE_REPAIRED, this.handleFurnitureLayoutChanged, this);
         eventBus.off(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
+        eventBus.off(EVENT_CLIENT_MURDERED, this.handleClientMurdered, this);
+        eventBus.off(EVENT_DEAD_BODY_CREATED, this.handleDeadBodyChanged, this);
+        eventBus.off(EVENT_DEAD_BODY_CLEANED, this.handleDeadBodyChanged, this);
         this.input.off('pointerdown', this.handlePointerDown, this);
         this.player?.setNightInteractionHandler(null);
+        this.player?.setNightHoldInteractionHandler(null);
         if (this.cancelAssignmentKey !== undefined) {
             this.input.keyboard?.removeKey(this.cancelAssignmentKey);
         }
         this.clearClientSelection();
+        this.fightManager?.destroy();
+        this.threatManager?.destroy();
+        this.hazardManager?.destroy();
         this.affinityManager?.destroy();
+        this.deadBodyManager?.destroy();
         this.clientManager?.destroy();
         this.seatingManager?.destroy();
         this.coinManager?.destroy();
@@ -576,6 +636,8 @@ export class NightCantinaScene extends Scene {
 
     private handleFurnitureLayoutChanged(): void {
         this.seatingManager?.refresh();
+        this.affinityManager?.refresh();
+        this.hazardManager?.refresh();
     }
 
     private handleClientSatisfied(data: ClientSatisfiedData): void {
@@ -588,6 +650,22 @@ export class NightCantinaScene extends Scene {
         if (!this.gridManager.registerInteractableObject(emptyCup, surface.tileX, surface.tileY)) {
             emptyCup.destroy();
         }
+    }
+
+    private handleClientMurdered(data: ClientMurderedData): void {
+        const furnitureMarked = this.placementManager.markFurnitureDestroyed(
+            data.furnitureTileX,
+            data.furnitureTileY,
+        );
+        if (!furnitureMarked) {
+            this.gridManager.markFurnitureDestroyed(data.furnitureTileX, data.furnitureTileY);
+        }
+        this.clientManager.removeMurderedClient(data.deadClientId);
+        this.seatingManager.refresh();
+    }
+
+    private handleDeadBodyChanged(_data: DeadBodyData): void {
+        this.seatingManager.refresh();
     }
 
 }

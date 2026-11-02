@@ -1,6 +1,7 @@
 import { GameObjects, Input, Physics, Scene, Types } from 'phaser';
 
 import { TILE } from '../data/constants';
+import { GAME_REGISTRY, SCRAPS_REGISTRY_KEY } from '../data/GameRegistry';
 import { getFurnitureConfig, type FurnitureConfig } from '../data/FurnitureRegistry';
 import { Player } from '../entities/Player';
 import {
@@ -8,6 +9,8 @@ import {
     EVENT_DRAG_MOVE,
     EVENT_FURNITURE_PLACED,
     EVENT_FURNITURE_REMOVED,
+    EVENT_FURNITURE_REPAIRED,
+    EVENT_GAME_WARNING,
     EVENT_START_PLACEMENT,
     EVENT_TOGGLE_BUILD_MODE,
     eventBus,
@@ -15,8 +18,10 @@ import {
     type PlacementEndData,
     type PlacementMoveData,
     type PlacementStartData,
+    GAME_MODE_DAY,
 } from '../utils/EventBus';
 import { GridManager, TILE_TYPE_CHAIR, TILE_TYPE_TABLE, type FurnitureTileType } from './GridManager';
+import type { SeatingManager } from './SeatingManager';
 
 /** Internal record for every placed furniture sprite. Keyed by root tile. */
 interface PlacedFurnitureRecord {
@@ -71,6 +76,7 @@ export class PlacementManager {
     private readonly scene: Scene;
     private readonly gridManager: GridManager;
     private readonly player: Player;
+    private readonly seatingManager: SeatingManager;
 
     private isDragging: boolean = false;
     private isEnabled: boolean = true;
@@ -84,6 +90,7 @@ export class PlacementManager {
 
     /** Keyed by root tile key (`rootX:rootY`). */
     private readonly placedFurnitureMap: Map<string, PlacedFurnitureRecord> = new Map();
+    private readonly destroyedStaticMarkers = new Map<string, GameObjects.Rectangle>();
 
     private readonly onStartPlacementBound = (data: PlacementStartData): void => {
         this.startDrag(data.furnitureId, data.screenX, data.screenY);
@@ -101,10 +108,16 @@ export class PlacementManager {
         this.setEnabled(data.enabled);
     };
 
-    public constructor(scene: Scene, gridManager: GridManager, player: Player) {
+    public constructor(
+        scene: Scene,
+        gridManager: GridManager,
+        player: Player,
+        seatingManager: SeatingManager,
+    ) {
         this.scene = scene;
         this.gridManager = gridManager;
         this.player = player;
+        this.seatingManager = seatingManager;
 
         this.createVisualIndicators();
         this.setupEventListeners();
@@ -143,9 +156,27 @@ export class PlacementManager {
      * @returns True if furniture was removed, false if none existed at those coordinates.
      */
     public removeFurnitureAt(tileX: number, tileY: number): boolean {
+        if (this.gridManager.isFurnitureDestroyed(tileX, tileY)) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'El mueble está destruido y requiere reparación diurna.' });
+            return false;
+        }
         // The GridManager entry knows the root tile; look it up.
         const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
         if (gridEntry === null) {
+            return false;
+        }
+        if (
+            gridEntry.tileType === TILE_TYPE_CHAIR
+            && this.seatingManager.hasOccupiedChairInArea(
+                gridEntry.rootX,
+                gridEntry.rootY,
+                gridEntry.width,
+                gridEntry.height,
+            )
+        ) {
+            eventBus.emit(EVENT_GAME_WARNING, {
+                message: 'No puedes retirar una silla reservada por un cliente sentado o en camino.',
+            });
             return false;
         }
 
@@ -170,6 +201,68 @@ export class PlacementManager {
         return true;
     }
 
+    /** Marks night-time combat damage while retaining the furniture body and map footprint. */
+    public markFurnitureDestroyed(tileX: number, tileY: number): boolean {
+        const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
+        if (!this.gridManager.markFurnitureDestroyed(tileX, tileY)) return false;
+        if (gridEntry !== null) {
+            const rootKey = this.getTileKey(gridEntry.rootX, gridEntry.rootY);
+            const record = this.placedFurnitureMap.get(rootKey);
+            if (record !== undefined) {
+                record.sprite.setTint(GAME_REGISTRY.combat.destroyedFurnitureTint);
+                record.sprite.disableInteractive();
+            }
+        } else {
+            const key = this.getTileKey(tileX, tileY);
+            if (!this.destroyedStaticMarkers.has(key)) {
+                const marker = this.scene.add.rectangle(
+                    tileX * TILE + TILE / 2,
+                    tileY * TILE + TILE / 2,
+                    TILE,
+                    TILE,
+                    GAME_REGISTRY.combat.destroyedFurnitureTint,
+                    GAME_REGISTRY.combat.destroyedFurnitureAlpha,
+                ).setDepth((tileY + 1) * TILE);
+                this.destroyedStaticMarkers.set(key, marker);
+            }
+        }
+        return true;
+    }
+
+    /** Repairs furniture during the day by spending the configured scrap cost. */
+    public repairFurnitureAt(tileX: number, tileY: number): boolean {
+        if (this.scene.registry.get('gameMode') !== GAME_MODE_DAY) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Los muebles solo se reparan durante el día.' });
+            return false;
+        }
+        if (!this.gridManager.isFurnitureDestroyed(tileX, tileY)) return false;
+
+        const storedScraps = this.scene.registry.get(SCRAPS_REGISTRY_KEY);
+        const scraps = typeof storedScraps === 'number' ? storedScraps : 0;
+        const cost = GAME_REGISTRY.repairs.scrapsPerFurniture;
+        if (scraps < cost) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'No tienes suficiente chatarra para reparar este mueble.' });
+            return false;
+        }
+        if (!this.gridManager.repairFurniture(tileX, tileY)) return false;
+
+        this.scene.registry.set(SCRAPS_REGISTRY_KEY, scraps - cost);
+        const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
+        if (gridEntry !== null) {
+            const rootKey = this.getTileKey(gridEntry.rootX, gridEntry.rootY);
+            const record = this.placedFurnitureMap.get(rootKey);
+            if (record !== undefined) {
+                record.sprite.clearTint();
+                record.sprite.setInteractive({ useHandCursor: true });
+            }
+        }
+        const markerKey = this.getTileKey(tileX, tileY);
+        this.destroyedStaticMarkers.get(markerKey)?.destroy();
+        this.destroyedStaticMarkers.delete(markerKey);
+        eventBus.emit(EVENT_FURNITURE_REPAIRED, { tileX, tileY });
+        return true;
+    }
+
     /**
      * Cleans up all listeners, ghost visuals, and placed sprites.
      */
@@ -185,6 +278,8 @@ export class PlacementManager {
 
         this.ghostSprite?.destroy();
         this.tileHighlight?.destroy();
+        for (const marker of this.destroyedStaticMarkers.values()) marker.destroy();
+        this.destroyedStaticMarkers.clear();
 
         for (const record of this.placedFurnitureMap.values()) {
             record.collider.destroy();

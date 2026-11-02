@@ -150,6 +150,8 @@ interface PlacedFurnitureEntry {
 export class GridManager {
     public readonly tilemap: Tilemaps.Tilemap;
     private readonly furnitureTypes: Map<string, FurnitureTileType> = new Map();
+    private readonly destroyedFurnitureTiles: Set<string> = new Set();
+    private readonly deadBodyTiles: Set<string> = new Set();
     private readonly placedFurniture: Map<string, PlacedFurnitureEntry> = new Map();
     private readonly interactableObjects: Map<string, InteractableObject> = new Map();
     private readonly stations: Map<string, Station> = new Map();
@@ -176,11 +178,100 @@ export class GridManager {
     /** Returns the semantic tile type at grid coordinates. */
     public getTileTypeAtGrid(tileX: number, tileY: number): FurnitureTileType {
         const key = this.getTileKey(tileX, tileY);
+        if (this.destroyedFurnitureTiles.has(key)) {
+            return TILE_TYPE_BROKEN_FURNITURE;
+        }
         const placed = this.placedFurniture.get(key);
         if (placed !== undefined) {
             return placed.tileType;
         }
         return this.furnitureTypes.get(key) ?? TILE_TYPE_EMPTY;
+    }
+
+    /** Marks the furniture piece covering a tile as destroyed without freeing its footprint. */
+    public markFurnitureDestroyed(tileX: number, tileY: number): boolean {
+        const key = this.getTileKey(tileX, tileY);
+        const placed = this.placedFurniture.get(key);
+        if (placed !== undefined) {
+            for (let offsetX = 0; offsetX < placed.width; offsetX++) {
+                for (let offsetY = 0; offsetY < placed.height; offsetY++) {
+                    this.destroyedFurnitureTiles.add(this.getTileKey(placed.rootX + offsetX, placed.rootY + offsetY));
+                }
+            }
+            return true;
+        }
+
+        if (!this.furnitureTypes.has(key)) return false;
+        this.destroyedFurnitureTiles.add(key);
+        return true;
+    }
+
+    public isFurnitureDestroyed(tileX: number, tileY: number): boolean {
+        const placed = this.placedFurniture.get(this.getTileKey(tileX, tileY));
+        if (placed === undefined) {
+            return this.destroyedFurnitureTiles.has(this.getTileKey(tileX, tileY));
+        }
+        for (let offsetX = 0; offsetX < placed.width; offsetX++) {
+            for (let offsetY = 0; offsetY < placed.height; offsetY++) {
+                if (!this.destroyedFurnitureTiles.has(this.getTileKey(placed.rootX + offsetX, placed.rootY + offsetY))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Restores a destroyed furniture footprint without changing its map occupancy. */
+    public repairFurniture(tileX: number, tileY: number): boolean {
+        const key = this.getTileKey(tileX, tileY);
+        const placed = this.placedFurniture.get(key);
+        if (placed === undefined) return this.destroyedFurnitureTiles.delete(key);
+        let repaired = false;
+        for (let offsetX = 0; offsetX < placed.width; offsetX++) {
+            for (let offsetY = 0; offsetY < placed.height; offsetY++) {
+                repaired = this.destroyedFurnitureTiles.delete(
+                    this.getTileKey(placed.rootX + offsetX, placed.rootY + offsetY),
+                ) || repaired;
+            }
+        }
+        return repaired;
+    }
+
+    public markDeadBodyAt(tileX: number, tileY: number): void {
+        this.deadBodyTiles.add(this.getTileKey(tileX, tileY));
+    }
+
+    public clearDeadBodyAt(tileX: number, tileY: number): void {
+        this.deadBodyTiles.delete(this.getTileKey(tileX, tileY));
+    }
+
+    public isDeadBodyAt(tileX: number, tileY: number): boolean {
+        return this.deadBodyTiles.has(this.getTileKey(tileX, tileY));
+    }
+
+    public getDeadBodyPositions(): readonly { readonly tileX: number; readonly tileY: number }[] {
+        return [...this.deadBodyTiles].map((key) => {
+            const [tileX, tileY] = key.split(':').map(Number);
+            return { tileX: tileX ?? 0, tileY: tileY ?? 0 };
+        });
+    }
+
+    /** Returns connected table/bar component IDs adjacent to a chair. */
+    public getServingStructureIdsForChair(tileX: number, tileY: number): ReadonlySet<string> {
+        const surfaces = [
+            { tileX, tileY: tileY - 1 },
+            { tileX: tileX + 1, tileY },
+            { tileX, tileY: tileY + 1 },
+            { tileX: tileX - 1, tileY },
+        ];
+        const structureIds = new Set<string>();
+        for (const surface of surfaces) {
+            const type = this.getTileTypeAtGrid(surface.tileX, surface.tileY);
+            if (type !== TILE_TYPE_TABLE && type !== TILE_TYPE_BAR) continue;
+            const componentId = this.getServingStructureComponent(surface.tileX, surface.tileY);
+            if (componentId !== null) structureIds.add(componentId);
+        }
+        return structureIds;
     }
 
     /** Returns tile coordinates covered by a named or typed Tiled object. */
@@ -325,6 +416,7 @@ export class GridManager {
                 const cellKey = this.getTileKey(entry.rootX + offsetX, entry.rootY + offsetY);
                 this.placedFurniture.delete(cellKey);
                 this.furnitureTypes.delete(cellKey);
+                this.destroyedFurnitureTiles.delete(cellKey);
             }
         }
 
@@ -375,6 +467,34 @@ export class GridManager {
 
         this.interactableObjects.set(key, object);
         return true;
+    }
+
+    /** Resolves the orthogonally connected table/bar surface component at a tile. */
+    private getServingStructureComponent(startX: number, startY: number): string | null {
+        const startType = this.getTileTypeAtGrid(startX, startY);
+        if (startType !== TILE_TYPE_TABLE && startType !== TILE_TYPE_BAR) return null;
+        const queue = [{ tileX: startX, tileY: startY }];
+        const visited = new Set<string>();
+        let rootKey = this.getTileKey(startX, startY);
+        const offsets = [
+            { tileX: 0, tileY: -1 }, { tileX: 1, tileY: 0 },
+            { tileX: 0, tileY: 1 }, { tileX: -1, tileY: 0 },
+        ];
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (current === undefined) continue;
+            const key = this.getTileKey(current.tileX, current.tileY);
+            if (visited.has(key)) continue;
+            const type = this.getTileTypeAtGrid(current.tileX, current.tileY);
+            if (type !== TILE_TYPE_TABLE && type !== TILE_TYPE_BAR) continue;
+            visited.add(key);
+            if (key < rootKey) rootKey = key;
+            for (const offset of offsets) {
+                queue.push({ tileX: current.tileX + offset.tileX, tileY: current.tileY + offset.tileY });
+            }
+        }
+        return rootKey;
     }
 
     public getInteractableObjectAt(tileX: number, tileY: number): InteractableObject | null {
@@ -442,6 +562,8 @@ export class GridManager {
         }
 
         const key = this.getTileKey(tileX, tileY);
+
+        if (this.deadBodyTiles.has(key)) return false;
 
         // 2. Already occupied by dynamically placed furniture
         if (this.placedFurniture.has(key)) {

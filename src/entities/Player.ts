@@ -8,6 +8,7 @@ import {
 } from '../data/constants';
 import { InteractableObject } from './InteractableObject';
 import type { InteractableObjectType } from './InteractableObject';
+import type { ClientPosition } from './Client';
 import { BeverageTower } from './stations/BeverageTower';
 import { Grill } from './stations/Grill';
 import type { Station } from './stations/Station';
@@ -76,6 +77,12 @@ export class Player extends Physics.Arcade.Sprite {
     private facingDirection: DirectionVector = VECTOR_DOWN;
     private currentAnimKey: PlayerAnimKey | null = null;
     private nightInteractionHandler: ((tileX: number, tileY: number) => boolean) | null = null;
+    private nightHoldInteractionHandler: (
+        target: ClientPosition | null,
+        interactionHeld: boolean,
+        handsEmpty: boolean,
+        deltaMs: number,
+    ) => boolean = () => false;
 
     public constructor(scene: Scene, x: number, y: number, gridManager: GridManager) {
         super(scene, x, y, PLAYER_SPRITESHEET_KEY, 0);
@@ -232,6 +239,19 @@ export class Player extends Physics.Arcade.Sprite {
 
         const frontTile = this.getFrontTile();
         if (this.scene.registry.get('gameMode') !== GAME_MODE_NIGHT) {
+            this.nightHoldInteractionHandler(null, false, this.heldObject === null, delta);
+            this.cancelFilling();
+            this.updateHeldObjectPosition();
+            return;
+        }
+
+        const holdInteractionHandled = this.nightHoldInteractionHandler(
+            frontTile,
+            this.interactionKey.isDown,
+            this.heldObject === null,
+            delta,
+        );
+        if (holdInteractionHandled) {
             this.cancelFilling();
             this.updateHeldObjectPosition();
             return;
@@ -267,6 +287,17 @@ export class Player extends Physics.Arcade.Sprite {
     /** Registers a scene-owned contextual handler; return true when it consumed the action. */
     public setNightInteractionHandler(handler: ((tileX: number, tileY: number) => boolean) | null): void {
         this.nightInteractionHandler = handler;
+    }
+
+    public setNightHoldInteractionHandler(
+        handler: ((
+            target: ClientPosition | null,
+            interactionHeld: boolean,
+            handsEmpty: boolean,
+            deltaMs: number,
+        ) => boolean) | null,
+    ): void {
+        this.nightHoldInteractionHandler = handler ?? (() => false);
     }
 
     public getFacingTile(): { readonly tileX: number; readonly tileY: number } | null {

@@ -20,11 +20,22 @@ export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
+export const EVENT_CLIENT_SEAT_VACATED = 'client:seat-vacated';
 export const EVENT_CLIENT_LEAVING = 'client:leaving';
 export const EVENT_CLIENT_SATISFIED = 'client:satisfied';
 export const EVENT_COIN_COLLECTED = 'economy:coin-collected';
 export const EVENT_COIN_STOLEN = 'economy:coin-stolen';
 export const EVENT_CLIENT_EXIT_PATH_FAILED = 'client:exit-path-failed';
+export const EVENT_FIGHT_REQUESTED = 'fight:requested';
+export const EVENT_FIGHT_APPROACH_COMPLETE = 'fight:approach-complete';
+export const EVENT_FIGHT_APPROACH_FAILED = 'fight:approach-failed';
+export const EVENT_FIGHT_STARTED = 'fight:started';
+export const EVENT_FIGHT_STOPPED = 'fight:stopped';
+export const EVENT_CLIENT_MURDERED = 'client:murdered';
+export const EVENT_HEAT_UPDATED = 'threat:heat-updated';
+export const EVENT_DEAD_BODY_CREATED = 'aftermath:dead-body-created';
+export const EVENT_DEAD_BODY_CLEANED = 'aftermath:dead-body-cleaned';
+export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
@@ -37,7 +48,45 @@ export interface ClientSeatedData {
     readonly tileX: number;
     readonly tileY: number;
 }
+export interface ClientSeatVacatedData {
+    readonly clientId: number;
+    readonly tileX: number;
+    readonly tileY: number;
+}
 export interface ClientLeavingData { readonly clientId: number; }
+export interface FightRequestedData {
+    readonly clientId: number;
+    readonly opponentClientId: number;
+}
+export interface FightApproachData {
+    readonly clientId: number;
+    readonly opponentClientId: number;
+}
+export interface FightStartedData { readonly clientIds: readonly [number, number]; }
+export interface FightStoppedData {
+    readonly clientIds: readonly [number, number];
+    readonly reason: 'PLAYER_INTERVENTION' | 'RESOLVED';
+}
+export interface ClientMurderedData {
+    readonly deadClientId: number;
+    readonly fleeingClientId: number;
+    readonly tileX: number;
+    readonly tileY: number;
+    readonly furnitureTileX: number;
+    readonly furnitureTileY: number;
+}
+export interface HeatUpdatedData {
+    readonly currentHeat: number;
+    readonly addedHeat: number;
+}
+export interface DeadBodyData {
+    readonly tileX: number;
+    readonly tileY: number;
+}
+export interface FurnitureRepairedData {
+    readonly tileX: number;
+    readonly tileY: number;
+}
 export interface ClientSatisfiedData {
     readonly clientId: number;
     readonly orderItemId: OrderItemId;
@@ -59,9 +108,10 @@ export interface ClientExitPathFailedData {
  */
 export type FurnitureType = FurnitureCategory;
 
-export type GameMode = 'PRE_APERTURA' | 'NOCHE';
+export type GameMode = 'PRE_APERTURA' | 'NOCHE' | 'DIA';
 export const GAME_MODE_PRE_OPENING: GameMode = 'PRE_APERTURA';
 export const GAME_MODE_NIGHT: GameMode = 'NOCHE';
+export const GAME_MODE_DAY: GameMode = 'DIA';
 
 export interface GameModeChangedData {
     readonly mode: GameMode;

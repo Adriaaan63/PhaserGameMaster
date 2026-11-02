@@ -1,79 +1,110 @@
-Lamento el inconveniente técnico al intentar actualizar el documento `Game_4.md`. Al parecer, ha habido un error interno al intentar acceder a los permisos del archivo.
+Parece que no tengo acceso al archivo `Game_5.md` en tu Drive, pero no te preocupes, te facilitaré los textos redactados para que puedas copiarlos y pegarlos directamente en el documento.
 
-Sin embargo, puedo ofrecerte el texto detallado y estructurado que he preparado basándome en tus directrices y en el Lore de Star Wars. Puedes copiar y pegar directamente este contenido en las secciones correspondientes de tu documento `Game.md`.
+Vamos a detallar cómo funciona este sistema de peleas emergentes, qué pasa si las ignoramos y cómo escala la dificultad (Alerta Imperial).
 
 ---
 
-### Texto para copiar en `Game.md`
+### Textos para actualizar `Game.md`
 
 #### 4. Mechanics (Key Section)
 
 **Añadir en 4.1. Rules:**
 
-* **Rueda de Afinidades (Penalización por Proximidad):** El juego implementa un sistema de puzle espacial táctico basado en las rivalidades históricas de 5 arquetipos raciales (Wookiees, Trandoshanos, Rodianos, Aqualish, Ithorianos).
-* **Regla de Proximidad:** Si el jugador sienta a dos clientes cuyas razas son incompatibles (enemigos naturales) en la misma mesa, o en asientos de barra que estén contiguos (a una distancia igual o menor a 1 *tile* ortogonal o diagonal), se activa un modificador negativo.
-* **Penalización:** La "Barra de Paciencia de Servicio" de ambos clientes decaerá el **doble de rápido (x2)** de su velocidad normal.
-* **Feedback Visual:** Aparecerá un icono de "rayos rojos" u odio entre los sprites de ambos clientes afectados, advirtiendo al jugador del error táctico.
+* **Reglas de Escalada y Combate en la Cantina:**
+* Si el temporizador de paciencia de dos clientes de razas incompatibles (sentados juntos) llega a cero simultáneamente (o durante la ventana de penalización por proximidad), no abandonan el local pacíficamente. Entran en un estado de **PELEA**.
+* Una pelea es un evento crítico con un temporizador oculto. Si Wuher no interviene a tiempo, la pelea culmina en un golpe letal o disparo de bláster, resultando en un cadáver.
+* **Consecuencias de la Muerte:**
+1. **Cero Ingresos:** Ninguno de los involucrados paga su cuenta. El asesino abandona inmediatamente el local corriendo por la puerta trasera.
+2. **Daño Colateral:** La silla o mesa involucrada pasa a estado `DESTRUIDO`, inutilizándola por el resto del turno nocturno.
+3. **Suciedad Traumática:** Un cadáver y un charco de sangre ocupan los *tiles*. Los clientes evitarán sentarse cerca y su paciencia bajará más rápido por el asco/miedo, hasta que Wuher limpie la zona.
+4. **Heat (Alerta Imperial):** Un disparo letal incrementa drásticamente la "Barra de Alerta Imperial" de la noche.
 
 
 
-#### 7. Characters
 
-**Sustituir/Expandir la sección 7.1. For each character:**
 
-**7.1. Facciones y Clientes (Los 5 Arquetipos de la Rueda de Afinidades)**
+**Añadir en 4.2. Model of the game universe:**
 
-Para dotar de legibilidad inmediata al caos de la cantina, los clientes se dividen en 5 arquetipos basados en razas icónicas del universo Star Wars. Cada raza tiene un diseño de *sprite* (color y silueta) fácilmente reconocible para facilitar la toma de decisiones rápidas al sentarlos.
+* **Máquina de Estados de Combate (Expansión):**
+* De `SEATED_WAITING_ORDER` con penalización $\rightarrow$ 5. `FIGHTING` (Pelea en curso, aparece feedback visual) $\rightarrow$ Si Wuher interviene: Pasan a `LEAVING` enfadados (sin pago) $\rightarrow$ Si nadie interviene: Uno pasa a `DEAD` (se vuelve un obstáculo en el mapa) y el otro a `FLEEING` (Huyendo).
 
-**1. Los Wookiees (ej. Chewbacca)**
 
-* **7.1.1. Back story:** Provenientes de Kashyyyk, muchos Wookiees en Mos Eisley son antiguos esclavos liberados o contrabandistas. Han sufrido décadas de opresión y caza furtiva.
-* **7.1.2. Personality:** Honorables pero de temperamento explosivo. Si se sienten amenazados o insultados, son propensos a arrancar los brazos a sus oponentes.
-* **7.1.3. Appearance:** Sprites grandes y voluminosos (ocupan más espacio visual que un humano estándar), cubiertos de espeso pelaje marrón y portando bandoleras cruzadas.
-* **7.1.4. Abilities:** Alta paciencia base, pero propinas estándar. Su gran tamaño bloquea ligeramente la visibilidad detrás de ellos.
-* **7.1.6. Relationship (Afinidad Negativa):** Se llevan MAL con **Trandoshanos** (sus captores y cazadores naturales) y **Humanos Contrabandistas** (por viejas deudas de juego y traiciones).
+* **Sistema de Heat (Alerta Imperial):** Un medidor oculto o sutil en el universo que rastrea el nivel de ruido, 
 
-**2. Los Trandoshanos (ej. Bossk)**
+ y disparos. Si este medidor supera un umbral durante la noche, el motor genera un evento de incursión de los *Sandtroopers* para cerrar el local.
 
-* **7.1.1. Back story:** Reptiles humanoides del planeta Trandosha. Su cultura gira en torno a la caza y a adorar a la "Scorekeeper", otorgando puntos por cada presa capturada (especialmente Wookiees).
-* **7.1.2. Personality:** Sádicos, fríos y calculadores. Son matones profesionales y cazarrecompensas que no dudan en iniciar un tiroteo si les beneficia.
-* **7.1.3. Appearance:** Sprites delgados pero imponentes, con escamas de color verde oliva/amarillento, hocicos reptilianos y vistiendo característicos trajes de vuelo amarillos o armaduras desgastadas.
-* **7.1.4. Abilities:** Dejan buenas propinas si se les sirve rápido, pero inician peleas letales si su paciencia se agota.
-* **7.1.6. Relationship (Afinidad Negativa):** Se llevan MAL con **Wookiees** (sus presas predilectas) y **Rodianos** (feroz competencia entre gremios de cazarrecompensas).
+**Añadir en 4.6. Objects:**
 
-**3. Los Rodianos (ej. Greedo)**
+* **Interacción con la Destrucción y Limpieza:**
+* **Cadáveres y Charcos:** Son tratados como objetos físicos estáticos con un "aura" negativa. Wuher debe acercarse con las manos vacías y mantener pulsado `Espacio` durante un tiempo (barra de progreso) para limpiar el charco y tirar el cadáver (o despiezarlo para recursos si se tiene la mejora correspondiente).
+* **Mobiliario Destruido:** Los muebles en estado `DESTRUIDO` cambian su *sprite*. No pueden recogerse en el inventario normal ni limpiarse durante la noche. Requieren ser reparados en la fase diurna gastando "Chatarra" (*scraps*).
 
-* **7.1.1. Back story:** Originarios del pantanoso Rodia, muchos se han convertido en cazarrecompensas al servicio de Jabba el Hutt para escapar de la violencia de clanes de su mundo natal.
-* **7.1.2. Personality:** Oportunistas, nerviosos y con gatillo fácil (aunque a menudo con mala puntería). Siempre buscando la manera de ganar unos créditos extra traicionando a alguien.
-* **7.1.3. Appearance:** Sprites esbeltos y encorvados. Piel verde brillante, ojos grandes y oscuros (facetados), trompa tapir y vistiendo chalecos o chaquetas turquesas. Muy reconocibles por el color verde intenso.
-* **7.1.4. Abilities:** Suelen pedir bebidas baratas. Tienen una paciencia muy volátil (baja rápido si el local está lleno).
-* **7.1.6. Relationship (Afinidad Negativa):** Se llevan MAL con **Humanos Contrabandistas** (objetivos frecuentes de las recompensas de Jabba) y **Aqualish** (por disputas territoriales en los bajos fondos).
 
-**4. Los Aqualish (ej. Ponda Baba)**
 
-* **7.1.1. Back story:** Provenientes de Ando. Son una raza anfibia conocida en toda la galaxia por su agresividad no provocada y su afición a resolver disputas en bares a base de blásteres.
-* **7.1.2. Personality:** Pendencieros, brutos y xenófobos. Beben en exceso y buscan cualquier excusa para iniciar una trifulca.
-* **7.1.3. Appearance:** Sprites robustos (casi tanto como los Wookiees), con rostros arácnidos/anfibios (colmillos inferiores grandes), piel en tonos grisáceos/azul oscuro y ojos grandes. Suelen vestir cazadoras anaranjadas o marrones.
-* **7.1.4. Abilities:** Tienen el temporizador de paciencia base más corto del juego. Exigen servicio inmediato.
-* **7.1.6. Relationship (Afinidad Negativa):** Se llevan MAL con **Ithorianos** (odian su pacifismo y debilidad física) y **Humanos** (históricamente tienen rencillas y buscan pelea con ellos en las cantinas).
+**Añadir en 4.7. Actions:**
 
-**5. Los Ithorianos (ej. Momaw Nadon / Hammerhead)**
+* **Acción Contextual Principal (Tecla `Espacio`):**
+* **Frente a una Pelea (`State: EMPTY`):** Si Wuher tiene las manos vacías y se acerca a dos clientes en estado `FIGHTING`, presionar (o mantener, según balanceo) `Espacio` obligará a los clientes a separarse y marcharse del local (`LEAVING`). No se gana dinero, pero se evita el cadáver, la destrucción del mobiliario y el *Heat* imperial.
 
-* **7.1.1. Back story:** Llamados "Hammerheads" por su fisionomía. Son nativos de los frondosos bosques de Ithor. Generalmente son exiliados pacifistas, ecologistas o comerciantes de antigüedades.
-* **7.1.2. Personality:** Pacíficos, sabios y serenos. Detestan la violencia y el ruido fuerte, prefiriendo rincones apartados para charlar o hacer negocios tranquilos.
-* **7.1.3. Appearance:** Sprites con siluetas muy distintivas: cuellos curvos hacia adelante con cabezas en forma de martillo ("T"). Tonos de piel marrones/rosados, vistiendo túnicas largas de colores ocres o burdeos.
-* **7.1.4. Abilities:** Generan un aura pasiva que ralentiza muy levemente la pérdida de paciencia de las mesas adyacentes (efecto tranquilizador). Pagan propinas enormes.
-* **7.1.6. Relationship (Afinidad Negativa):** Se llevan MAL (se estresan y huyen) con **Aqualish** y **Trandoshanos**, ya que su naturaleza pacifista no tolera estar sentados junto a matones agresivos.
+
+
+**Modificar 4.8. Combat:**
+
+* **En la Cantina (Gestión de Conflictos):** El combate en el interior no es mecánico para el jugador (Wuher no ataca con combos), sino que es un **evento de crisis de tiempo**. La tensión reside en abandonar la cadena de pedidos (sacrificar propinas de otras mesas) para correr a separar a dos clientes incompatibles antes de que salten chispas y uno acabe muerto, arruinando el servicio de esa zona y atrayendo al Imperio.
 
 #### 9. Interface
 
-**Modificar/Añadir en 9.1.2. Menus:**
+**Añadir en 9.1.1. HUD:**
 
-* **El "Libro de Gestión" (Interfaz de Menú):**
-* Este menú actúa como el centro neurálgico antes de abrir el turno.
-* **Visualización de la Rueda de Afinidades:** Dentro del Libro de Gestión, habrá una pestaña dedicada a la "Guía de Clientes" o "Info de Seguridad". En ella, se mostrará visualmente la **Rueda de Afinidades** de las 5 razas (Wookiee, Trandoshano, Rodiano, Aqualish, Ithoriano) unidas por líneas o flechas rojas que marcan las enemistades.
-* Esto sirve como herramienta de consulta para el jugador (tutorial pasivo) para memorizar qué razas *nunca* deben sentarse en mesas contiguas antes de iniciar el caos del turno nocturno.
-
-
+* **Feedback Visual de Pelea:** Sobre las cabezas de los clientes en disputa aparece un globo de diálogo grande o una nube estilo cómic (bocadillo temblando con símbolos de insultos, polvo y golpes) para avisar al jugador de que la crisis es inminente y requiere su atención inmediata.
+* **Aura de Miedo/Asco:** Una sutil viñeta o tintado en el suelo alrededor de un cadáver que indica visualmente el área de efecto (AOE) donde los nuevos clientes se negarán a sentarse.
 
 ---
+
+### 2. Prompt para el Agente de Código
+
+Aquí tienes el prompt detallado, estructurado y enfocado a que el agente desarrolle este sistema de conflicto paso a paso.
+
+---
+
+```text
+Actúa como un Desarrollador Experto en Phaser v4 y TypeScript.
+
+Antes de comenzar con la tarea, aquí tienes un resumen del estado actual del juego para darte contexto sobre el proyecto:
+
+### RESUMEN DEL ESTADO ACTUAL DEL SISTEMA Y JUEGO
+**Título:** Chalmun's Cantina: Mos Eisley Hustle (Gestión caótica y Action-Roguelite).
+**Estado actual:** Hemos implementado la Rueda de Afinidades (`AffinityManager`) que penaliza (multiplicador de paciencia x2) a clientes incompatibles sentados en mesas vecinas. La taberna tiene mobiliario modular y los clientes realizan pedidos.
+
+---
+
+### TAREA ACTUAL: SISTEMA DE PELEAS Y CONSECUENCIAS (CADÁVERES Y DESTRUCCIÓN)
+
+El objetivo ahora es programar el clímax de la Rueda de Afinidades: el Combate entre clientes y la intervención del jugador.
+
+Antes de programar, lee estrictamente los principios de `Agent.md` (Clean Code, SRP, tipado, cero magic numbers) y revisa los nuevos puntos añadidos en los apartados 4.1, 4.2, 4.6, 4.7 y 4.8 del `Game.md`.
+
+Para mantener el proyecto escalable, vamos a implementar esta crisis en varios módulos. Debes realizar las siguientes implementaciones:
+
+### 1. Actualizar `Client.ts` (Máquina de Estados)
+- Añade los estados `FIGHTING`, `DEAD` y `FLEEING`.
+- **Lógica de Entrada a Pelea:** Si el cliente está sufriendo una penalización por afinidad (tiene un enemigo al lado) y su paciencia llega a cero, en lugar de irse (`LEAVING`), transiciona a `FIGHTING`. Lanza un evento global `EVENT_FIGHT_STARTED` (con las IDs o referencias de ambos clientes).
+- **En Estado `FIGHTING`:**
+  - Muestra un UI diegético agresivo (un bocadillo de pelea temblando).
+  - Inicia un nuevo timer crítico (ej. `FIGHT_DURATION_MS = 5000` definido en `GameRegistry`).
+  - Si el timer expira sin intervención: un cliente aleatorio muere (`DEAD`) y el otro huye (`FLEEING`).
+
+### 2. Consecuencias (Cadáveres y Destrucción)
+- **Muerte (`DEAD`):** El cliente muerto cambia de sprite (ej. un placeholder de charco de sangre), desvincula su timer, pero NO libera su silla ni el tile. Se convierte en un obstáculo.
+- **Destrucción:** El `SeatingManager` o la escena deben recibir un evento `EVENT_CLIENT_MURDERED`. El tile de la silla/mesa donde ocurrió debe marcarse con un estado `DESTRUIDO`, inutilizándolo.
+- **Alerta Imperial (Heat):** Crea un nuevo gestor (o añádelo si tienes uno de economía/progreso) `ThreatManager.ts`. Suma puntos de *Heat* cada vez que alguien muere.
+
+### 3. Interacción del Jugador (`Player.ts` y Acción)
+- Modifica la lógica de la tecla `Espacio`. Si Wuher (manos vacías) se acerca a un cliente en estado `FIGHTING` y pulsa espacio:
+  - Interrumpe la pelea. Pasa a ambos clientes al estado `LEAVING` (se van sin pagar, pero vivos).
+  - Lanza un evento `EVENT_FIGHT_STOPPED` para limpiar el UI de pelea.
+- (Opcional por ahora, déjalo comentado): Limpiar el cadáver manteniendo `Espacio` pulsado.
+
+Por favor, comienza proponiendo los cambios en la Máquina de Estados de `Client.ts` (especialmente cómo gestionar el timer de la pelea y la muerte) y cómo interceptará Wuher esa pelea en su input de acción. Una vez aprobado, revisaremos la destrucción de los muebles.
+
+```

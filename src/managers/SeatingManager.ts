@@ -2,6 +2,7 @@ import { GameObjects, Scene } from 'phaser';
 import {
     CHAIR_HIGHLIGHT_COLOR, ORPHAN_CHAIR_COLOR, TILE,
 } from '../data/constants';
+import { GAME_REGISTRY, type GameRegistry } from '../data/GameRegistry';
 import {
     GridManager, TILE_TYPE_BAR, TILE_TYPE_CHAIR, TILE_TYPE_TABLE,
 } from './GridManager';
@@ -19,7 +20,11 @@ export class SeatingManager {
     private readonly occupied = new Map<string, number>();
     private highlighting = false;
 
-    public constructor(private readonly scene: Scene, private readonly grid: GridManager) { this.refresh(); }
+    public constructor(
+        private readonly scene: Scene,
+        private readonly grid: GridManager,
+        private readonly registry: GameRegistry = GAME_REGISTRY,
+    ) { this.refresh(); }
 
     public refresh(): void {
         for (const chair of this.chairs) chair.marker.destroy();
@@ -44,7 +49,11 @@ export class SeatingManager {
     }
 
     public getValidChairs(): readonly ChairPosition[] {
-        return this.chairs.filter((chair) => chair.state === 'ACTIVA' && !this.occupied.has(this.key(chair.position)))
+        return this.chairs.filter((chair) =>
+            chair.state === 'ACTIVA'
+            && !this.occupied.has(this.key(chair.position))
+            && !this.isInFearZone(chair.position),
+        )
             .map((chair) => chair.position);
     }
 
@@ -75,6 +84,21 @@ export class SeatingManager {
         return this.occupied.has(this.key({ tileX, tileY }));
     }
 
+    /** Checks whether any tile of a furniture footprint contains a reserved chair. */
+    public hasOccupiedChairInArea(
+        tileX: number,
+        tileY: number,
+        width: number,
+        height: number,
+    ): boolean {
+        for (let offsetX = 0; offsetX < width; offsetX++) {
+            for (let offsetY = 0; offsetY < height; offsetY++) {
+                if (this.isOccupied(tileX + offsetX, tileY + offsetY)) return true;
+            }
+        }
+        return false;
+    }
+
     /** Finds an unoccupied table or bar tile orthogonally adjacent to this chair. */
     public getAvailableServingSurface(tileX: number, tileY: number): ChairPosition | null {
         for (const offset of ORTHOGONAL_NEIGHBORS) {
@@ -98,9 +122,19 @@ export class SeatingManager {
     private updateHighlights(): void {
         for (const chair of this.chairs) {
             const active = chair.state === 'ACTIVA';
-            chair.marker.setVisible(!active || (this.highlighting && !this.occupied.has(this.key(chair.position))));
+            const occupied = this.occupied.has(this.key(chair.position));
+            const fearBlocked = this.isInFearZone(chair.position);
+            chair.marker.setFillStyle(fearBlocked ? this.registry.aftermath.fearZoneColor : CHAIR_HIGHLIGHT_COLOR);
+            chair.marker.setVisible(!active || (this.highlighting && (!occupied || fearBlocked)));
             if (active) chair.marker.setAlpha(this.highlighting ? 0.55 : 0);
         }
+    }
+
+    private isInFearZone(position: ChairPosition): boolean {
+        return this.grid.getDeadBodyPositions().some((body) => Math.max(
+            Math.abs(position.tileX - body.tileX),
+            Math.abs(position.tileY - body.tileY),
+        ) <= this.registry.aftermath.fearRadiusTiles);
     }
 
     private key(position: ChairPosition): string { return `${position.tileX}:${position.tileY}`; }

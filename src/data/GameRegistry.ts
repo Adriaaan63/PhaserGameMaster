@@ -1,6 +1,8 @@
 import { TEXTURE_DRINK_FULL, TEXTURE_FOOD } from './constants';
 
 export const CREDITS_REGISTRY_KEY = 'credits';
+export const IMPERIAL_HEAT_REGISTRY_KEY = 'imperialHeat';
+export const SCRAPS_REGISTRY_KEY = 'scraps';
 
 export enum ClientRace {
     WOOKIEE = 'WOOKIEE',
@@ -75,10 +77,75 @@ export interface EconomyConfig {
     readonly coinPlacementSearchRadiusTiles: number;
 }
 
+export interface CombatConfig {
+    readonly fightDurationMs: number;
+    readonly deadClientProbability: number;
+    readonly fightBubbleBorderWidth: number;
+    readonly fightBubbleOffsetY: number;
+    readonly fightBubbleWidth: number;
+    readonly fightBubbleHeight: number;
+    readonly fightBubbleColor: number;
+    readonly fightBubbleBorderColor: number;
+    readonly fightBubbleTextColor: number;
+    readonly fightBubbleFontSize: number;
+    readonly fightShakeAmplitude: number;
+    readonly fightShakePeriodMs: number;
+    readonly smokeColor: number;
+    readonly smokeAlpha: number;
+    readonly smokePuffs: readonly {
+        readonly x: number;
+        readonly y: number;
+        readonly radius: number;
+    }[];
+    readonly smokeScaleMin: number;
+    readonly smokeScaleMax: number;
+    readonly smokeAnimationDurationMs: number;
+    readonly smokeRotationDegrees: number;
+    readonly corpseColor: number;
+    readonly corpseAlpha: number;
+    readonly corpseRotation: number;
+    readonly bloodPoolColor: number;
+    readonly bloodPoolWidth: number;
+    readonly bloodPoolHeight: number;
+    readonly bloodPoolOffsetY: number;
+    readonly destroyedFurnitureTint: number;
+    readonly destroyedFurnitureAlpha: number;
+}
+
+export interface ThreatConfig {
+    readonly startingHeat: number;
+    readonly heatPerMurder: number;
+}
+
+export interface AftermathConfig {
+    readonly cleaningTimeMs: number;
+    readonly fearRadiusTiles: number;
+    readonly fearPatienceMultiplier: number;
+    readonly progressBarWidth: number;
+    readonly progressBarHeight: number;
+    readonly progressBarOffsetY: number;
+    readonly progressBarBackgroundColor: number;
+    readonly progressBarFillColor: number;
+    readonly fearZoneColor: number;
+    readonly bloodBodyWidth: number;
+    readonly bloodBodyHeight: number;
+    readonly corpseCollisionWidth: number;
+    readonly corpseCollisionHeight: number;
+}
+
+export interface RepairConfig {
+    readonly startingScraps: number;
+    readonly scrapsPerFurniture: number;
+}
+
 export interface GameRegistry {
     readonly patience: PatienceConfig;
     readonly orders: OrderConfig;
     readonly economy: EconomyConfig;
+    readonly combat: CombatConfig;
+    readonly threat: ThreatConfig;
+    readonly aftermath: AftermathConfig;
+    readonly repairs: RepairConfig;
     readonly clients: {
         readonly spawnIntervalMs: number;
         readonly maxWaiting: number;
@@ -147,6 +214,64 @@ export const GAME_REGISTRY = {
         coinOutlineColor: 0x8c5b1a,
         coinOutlineWidth: 2,
         coinPlacementSearchRadiusTiles: 4,
+    },
+    combat: {
+        fightDurationMs: 5_000,
+        deadClientProbability: 0.5,
+        fightBubbleBorderWidth: 2,
+        fightBubbleOffsetY: -102,
+        fightBubbleWidth: 74,
+        fightBubbleHeight: 24,
+        fightBubbleColor: 0x8f1717,
+        fightBubbleBorderColor: 0xff4545,
+        fightBubbleTextColor: 0xffffff,
+        fightBubbleFontSize: 11,
+        fightShakeAmplitude: 3,
+        fightShakePeriodMs: 55,
+        smokeColor: 0x77716b,
+        smokeAlpha: 0.86,
+        smokePuffs: [
+            { x: -18, y: 5, radius: 15 },
+            { x: -7, y: -5, radius: 18 },
+            { x: 8, y: 3, radius: 17 },
+            { x: 19, y: -3, radius: 13 },
+        ],
+        smokeScaleMin: 0.88,
+        smokeScaleMax: 1.12,
+        smokeAnimationDurationMs: 310,
+        smokeRotationDegrees: 5,
+        corpseColor: 0x403638,
+        corpseAlpha: 0.72,
+        corpseRotation: 90,
+        bloodPoolColor: 0x8b1111,
+        bloodPoolWidth: 30,
+        bloodPoolHeight: 13,
+        bloodPoolOffsetY: 10,
+        destroyedFurnitureTint: 0x6b2929,
+        destroyedFurnitureAlpha: 0.42,
+    },
+    threat: {
+        startingHeat: 0,
+        heatPerMurder: 25,
+    },
+    aftermath: {
+        cleaningTimeMs: 3_000,
+        fearRadiusTiles: 1,
+        fearPatienceMultiplier: 2,
+        progressBarWidth: 28,
+        progressBarHeight: 4,
+        progressBarOffsetY: -22,
+        progressBarBackgroundColor: 0x242020,
+        progressBarFillColor: 0xd9d2c4,
+        fearZoneColor: 0xe54b36,
+        bloodBodyWidth: 16,
+        bloodBodyHeight: 26,
+        corpseCollisionWidth: 25,
+        corpseCollisionHeight: 25,
+    },
+    repairs: {
+        startingScraps: 4,
+        scrapsPerFurniture: 2,
     },
     clients: {
         spawnIntervalMs: 8_000,
