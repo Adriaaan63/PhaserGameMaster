@@ -300,6 +300,38 @@ export class GridManager {
         return [...result.values()];
     }
 
+    /** Returns only tiles whose centers lie inside a named Tiled object zone. */
+    public getObjectZoneCenterTiles(nameOrType: string): readonly { readonly tileX: number; readonly tileY: number }[] {
+        const objectLayer = this.tilemap.getObjectLayer('Objetos') ?? this.tilemap.getObjectLayer('objetos');
+        const normalizedName = nameOrType.toLowerCase();
+        const matchingObjects = objectLayer?.objects.filter((object) => (
+            (object.name ?? '').toLowerCase() === normalizedName
+            || (object.type ?? '').toLowerCase() === normalizedName
+        )) ?? [];
+        const result = new Map<string, { readonly tileX: number; readonly tileY: number }>();
+
+        for (const object of matchingObjects) {
+            if (object.x === undefined || object.y === undefined) continue;
+            const objectWidth = Math.max(1, object.width ?? this.tilemap.tileWidth);
+            const objectHeight = Math.max(1, object.height ?? this.tilemap.tileHeight);
+            const firstX = Math.ceil(object.x / this.tilemap.tileWidth - 0.5);
+            const firstY = Math.ceil(object.y / this.tilemap.tileHeight - 0.5);
+            const lastX = Math.floor((object.x + objectWidth) / this.tilemap.tileWidth - 0.5);
+            const lastY = Math.floor((object.y + objectHeight) / this.tilemap.tileHeight - 0.5);
+
+            for (let tileY = firstY; tileY <= lastY; tileY++) {
+                for (let tileX = firstX; tileX <= lastX; tileX++) {
+                    if (tileX < 0 || tileY < 0 || tileX >= this.tilemap.width || tileY >= this.tilemap.height) {
+                        continue;
+                    }
+                    result.set(`${tileX}:${tileY}`, { tileX, tileY });
+                }
+            }
+        }
+
+        return [...result.values()];
+    }
+
     /** Returns the back-door exit tile from the Tiled object layer, if configured. */
     public getExitPosition(): { readonly tileX: number; readonly tileY: number } | null {
         const exitNames = [

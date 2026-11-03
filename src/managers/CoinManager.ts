@@ -35,10 +35,9 @@ export class CoinManager {
     }
 
     public spawnSatisfiedClientReward(x: number, y: number, economy: EconomyConfig = this.registry.economy): void {
-        const playerTile = this.getPlayerTile();
         const clientTile = this.getTilePosition(x, y);
         const reachableTiles = this.pathfinding.getReachableFloorTiles(
-            playerTile,
+            clientTile,
             economy.coinPlacementSearchRadiusTiles,
             this.getBlockedPositions(),
         );
@@ -50,7 +49,7 @@ export class CoinManager {
         for (let index = 0; index < economy.coinsPerSatisfiedClient; index++) {
             const dropTile = safeDropTiles[index % Math.max(1, safeDropTiles.length)];
             const dropPosition = dropTile === undefined
-                ? { x: this.player.x, y: this.player.y }
+                ? { x, y }
                 : this.getWorldPosition(dropTile);
             const coin = new CoinDrop(
                 this.scene,
@@ -103,10 +102,6 @@ export class CoinManager {
 
         const data: CoinCollectedData = { value: candidate.value, totalCredits };
         eventBus.emit(EVENT_COIN_COLLECTED, data);
-    }
-
-    private getPlayerTile(): ClientPosition {
-        return this.getTilePosition(this.player.x, this.player.y);
     }
 
     private getTilePosition(x: number, y: number): ClientPosition {

@@ -18,7 +18,7 @@ export class BandManager {
         grid: GridManager,
         private readonly config: BandConfig,
     ) {
-        this.bandTiles = grid.getObjectZoneTiles('zonaBanda');
+        this.bandTiles = grid.getObjectZoneCenterTiles('zonaBanda');
         this.members = this.createMembers();
 
         if (this.bandTiles.length === 0) {
@@ -76,22 +76,30 @@ export class BandManager {
         const maxTileX = Math.max(...this.bandTiles.map((tile) => tile.tileX));
         const minTileY = Math.min(...this.bandTiles.map((tile) => tile.tileY));
         const maxTileY = Math.max(...this.bandTiles.map((tile) => tile.tileY));
-        const zoneWidth = maxTileX - minTileX + 1;
-        const centerRow = (minTileY + maxTileY + 1) / 2;
+        const centerTileX = (minTileX + maxTileX + 1) / 2;
+        const centerTileY = (minTileY + maxTileY + 1) / 2;
+        const centralTiles = [...this.bandTiles]
+            .sort((left, right) => (
+                this.distanceFromZoneCenter(left, centerTileX, centerTileY)
+                - this.distanceFromZoneCenter(right, centerTileX, centerTileY)
+                || left.tileY - right.tileY
+                || left.tileX - right.tileX
+            ))
+            .slice(0, this.config.memberCount)
+            .sort((left, right) => left.tileY - right.tileY || left.tileX - right.tileX);
         const members: BithBandMember[] = [];
 
-        for (let index = 0; index < this.config.memberCount; index++) {
-            const columnRatio = (index + 0.5) / this.config.memberCount;
-            const tileX = minTileX + zoneWidth * columnRatio;
-            const tileY = centerRow;
+        for (let index = 0; index < centralTiles.length; index++) {
+            const tile = centralTiles[index];
+            if (tile === undefined) continue;
             const colorIndex = index % this.config.memberBodyColors.length;
             const bodyColor = this.config.memberBodyColors[colorIndex];
             if (bodyColor === undefined) continue;
 
             const member = new BithBandMember(
                 this.scene,
-                tileX * TILE,
-                tileY * TILE,
+                (tile.tileX + 0.5) * TILE,
+                (tile.tileY + 0.5) * TILE,
                 bodyColor,
                 this.config,
             );
@@ -99,5 +107,15 @@ export class BandManager {
         }
 
         return members;
+    }
+
+    private distanceFromZoneCenter(
+        tile: { readonly tileX: number; readonly tileY: number },
+        centerTileX: number,
+        centerTileY: number,
+    ): number {
+        const centerX = tile.tileX + 0.5;
+        const centerY = tile.tileY + 0.5;
+        return (centerX - centerTileX) ** 2 + (centerY - centerTileY) ** 2;
     }
 }
