@@ -56,6 +56,7 @@ export class Client extends GameObjects.Container {
     private route: readonly ClientPosition[] = [];
     private routeIndex = 0;
     private activeOrder: OrderOption | null = null;
+    private spawnRewardAfterMusic = false;
     private orderBubble: GameObjects.Container | null = null;
     private orderProgress: GameObjects.Rectangle | null = null;
     private seatPosition: ClientPosition | null = null;
@@ -85,6 +86,7 @@ export class Client extends GameObjects.Container {
         private readonly seating: SeatingManager,
         private readonly pathfinding: PathfindingManager,
         registry: GameRegistry = GAME_REGISTRY,
+        private readonly isBandPlaying: () => boolean = () => false,
     ) {
         super(scene, position.tileX * TILE + TILE / 2, position.tileY * TILE + TILE / 2);
         this.setExclusive(true);
@@ -207,11 +209,28 @@ export class Client extends GameObjects.Container {
         }
 
         this.currentState = 'SATISFIED';
+        this.spawnRewardAfterMusic = false;
         this.orderBubble?.destroy();
         this.orderBubble = null;
         this.orderProgress = null;
         this.spawnCoinDrops();
         this.satisfiedRemainingMs = this.registry.clients.satisfiedStayMs;
+        this.emit('satisfied', this);
+        return true;
+    }
+
+    /** Satisfies a seated music order and delays its reward until the performance ends. */
+    public satisfyMusicOrder(durationMs: number): boolean {
+        if (this.currentState !== 'SEATED_WAITING_ORDER' || this.activeOrder?.itemId !== 'MUSIC') {
+            return false;
+        }
+
+        this.currentState = 'SATISFIED';
+        this.spawnRewardAfterMusic = true;
+        this.orderBubble?.destroy();
+        this.orderBubble = null;
+        this.orderProgress = null;
+        this.satisfiedRemainingMs = durationMs;
         this.emit('satisfied', this);
         return true;
     }
@@ -330,7 +349,13 @@ export class Client extends GameObjects.Container {
             }
         } else if (this.currentState === 'SATISFIED') {
             this.satisfiedRemainingMs = Math.max(0, this.satisfiedRemainingMs - deltaMs);
-            if (this.satisfiedRemainingMs === 0) this.leaveService();
+            if (this.satisfiedRemainingMs === 0) {
+                if (this.spawnRewardAfterMusic) {
+                    this.spawnRewardAfterMusic = false;
+                    this.spawnCoinDrops();
+                }
+                this.leaveService();
+            }
         } else if (this.currentState === 'APPROACHING_FIGHT') {
             this.advanceAlongRoute(deltaMs, blockedPositions);
         } else if (this.currentState === 'LEAVING') {
@@ -429,10 +454,18 @@ export class Client extends GameObjects.Container {
     }
 
     private chooseOrder(): OrderOption | null {
-        const orderOptions = this.registry.orders.options;
+        const orderOptions = this.registry.orders.options.filter((option) => (
+            option.itemId !== 'MUSIC' || !this.isBandPlaying()
+        ));
         if (orderOptions.length === 0) return null;
 
-        const roll = Math.random();
+        const totalProbability = orderOptions.reduce(
+            (total, option) => total + option.probability,
+            0,
+        );
+        if (totalProbability <= 0) return null;
+
+        const roll = Math.random() * totalProbability;
         let cumulativeProbability = 0;
         for (const option of orderOptions) {
             cumulativeProbability += option.probability;
@@ -464,8 +497,17 @@ export class Client extends GameObjects.Container {
         );
         progress.setOrigin(0.5, 1);
 
-        const icon = this.scene.add.image(0, 0, order.iconTexture);
-        icon.setDisplaySize(visual.orderIconSize, visual.orderIconSize);
+        const icon = order.iconText === undefined
+            ? this.scene.add.image(0, 0, order.iconTexture).setDisplaySize(
+                visual.orderIconSize,
+                visual.orderIconSize,
+            )
+            : this.scene.add.text(0, 0, order.iconText, {
+                fontFamily: 'monospace',
+                fontSize: `${visual.orderIconSize}px`,
+                color: `#${visual.orderBubbleBorderColor.toString(16).padStart(6, '0')}`,
+                fontStyle: 'bold',
+            }).setOrigin(0.5);
 
         const frame = this.scene.add.rectangle(0, 0, size, size);
         frame.setFillStyle(visual.orderBubbleBackgroundColor, 0);

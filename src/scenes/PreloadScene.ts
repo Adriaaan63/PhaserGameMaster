@@ -14,6 +14,7 @@ import {
     UI_INVENTORY_SLOT_FRAME_KEY,
     UI_MATERIALS_ICON_KEY,
     UI_OPEN_ICON_KEY,
+    CANTINA_BAND_AUDIO_KEY,
 } from '../data/constants';
 import { FURNITURE_REGISTRY } from '../data/FurnitureRegistry';
 
@@ -28,6 +29,7 @@ const UI_MATERIALS_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/0.png',
 const UI_BUILD_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/3.png', import.meta.url).href;
 const UI_OPEN_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/2.png', import.meta.url).href;
 const UI_CAROUSEL_ARROW_URL = new URL('../../assets/sprites/UI/2 - Buttons/2.png', import.meta.url).href;
+const CANTINA_BAND_AUDIO_URL = new URL('../../assets/sound/cantina_band_loop.mp3', import.meta.url).href;
 
 export class PreloadScene extends Scene {
     public constructor() {
@@ -61,6 +63,7 @@ export class PreloadScene extends Scene {
         this.load.image(UI_BUILD_ICON_KEY, UI_BUILD_ICON_URL);
         this.load.image(UI_OPEN_ICON_KEY, UI_OPEN_ICON_URL);
         this.load.image(UI_CAROUSEL_ARROW_KEY, UI_CAROUSEL_ARROW_URL);
+        this.load.audio(CANTINA_BAND_AUDIO_KEY, CANTINA_BAND_AUDIO_URL);
     }
 
     public create(): void {

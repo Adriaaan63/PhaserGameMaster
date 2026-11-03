@@ -54,9 +54,7 @@ h1 {
 }
 
 #juego {
-  display: grid;
   width: 100%;
-  place-items: center;
 }
 
 canvas {

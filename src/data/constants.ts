@@ -47,6 +47,7 @@ export const UI_MATERIALS_ICON_KEY = 'ui-materials-icon';
 export const UI_BUILD_ICON_KEY = 'ui-build-icon';
 export const UI_OPEN_ICON_KEY = 'ui-open-icon';
 export const UI_CAROUSEL_ARROW_KEY = 'ui-carousel-arrow';
+export const CANTINA_BAND_AUDIO_KEY = 'cantina-band-loop';
 
 /** Station timing and animation configuration. */
 export const COOKING_TIME_MS = 4000;

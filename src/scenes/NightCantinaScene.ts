@@ -18,6 +18,8 @@ import { HazardManager } from '../managers/HazardManager';
 import { PathfindingManager } from '../managers/PathfindingManager';
 import { SeatingManager } from '../managers/SeatingManager';
 import { ThreatManager } from '../managers/ThreatManager';
+import { BandManager } from '../managers/BandManager';
+import { AudioManager } from '../managers/AudioManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
@@ -109,6 +111,8 @@ export class NightCantinaScene extends Scene {
     private pathfindingManager!: PathfindingManager;
     private fightManager!: FightManager;
     private threatManager!: ThreatManager;
+    private bandManager!: BandManager;
+    private audioManager!: AudioManager;
     private deadBodyManager!: DeadBodyManager;
     private hazardManager!: HazardManager;
     private selectedClient: Client | null = null;
@@ -178,6 +182,8 @@ export class NightCantinaScene extends Scene {
 
         // Build the logical grid from all typed layers and restricted zones.
         this.gridManager = new GridManager(map);
+        this.bandManager = new BandManager(this, this.gridManager, GAME_REGISTRY.band);
+        this.audioManager = new AudioManager(this, GAME_REGISTRY.audio);
         this.registry.set('foodStock', 5);
 
         // Spawn the player at the Wuher spawn point (object layer) or map center.
@@ -203,6 +209,7 @@ export class NightCantinaScene extends Scene {
             this.coinManager,
             this.seatingManager,
             this.pathfindingManager,
+            () => this.bandManager.isBandPlaying,
         );
         this.coinManager.setBlockedPositionProvider(() => this.clientManager.getOccupiedPositions());
         this.deadBodyManager = new DeadBodyManager(this, this.gridManager);
@@ -458,6 +465,22 @@ export class NightCantinaScene extends Scene {
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
         if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
 
+        if (this.bandManager.isInteractionTile(tileX, tileY)) {
+            if (this.player.getHeldObjectType() !== null) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para dar la señal a la banda.' });
+                return true;
+            }
+            this.clearClientSelection();
+            if (!this.bandManager.startPerformance()) {
+                eventBus.emit(EVENT_GAME_WARNING, {
+                    message: this.bandManager.isBandPlaying
+                        ? 'La banda ya está tocando.'
+                        : 'La banda no está disponible en este escenario.',
+                });
+            }
+            return true;
+        }
+
         if (this.deadBodyManager.hasBodyAt(tileX, tileY)) {
             if (this.player.getHeldObjectType() !== null) {
                 eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para limpiar el cadáver.' });
@@ -604,6 +627,8 @@ export class NightCantinaScene extends Scene {
         }
         this.clearClientSelection();
         this.fightManager?.destroy();
+        this.bandManager?.destroy();
+        this.audioManager?.destroy();
         this.threatManager?.destroy();
         this.hazardManager?.destroy();
         this.affinityManager?.destroy();

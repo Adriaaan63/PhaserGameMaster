@@ -1,5 +1,5 @@
 import { Physics, Scene } from 'phaser';
-import { GAME_REGISTRY, samplePatienceDuration } from '../data/GameRegistry';
+import { BAND_PLAYING_DURATION_MS, GAME_REGISTRY, samplePatienceDuration } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
 import { Client, type ClientPosition } from '../entities/Client';
 import { CoinManager } from './CoinManager';
@@ -12,6 +12,8 @@ import {
     EVENT_CLIENT_SEATED,
     EVENT_CLIENT_LEAVING,
     EVENT_CLIENT_EXIT_PATH_FAILED,
+    EVENT_BAND_STARTED,
+    type BandStartedData,
     type ClientExitPathFailedData,
     type ClientSatisfiedData,
     type ClientSeatedData,
@@ -33,9 +35,11 @@ export class ClientManager {
         private readonly coinManager: CoinManager,
         private readonly seating: SeatingManager,
         private readonly pathfinding: PathfindingManager,
+        private readonly isBandPlaying: () => boolean,
     ) {
         this.queueTiles = this.grid.getObjectZoneTiles('zonaColaEntrada');
         this.collisionGroup = this.scene.physics.add.group();
+        eventBus.on(EVENT_BAND_STARTED, this.onBandStartedBound);
     }
 
     public setEnabled(enabled: boolean): void { this.enabled = enabled; }
@@ -104,6 +108,7 @@ export class ClientManager {
             this.seating,
             this.pathfinding,
             GAME_REGISTRY,
+            this.isBandPlaying,
         );
         client.setData('clientId', clientId);
         this.clients.add(client);
@@ -194,6 +199,7 @@ export class ClientManager {
     }
 
     public destroy(): void {
+        eventBus.off(EVENT_BAND_STARTED, this.onBandStartedBound);
         this.collisionGroup.clear(false, false);
         for (const client of this.clients) client.destroy();
         this.clients.clear();
@@ -209,6 +215,11 @@ export class ClientManager {
             onComplete: () => client.destroy(),
         });
     }
+
+    private readonly onBandStartedBound = (data: BandStartedData): void => {
+        const durationMs = Math.min(data.durationMs, BAND_PLAYING_DURATION_MS);
+        for (const client of this.clients) client.satisfyMusicOrder(durationMs);
+    };
 
     private positionKey(position: ClientPosition): string {
         return `${position.tileX}:${position.tileY}`;

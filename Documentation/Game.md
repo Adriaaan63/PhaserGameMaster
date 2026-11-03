@@ -100,6 +100,10 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * Al generar el pedido, el cliente recibe una nueva "Barra de Paciencia de Servicio". Este es un temporizador independiente al de la cola, y su duración inicial depende del tipo de pedido y de la clase del cliente.
     * Si la paciencia llega a cero antes de recibir el objeto correcto, el cliente abandonará la mesa enfadado, sin dejar propina y afectando negativamente a la reputación.
     * Si Wuher le entrega el ítem correcto antes del tiempo límite, el cliente pasa a estado de "Satisfecho" y emite el pago.
+    * **Pedidos Globales (La Música):** A diferencia de las bebidas o la comida, que requieren recolección física y entrega individual, el pedido de "Música" funciona como una mecánica de satisfacción en área (AoE).
+        * **Resolución Simultánea:** Cuando Wuher activa a la Banda Bith interactuando con el escenario, el pedido de **todos** los clientes sentados en la cantina que hayan solicitado "Música" pasa automáticamente a estado `SATISFIED`.
+        * **Tiempo de Disfrute (Delay de salida):** Los clientes satisfechos por la banda no se levantan inmediatamente. Modifican su temporizador interno para quedarse sentados escuchando la actuación completa. Solo cuando termine el bucle de la canción (15 segundos), dejarán su propina y se marcharán hacia la salida.
+        * **Bloqueo de Pedido Continuo:** Para mantener la fluidez lógica del juego, si la banda *ya está tocando*, ningún cliente recién sentado podrá generar un pedido de "Música". El sistema forzará a que pidan comida o bebida hasta que la banda termine su turno de 15 segundos y vuelva a estar inactiva.
 * **Reglas de Economía Física:**
     * El pago no se suma automáticamente al contador del jugador. Al ser satisfecho, el cliente "lanza" físicamente un número de monedas (Créditos) al suelo, alrededor de su tile actual.
     * Las monedas persisten en el suelo hasta que Wuher las recoge o una rata las roba. No desaparecen por tiempo; la recolección y el robo compiten por la misma moneda y solo uno puede completarse.
@@ -205,6 +209,8 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * *Frente a un vaso vacío:* Lo recoge (pasa a `HOLDING`).
             * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
             * **Frente a una Pelea:** Si Wuher tiene las manos vacías y se acerca a dos clientes en estado `FIGHTING`, presionar (o mantener, según balanceo) `Espacio` obligará a los clientes a separarse y marcharse del local (`LEAVING`). No se gana dinero, pero se evita el cadáver, la destrucción del mobiliario y el *Heat* imperial.
+            * *Frente a la Banda (tiles contiguos a `zonaBanda`):* Al presionar la tecla de Acción (`Espacio`) mirando hacia el escenario, Wuher da la señal a los músicos. Esto cambia el estado de la banda a `PLAYING`, activa las animaciones de los 4 sprites tocando sus instrumentos y dispara el evento global para resolver pedidos de música.
+
         * **Con las manos OCUPADAS (`State: HOLDING`):**
             * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
             * *Frente a la Mesa:* apoya el objeto.
@@ -335,6 +341,8 @@ Para dotar de legibilidad inmediata al caos de la cantina, los clientes se divid
 
     * **Garindan:** Espía oculto que el jugador puede usar como transmisor para delatar clientes.
 
+    * **Figrin D'an y los Modal Nodes (La Banda Bith):** Cuatro NPCs estáticos colocados en formación sobre la `zonaBanda`. Carecen de IA de *pathfinding* o combate. Tienen dos estados visuales: `IDLE` (afinando instrumentos, quietos) y `PLAYING` (animación sincronizada tocando sus instrumentos de viento y percusión galáctica).
+
 
 
 
@@ -459,7 +467,15 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
 * **9.2. Control System:** Teclado (`WASD`, `Shift`, `Espacio`) orientado al movimiento y acciones precisas en tiempo real, junto con el uso del Ratón para organizar la gestión y la construcción en la cuadrícula.
 
 
-* **9.3. Audio, music, sound effects:** El juego utiliza la música en vivo (*Jizz*) interpretada por los músicos Bith (*Figrin D'an y los Modal Nodes*). Si se les paga mediante `Espacio`, tocan la música durante 20-30 segundos, mitigando el estrés de los clientes y distrayendo al público.
+* **9.3. Audio, music, sound effects:**
+    * **Arquitectura de Audio (Gestor Centralizado - Phaser v4):** Para garantizar un rendimiento óptimo y evitar que los sonidos se pisen (especialmente durante peleas o lluvias de monedas), el juego implementa un `AudioManager.ts` (patrón Singleton o Inyectado). Este gestor divide las pistas en tres buses principales (Web Audio API):
+        1. `BGM` (Background Music): Música ambiental de la cantina o ruidos de la calle.
+        2. `SFX` (Sound Effects): Efectos espaciales interactivos (blásters, clink de monedas, quejas de clientes). Utiliza *pooling* (limita la cantidad máxima de efectos idénticos simultáneos a 3-5) para evitar la saturación de decibelios.
+        3. `UI`: Efectos limpios, sin filtros espaciales, para botones, éxito o error en los pedidos.
+
+
+    * **El Evento Musical (Cantina Band):** El elemento sonoro clave del juego no es música de fondo perpetua, sino un recurso de jugabilidad táctica. Cuando el jugador activa la `zonaBanda`, el `AudioManager` dispara un archivo de audio específico: un bucle perfecto de **15 segundos** del icónico tema de *Star Wars* "Mad About Me" (estilo *Jizz*).
+        * **Dinámica:** Mientras suena el bucle, la música general de fondo (si la hubiera) reduce su volumen (*ducking*). Al finalizar los 15 segundos, el clip musical se detiene (con un pequeño y sutil *fade-out*), las animaciones de los músicos cesan y los clientes musicales sueltan su dinero.
 
 
 * **9.4. Game Art:** El estilo artístico está diseñado para equilibrar la densidad visual de un juego de gestión con la claridad necesaria para la acción, tomando inspiraciones de títulos como *Stardew Valley*:

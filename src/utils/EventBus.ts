@@ -40,10 +40,12 @@ export const EVENT_DEAD_BODY_CREATED = 'aftermath:dead-body-created';
 export const EVENT_DEAD_BODY_CLEANED = 'aftermath:dead-body-cleaned';
 export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
+export const EVENT_BAND_STARTED = 'band:started';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface ToggleClientGuideData { readonly enabled: boolean; }
 export interface ToggleMaterialsData { readonly enabled: boolean; }
+export interface BandStartedData { readonly durationMs: number; }
 export interface NightTimerUpdatedData { readonly remainingMs: number; }
 export interface PlayerActionProgressData {
     readonly active: boolean;

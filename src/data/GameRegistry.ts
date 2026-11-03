@@ -44,7 +44,31 @@ export function chooseClientRace(randomValue: number = Math.random()): ClientRac
     return CLIENT_RACES[index] ?? ClientRace.WOOKIEE;
 }
 
-export type OrderItemId = 'FILLED_CUP' | 'FOOD_PLATE';
+export type OrderItemId = 'FILLED_CUP' | 'FOOD_PLATE' | 'MUSIC';
+
+export const BAND_PLAYING_DURATION_MS = 15_000;
+
+export type AudioBus = 'BGM' | 'SFX' | 'UI';
+
+export interface AudioConfig {
+    readonly busVolumes: Readonly<Record<AudioBus, number>>;
+    readonly maxConcurrentOneShotsPerBus: number;
+    readonly bandFadeOutMs: number;
+}
+
+export interface BandConfig {
+    readonly memberCount: number;
+    readonly memberBodyWidth: number;
+    readonly memberBodyHeight: number;
+    readonly memberHeadRadius: number;
+    readonly memberBodyColors: readonly number[];
+    readonly instrumentColor: number;
+    readonly instrumentWidth: number;
+    readonly instrumentHeight: number;
+    readonly playingBobOffset: number;
+    readonly playingAnimationDurationMs: number;
+    readonly interactionRadiusTiles: number;
+}
 
 export interface PatienceDurationConfig {
     readonly baseMs: number;
@@ -60,6 +84,7 @@ export interface OrderOption {
     readonly itemId: OrderItemId;
     readonly probability: number;
     readonly iconTexture: string;
+    readonly iconText?: string;
 }
 
 export interface OrderConfig {
@@ -188,6 +213,8 @@ export interface UiConfig {
 export interface GameRegistry {
     readonly patience: PatienceConfig;
     readonly orders: OrderConfig;
+    readonly audio: AudioConfig;
+    readonly band: BandConfig;
     readonly economy: EconomyConfig;
     readonly combat: CombatConfig;
     readonly threat: ThreatConfig;
@@ -245,13 +272,33 @@ export const GAME_REGISTRY = {
         service: {
             FILLED_CUP: { baseMs: 25_000, variationMs: 4_000 },
             FOOD_PLATE: { baseMs: 35_000, variationMs: 5_000 },
+            MUSIC: { baseMs: 30_000, variationMs: 0 },
         },
     },
     orders: {
         options: [
-            { itemId: 'FILLED_CUP', probability: 0.65, iconTexture: TEXTURE_DRINK_FULL },
-            { itemId: 'FOOD_PLATE', probability: 0.35, iconTexture: TEXTURE_FOOD },
+            { itemId: 'FILLED_CUP', probability: 0.52, iconTexture: TEXTURE_DRINK_FULL },
+            { itemId: 'FOOD_PLATE', probability: 0.28, iconTexture: TEXTURE_FOOD },
+            { itemId: 'MUSIC', probability: 0.2, iconTexture: '', iconText: '♫' },
         ],
+    },
+    audio: {
+        busVolumes: { BGM: 0.65, SFX: 0.8, UI: 0.75 },
+        maxConcurrentOneShotsPerBus: 5,
+        bandFadeOutMs: 700,
+    },
+    band: {
+        memberCount: 4,
+        memberBodyWidth: 14,
+        memberBodyHeight: 20,
+        memberHeadRadius: 7,
+        memberBodyColors: [0x829ca8, 0x9b7c62, 0x8d9e7d, 0x7e899a],
+        instrumentColor: 0xe2bd68,
+        instrumentWidth: 19,
+        instrumentHeight: 4,
+        playingBobOffset: 3,
+        playingAnimationDurationMs: 260,
+        interactionRadiusTiles: 1,
     },
     economy: {
         startingCredits: 0,
