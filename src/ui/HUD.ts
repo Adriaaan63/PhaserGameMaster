@@ -6,10 +6,9 @@ import {
     UI_BUILD_ICON_KEY,
     UI_GUIDE_ICON_KEY,
     UI_HUD_FRAME_KEY,
+    UI_HUD_FRAME_SOURCE_BOUNDS,
     UI_MATERIALS_ICON_KEY,
     UI_OPEN_ICON_KEY,
-    UI_PHASE_ICON_KEY,
-    UI_TIME_ICON_KEY,
 } from '../data/constants';
 import {
     EVENT_CANTINA_OPEN,
@@ -38,8 +37,7 @@ type HudSlotId = 'phase' | 'food' | 'credits' | 'time' | 'guide' | 'materials' |
 
 interface HudSlot {
     readonly container: GameObjects.Container;
-    readonly icon: GameObjects.Image | GameObjects.Ellipse;
-    readonly label: GameObjects.Text;
+    readonly icon: GameObjects.Image | GameObjects.Ellipse | null;
     readonly value: GameObjects.Text;
     readonly hitArea: GameObjects.Rectangle | null;
 }
@@ -51,16 +49,6 @@ const HUD_PANEL_COLOR = 0x111821;
 const HUD_TEXT_COLOR = '#f4ede2';
 const HUD_BUTTON_HOVER_COLOR = 0xffd166;
 const HUD_COIN_COLOR = 0xf6c453;
-const HUD_SLOT_LABELS: Readonly<Record<HudSlotId, string>> = {
-    phase: 'FASE',
-    food: 'COMIDA',
-    credits: 'CRÉDITOS',
-    time: 'TIEMPO',
-    guide: 'GUÍA',
-    materials: 'MATERIALES',
-    build: 'CONSTRUCCIÓN',
-    open: 'APERTURA',
-};
 
 /** Unified fixed-to-camera top bar and transient action feedback. */
 export class HUD {
@@ -155,21 +143,15 @@ export class HUD {
         const container = this.scene.add.container(0, 0);
         const frame = this.scene.add.image(0, 0, UI_HUD_FRAME_KEY).setAlpha(0.9);
         const icon = this.createIcon(id);
-        const label = this.scene.add.text(0, 15, HUD_SLOT_LABELS[id], {
-            fontFamily: 'monospace',
-            fontSize: '7px',
-            color: '#b9c5cf',
-            align: 'center',
-        }).setOrigin(0.5);
         const value = this.scene.add.text(0, 0, '', {
             fontFamily: 'monospace',
-            fontSize: id === 'phase' ? '8px' : '10px',
+            fontSize: `${this.getValueFontSize(id)}px`,
             color: HUD_TEXT_COLOR,
             stroke: '#10151b',
             strokeThickness: 2,
             align: 'center',
         }).setOrigin(0.5);
-        container.add([frame, icon, label, value]);
+        container.add(icon === null ? [frame, value] : [frame, icon, value]);
 
         const interactive = id === 'guide' || id === 'materials' || id === 'build' || id === 'open';
         let hitArea: GameObjects.Rectangle | null = null;
@@ -190,26 +172,26 @@ export class HUD {
             });
         }
 
-        return { container, icon, label, value, hitArea };
+        return { container, icon, value, hitArea };
     }
 
-    private createIcon(id: HudSlotId): GameObjects.Image | GameObjects.Ellipse {
+    private createIcon(id: HudSlotId): GameObjects.Image | GameObjects.Ellipse | null {
+        if (id === 'phase' || id === 'time') return null;
         if (id === 'credits') {
-            return this.scene.add.ellipse(0, -12, 11, 11, HUD_COIN_COLOR)
+            const coinSize = this.feedbackConfig.coinIconBaseSize;
+            return this.scene.add.ellipse(0, 0, coinSize, coinSize, HUD_COIN_COLOR)
                 .setStrokeStyle(2, 0x8c5b1a, 1);
         }
 
         const textureBySlot: Partial<Record<HudSlotId, string>> = {
-            phase: UI_PHASE_ICON_KEY,
             food: TEXTURE_FOOD,
-            time: UI_TIME_ICON_KEY,
             guide: UI_GUIDE_ICON_KEY,
             materials: UI_MATERIALS_ICON_KEY,
             build: UI_BUILD_ICON_KEY,
             open: UI_OPEN_ICON_KEY,
         };
-        const texture = textureBySlot[id] ?? UI_PHASE_ICON_KEY;
-        return this.scene.add.image(0, -12, texture);
+        const texture = textureBySlot[id];
+        return texture === undefined ? null : this.scene.add.image(0, 0, texture);
     }
 
     private createFeedbackText(): void {
@@ -270,7 +252,7 @@ export class HUD {
     }
 
     private refreshBuildModeSlot(): void {
-        this.setSlotValue('build', this.isBuildModeEnabled ? 'ON' : 'OFF');
+        this.slots.get('build')?.icon?.setAlpha(this.isBuildModeEnabled ? 1 : 0.35);
     }
 
     private updatePhaseFromRegistry(): void {
@@ -337,18 +319,48 @@ export class HUD {
             const slotX = -width / 2 + margin + slotWidth * (index + 0.5);
             slot.container.setPosition(slotX, 0);
             const frame = slot.container.getAt(0);
-            if (frame instanceof GameObjects.Image) frame.setDisplaySize(Math.max(1, slotWidth), barHeight);
-            const iconX = -slotWidth * 0.27;
-            const valueX = slotWidth * 0.14;
-            slot.icon.setPosition(iconX, -12);
-            if (slot.icon instanceof GameObjects.Image) {
-                slot.icon.setDisplaySize(
-                    Math.min(this.feedbackConfig.slotIconSize, slotWidth * 0.25),
-                    Math.min(this.feedbackConfig.slotIconSize, barHeight * 0.35),
-                );
+            if (frame instanceof GameObjects.Image) {
+                const bounds = UI_HUD_FRAME_SOURCE_BOUNDS;
+                const frameWidth = slotWidth * bounds.sourceWidth / bounds.visibleWidth;
+                const frameHeight = barHeight * bounds.sourceHeight / bounds.visibleHeight;
+                const transparentCenterOffsetX = bounds.visibleX
+                    + bounds.visibleWidth / 2
+                    - bounds.sourceWidth / 2;
+                const transparentCenterOffsetY = bounds.visibleY
+                    + bounds.visibleHeight / 2
+                    - bounds.sourceHeight / 2;
+                frame
+                    .setDisplaySize(frameWidth, frameHeight)
+                    .setPosition(
+                        -transparentCenterOffsetX * frameWidth / bounds.sourceWidth,
+                        -transparentCenterOffsetY * frameHeight / bounds.sourceHeight,
+                    );
             }
-            slot.label.setPosition(0, 15).setFontSize(`${slotWidth < 76 ? 6 : 7}px`);
-            slot.value.setPosition(valueX, 0).setFontSize(`${slotWidth < 76 ? 8 : 10}px`);
+            const hasSideBySideValue = id === 'food' || id === 'credits';
+            const iconX = hasSideBySideValue
+                ? -slotWidth * this.feedbackConfig.sideBySideIconOffsetRatio
+                : 0;
+            const valueX = hasSideBySideValue
+                ? slotWidth * this.feedbackConfig.sideBySideValueOffsetRatio
+                : 0;
+            slot.icon?.setPosition(iconX, 0);
+            const iconSize = hasSideBySideValue
+                ? Math.min(
+                    this.feedbackConfig.slotIconSize,
+                    slotWidth * this.feedbackConfig.sideBySideIconWidthRatio,
+                    barHeight * this.feedbackConfig.sideBySideIconHeightRatio,
+                )
+                : Math.min(
+                    this.feedbackConfig.slotIconSize,
+                    slotWidth * this.feedbackConfig.centeredIconWidthRatio,
+                    barHeight * this.feedbackConfig.centeredIconHeightRatio,
+                );
+            if (slot.icon instanceof GameObjects.Image) {
+                slot.icon.setDisplaySize(iconSize, iconSize);
+            } else if (slot.icon instanceof GameObjects.Ellipse) {
+                slot.icon.setScale(iconSize / this.feedbackConfig.coinIconBaseSize);
+            }
+            slot.value.setPosition(valueX, 0).setFontSize(`${this.getResponsiveValueFontSize(id, slotWidth)}px`);
             slot.hitArea
                 ?.setSize(Math.max(1, slotWidth), barHeight)
                 .setInteractive(
@@ -357,6 +369,26 @@ export class HUD {
                 );
         }
         this.feedbackText.setPosition(width / 2, this.feedbackConfig.feedbackOffsetY);
+    }
+
+    private getValueFontSize(id: HudSlotId): number {
+        switch (id) {
+            case 'phase': return this.feedbackConfig.phaseFontSize;
+            case 'time': return this.feedbackConfig.timeFontSize;
+            case 'food': return this.feedbackConfig.stockFontSize;
+            case 'credits': return this.feedbackConfig.creditsFontSize;
+            default: return this.feedbackConfig.phaseFontSize;
+        }
+    }
+
+    private getResponsiveValueFontSize(id: HudSlotId, slotWidth: number): number {
+        const configuredSize = this.getValueFontSize(id);
+        return slotWidth < this.feedbackConfig.narrowSlotMaxWidth
+            ? Math.max(
+                this.feedbackConfig.minimumNarrowFontSize,
+                configuredSize - this.feedbackConfig.narrowFontSizeReduction,
+            )
+            : configuredSize;
     }
 
     private readRegistryNumber(key: string, fallback: number): number {

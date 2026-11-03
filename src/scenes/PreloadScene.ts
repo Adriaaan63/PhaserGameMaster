@@ -12,8 +12,6 @@ import {
     UI_HUD_FRAME_KEY,
     UI_MATERIALS_ICON_KEY,
     UI_OPEN_ICON_KEY,
-    UI_PHASE_ICON_KEY,
-    UI_TIME_ICON_KEY,
 } from '../data/constants';
 import { FURNITURE_REGISTRY } from '../data/FurnitureRegistry';
 
@@ -23,11 +21,9 @@ const DRINK_FULL_SPRITE_URL = new URL('../../assets/sprites/kitchen_props_3.png'
 const DRINK_EMPTY_SPRITE_URL = new URL('../../assets/sprites/kitchen_props2_25.png', import.meta.url).href;
 const UI_HUD_FRAME_URL = new URL('../../assets/sprites/UI/1 - Holders/21.png', import.meta.url).href;
 const UI_GUIDE_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/7.png', import.meta.url).href;
-const UI_MATERIALS_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/3.png', import.meta.url).href;
-const UI_BUILD_ICON_URL = new URL('../../assets/sprites/UI/2 - Buttons/22.png', import.meta.url).href;
-const UI_OPEN_ICON_URL = new URL('../../assets/sprites/UI/2 - Buttons/23.png', import.meta.url).href;
-const UI_TIME_ICON_URL = new URL('../../assets/sprites/UI/2 - Buttons/24.png', import.meta.url).href;
-const UI_PHASE_ICON_URL = new URL('../../assets/sprites/UI/2 - Buttons/25.png', import.meta.url).href;
+const UI_MATERIALS_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/0.png', import.meta.url).href;
+const UI_BUILD_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/3.png', import.meta.url).href;
+const UI_OPEN_ICON_URL = new URL('../../assets/sprites/UI/4 - Items/2.png', import.meta.url).href;
 
 export class PreloadScene extends Scene {
     public constructor() {
@@ -59,8 +55,6 @@ export class PreloadScene extends Scene {
         this.load.image(UI_MATERIALS_ICON_KEY, UI_MATERIALS_ICON_URL);
         this.load.image(UI_BUILD_ICON_KEY, UI_BUILD_ICON_URL);
         this.load.image(UI_OPEN_ICON_KEY, UI_OPEN_ICON_URL);
-        this.load.image(UI_TIME_ICON_KEY, UI_TIME_ICON_URL);
-        this.load.image(UI_PHASE_ICON_KEY, UI_PHASE_ICON_URL);
     }
 
     public create(): void {

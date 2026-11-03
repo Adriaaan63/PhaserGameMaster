@@ -144,6 +144,20 @@ export interface UiConfig {
     readonly topBarDepth: number;
     readonly slotPadding: number;
     readonly slotIconSize: number;
+    readonly coinIconBaseSize: number;
+    readonly phaseFontSize: number;
+    readonly timeFontSize: number;
+    readonly stockFontSize: number;
+    readonly creditsFontSize: number;
+    readonly narrowSlotMaxWidth: number;
+    readonly narrowFontSizeReduction: number;
+    readonly minimumNarrowFontSize: number;
+    readonly centeredIconWidthRatio: number;
+    readonly centeredIconHeightRatio: number;
+    readonly sideBySideIconWidthRatio: number;
+    readonly sideBySideIconHeightRatio: number;
+    readonly sideBySideIconOffsetRatio: number;
+    readonly sideBySideValueOffsetRatio: number;
     readonly feedbackOffsetY: number;
     readonly feedbackDurationMs: number;
     readonly feedbackFadeMs: number;
@@ -299,8 +313,22 @@ export const GAME_REGISTRY = {
         topBarMargin: 4,
         topBarDepth: 20_000,
         slotPadding: 3,
-        slotIconSize: 20,
-        feedbackOffsetY: 60,
+        slotIconSize: 48,
+        coinIconBaseSize: 20,
+        phaseFontSize: 12,
+        timeFontSize: 18,
+        stockFontSize: 18,
+        creditsFontSize: 17,
+        narrowSlotMaxWidth: 76,
+        narrowFontSizeReduction: 3,
+        minimumNarrowFontSize: 9,
+        centeredIconWidthRatio: 0.62,
+        centeredIconHeightRatio: 0.78,
+        sideBySideIconWidthRatio: 0.3,
+        sideBySideIconHeightRatio: 0.65,
+        sideBySideIconOffsetRatio: 0.25,
+        sideBySideValueOffsetRatio: 0.18,
+        feedbackOffsetY: 76,
         feedbackDurationMs: 2_500,
         feedbackFadeMs: 650,
         feedbackFontSize: 16,
