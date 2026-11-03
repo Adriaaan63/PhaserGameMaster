@@ -100,6 +100,17 @@ export interface EconomyConfig {
     readonly coinOutlineColor: number;
     readonly coinOutlineWidth: number;
     readonly coinPlacementSearchRadiusTiles: number;
+    readonly coinRatAttractionDelayMs: number;
+}
+
+export interface RatConfig {
+    readonly movementSpeed: number;
+    readonly fleeingSpeed: number;
+    readonly interactionRadiusTiles: number;
+    readonly bodyWidth: number;
+    readonly bodyHeight: number;
+    readonly bodyColor: number;
+    readonly eyeColor: number;
 }
 
 export interface CombatConfig {
@@ -215,6 +226,7 @@ export interface GameRegistry {
     readonly orders: OrderConfig;
     readonly audio: AudioConfig;
     readonly band: BandConfig;
+    readonly rats: RatConfig;
     readonly economy: EconomyConfig;
     readonly combat: CombatConfig;
     readonly threat: ThreatConfig;
@@ -309,6 +321,16 @@ export const GAME_REGISTRY = {
         coinOutlineColor: 0x8c5b1a,
         coinOutlineWidth: 2,
         coinPlacementSearchRadiusTiles: 4,
+        coinRatAttractionDelayMs: 3_000,
+    },
+    rats: {
+        movementSpeed: 82,
+        fleeingSpeed: 150,
+        interactionRadiusTiles: 1,
+        bodyWidth: 18,
+        bodyHeight: 12,
+        bodyColor: 0x6b5144,
+        eyeColor: 0xffd166,
     },
     combat: {
         fightDurationMs: 5_000,

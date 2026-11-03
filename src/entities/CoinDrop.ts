@@ -7,19 +7,24 @@ const COIN_TEXTURE_KEY = 'generated-credit-coin';
 /** Persistent physical credit pickup. Arcade overlap supplies trigger behavior. */
 export class CoinDrop extends Physics.Arcade.Image {
     public readonly value: number;
-    private disposition: 'AVAILABLE' | 'COLLECTED' | 'STOLEN' = 'AVAILABLE';
+    public readonly lootGroupId: number;
+    public readonly createdAt: number;
+    private disposition: 'AVAILABLE' | 'ASSIGNED' | 'CARRIED' | 'COLLECTED' | 'STOLEN' = 'AVAILABLE';
 
     public constructor(
         scene: Scene,
         x: number,
         y: number,
         value: number,
+        lootGroupId: number,
         economy: EconomyConfig = GAME_REGISTRY.economy,
     ) {
         CoinDrop.ensureTexture(scene, economy);
         super(scene, x, y, COIN_TEXTURE_KEY);
 
         this.value = value;
+        this.lootGroupId = lootGroupId;
+        this.createdAt = scene.time.now;
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -35,9 +40,47 @@ export class CoinDrop extends Physics.Arcade.Image {
         this.setDepth(this.y);
     }
 
+    public get ageMs(): number {
+        return Math.max(0, this.scene.time.now - this.createdAt);
+    }
+
+    public assignToRat(): boolean {
+        if (this.disposition !== 'AVAILABLE') return false;
+        this.disposition = 'ASSIGNED';
+        return true;
+    }
+
+    public collectByRat(): boolean {
+        if (this.disposition !== 'ASSIGNED') return false;
+        this.disposition = 'CARRIED';
+        this.setVisible(false);
+        const body = this.body;
+        if (body instanceof Physics.Arcade.Body) body.enable = false;
+        return true;
+    }
+
+    public dropFromRat(x: number, y: number): boolean {
+        if (this.disposition !== 'ASSIGNED' && this.disposition !== 'CARRIED') return false;
+        this.disposition = 'AVAILABLE';
+        this.setPosition(x, y);
+        this.setVisible(true);
+        const body = this.body;
+        if (body instanceof Physics.Arcade.Body) {
+            body.reset(x, y);
+            body.enable = true;
+        }
+        return true;
+    }
+
+    public releaseFromRat(): boolean {
+        if (this.disposition !== 'ASSIGNED') return false;
+        this.disposition = 'AVAILABLE';
+        return true;
+    }
+
     /** Claims this drop exactly once, whether Wuher collects it or a rat steals it. */
     public claim(disposition: 'COLLECTED' | 'STOLEN'): boolean {
-        if (this.disposition !== 'AVAILABLE') return false;
+        if (this.disposition !== 'AVAILABLE' && this.disposition !== 'CARRIED') return false;
         this.disposition = disposition;
         this.destroy();
         return true;

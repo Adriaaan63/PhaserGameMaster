@@ -155,17 +155,18 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
 
 
 * **4.4. Economy:**
-* La economía principal se basa en la **Recolección Activa** Basada en **Créditos Imperiales** que los clientes lanzan al aire tras consumir..
-    * **Fórmula de Pago (Prototipo):** La cantidad de monedas soltadas dependerá del valor base del ítem entregado multiplicado por un modificador de propina (basado en cuánta paciencia le sobraba al cliente). El valor exacto y el ratio de *drop* están centralizados en un Gestor de Datos (Data Registry) para facilitar el equilibrado progresivo del juego.
+    * La economía principal se basa en la **Recolección Activa** Basada en **Créditos Imperiales** que los clientes lanzan al aire tras consumir..
+        * **Fórmula de Pago (Prototipo):** La cantidad de monedas soltadas dependerá del valor base del ítem entregado multiplicado por un modificador de propina (basado en cuánta paciencia le sobraba al cliente). El valor exacto y el ratio de *drop* están centralizados en un Gestor de Datos (Data Registry) para facilitar el equilibrado progresivo del juego.
+    * **El Peligro de las Ratas Ladronas (Scurriers):**  Las monedas que permanecen demasiado tiempo en el suelo atraen a las ratas del local.
+        * **Sistema de Spawns Restringidos:** En el mapa `cantina2.tmj` existen dos objetos definidos con la clase `spawn_ratas`. Cada spawn funciona de manera independiente y solo puede instanciar **una rata activa** simultáneamente.
+        * **Fijación de Botín (Targeting):** Si hay monedas en el suelo y una rata está disponible en un spawn, esta sale y se le asigna el botín completo dejado por un único cliente. Cada grupo de botín solo puede estar asignado a una rata/spawn. La rata usa *pathfinding* para alcanzar cada moneda individualmente, recalculando la ruta después de cada recogida, y también para regresar a su spawn con todo el botín.
+        * **Bloqueo de Cambio de Objetivo:** Una vez que una rata sale de su nido hacia un objetivo específico, no cambiará de rumbo hacia monedas más cercanas ni revaluará su ruta hasta que regrese al spawn (con o sin el botín).
+        * **Tiempo de Atracción:** Una moneda permanece protegida durante 3 segundos; después queda disponible para ser fijada como objetivo por una rata libre.
+        * **Intervención del Jugador:** Wuher puede pulsar `Espacio` frente a una rata que esté buscando o transportando una moneda. La rata suelta el botín si lo llevaba y huye al spawn, donde libera el punto para el siguiente ciclo.
 
-
-* Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo.
-
-
-* Las decisiones morales impactan la economía: delatar fugitivos otorga recompensas rápidas; ocultarlos brinda propinas enormes y sube la reputación.
-
-
-* Se pierden ingresos por clientes asesinados en peleas o por monedas robadas por ratas.
+    * Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo.
+    * Las decisiones morales impactan la economía: delatar fugitivos otorga recompensas rápidas; ocultarlos brinda propinas enormes y sube la reputación.
+    * Se pierden ingresos por clientes asesinados en peleas o por monedas robadas por ratas.
 
 
 
@@ -210,6 +211,7 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * *Frente a un cliente esperando:* Lo saluda y le asigna una mesa.
             * **Frente a una Pelea:** Si Wuher tiene las manos vacías y se acerca a dos clientes en estado `FIGHTING`, presionar (o mantener, según balanceo) `Espacio` obligará a los clientes a separarse y marcharse del local (`LEAVING`). No se gana dinero, pero se evita el cadáver, la destrucción del mobiliario y el *Heat* imperial.
             * *Frente a la Banda (tiles contiguos a `zonaBanda`):* Al presionar la tecla de Acción (`Espacio`) mirando hacia el escenario, Wuher da la señal a los músicos. Esto cambia el estado de la banda a `PLAYING`, activa las animaciones de los 4 sprites tocando sus instrumentos y dispara el evento global para resolver pedidos de música.
+            * *Frente a una Rata Ladrona:* Si el jugador detecta a una rata intentando robar un botín o huyendo con él, puede acercarse (con las manos vacías o llenas) y presionar la tecla `Espacio`. Al igual que al detener una pelea, esta acción representa un "golpe" o pisotón que asusta a la rata. Al ser golpeada, la rata aborta su robo inmediatamente (soltando la moneda si ya la tenía) y huye a toda velocidad de regreso a su spawn original.
 
         * **Con las manos OCUPADAS (`State: HOLDING`):**
             * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
@@ -475,7 +477,7 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
 
 
     * **El Evento Musical (Cantina Band):** El elemento sonoro clave del juego no es música de fondo perpetua, sino un recurso de jugabilidad táctica. Cuando el jugador activa la `zonaBanda`, el `AudioManager` dispara un archivo de audio específico: un bucle perfecto de **15 segundos** del icónico tema de *Star Wars* "Mad About Me" (estilo *Jizz*).
-        * **Dinámica:** Mientras suena el bucle, la música general de fondo (si la hubiera) reduce su volumen (*ducking*). Al finalizar los 15 segundos, el clip musical se detiene (con un pequeño y sutil *fade-out*), las animaciones de los músicos cesan y los clientes musicales sueltan su dinero.
+    * **Dinámica:** Mientras suena el bucle, la música general de fondo (si la hubiera) reduce su volumen (*ducking*). Al finalizar los 15 segundos, el clip musical se detiene (con un pequeño y sutil *fade-out*), las animaciones de los músicos cesan y los clientes musicales sueltan su dinero.
 
 
 * **9.4. Game Art:** El estilo artístico está diseñado para equilibrar la densidad visual de un juego de gestión con la claridad necesaria para la acción, tomando inspiraciones de títulos como *Stardew Valley*:

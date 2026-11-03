@@ -20,6 +20,7 @@ import { SeatingManager } from '../managers/SeatingManager';
 import { ThreatManager } from '../managers/ThreatManager';
 import { BandManager } from '../managers/BandManager';
 import { AudioManager } from '../managers/AudioManager';
+import { RatManager } from '../managers/RatManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
@@ -113,6 +114,7 @@ export class NightCantinaScene extends Scene {
     private threatManager!: ThreatManager;
     private bandManager!: BandManager;
     private audioManager!: AudioManager;
+    private ratManager!: RatManager;
     private deadBodyManager!: DeadBodyManager;
     private hazardManager!: HazardManager;
     private selectedClient: Client | null = null;
@@ -203,6 +205,12 @@ export class NightCantinaScene extends Scene {
         this.placementManager = new PlacementManager(this, this.gridManager, this.player, this.seatingManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
         this.coinManager = new CoinManager(this, this.player, this.pathfindingManager);
+        this.ratManager = new RatManager(
+            this,
+            this.gridManager.getObjectZoneCenterTiles('spawn_ratas'),
+            this.coinManager,
+            this.pathfindingManager,
+        );
         this.clientManager = new ClientManager(
             this,
             this.gridManager,
@@ -272,6 +280,7 @@ export class NightCantinaScene extends Scene {
         this.fightManager.update(delta);
         this.clientManager.update(delta);
         this.coinManager.update();
+        this.ratManager.update(delta);
     }
 
     public getGridManager(): GridManager {
@@ -465,6 +474,8 @@ export class NightCantinaScene extends Scene {
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
         if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
 
+        if (this.ratManager.scareAt(tileX, tileY)) return true;
+
         if (this.bandManager.isInteractionTile(tileX, tileY)) {
             if (this.player.getHeldObjectType() !== null) {
                 eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para dar la señal a la banda.' });
@@ -635,6 +646,7 @@ export class NightCantinaScene extends Scene {
         this.deadBodyManager?.destroy();
         this.clientManager?.destroy();
         this.seatingManager?.destroy();
+        this.ratManager?.destroy();
         this.coinManager?.destroy();
     }
 

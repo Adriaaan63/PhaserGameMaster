@@ -714,6 +714,6 @@ export class Client extends GameObjects.Container {
     }
 
     private spawnCoinDrops(): void {
-        this.coinManager.spawnSatisfiedClientReward(this.x, this.y);
+        this.coinManager.spawnSatisfiedClientReward(this.x, this.y, this.clientId);
     }
 }

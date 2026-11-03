@@ -34,7 +34,12 @@ export class CoinManager {
         scene.physics.add.overlap(this.player, this.coins, this.handlePlayerOverlap, undefined, this);
     }
 
-    public spawnSatisfiedClientReward(x: number, y: number, economy: EconomyConfig = this.registry.economy): void {
+    public spawnSatisfiedClientReward(
+        x: number,
+        y: number,
+        lootGroupId: number,
+        economy: EconomyConfig = this.registry.economy,
+    ): void {
         const clientTile = this.getTilePosition(x, y);
         const reachableTiles = this.pathfinding.getReachableFloorTiles(
             clientTile,
@@ -56,6 +61,7 @@ export class CoinManager {
                 dropPosition.x,
                 dropPosition.y,
                 economy.valuePerCoin,
+                lootGroupId,
                 economy,
             );
             this.coins.add(coin);
@@ -79,12 +85,20 @@ export class CoinManager {
         );
     }
 
+    public getAvailableLootGroup(lootGroupId: number): readonly CoinDrop[] {
+        return this.getAvailableCoins().filter((coin) => coin.lootGroupId === lootGroupId);
+    }
+
     /** Atomically removes a coin stolen by an NPC and notifies gameplay systems. */
     public stealCoin(coin: CoinDrop): boolean {
         if (!coin.claim('STOLEN')) return false;
+        this.notifyCoinStolen(coin);
+        return true;
+    }
+
+    public notifyCoinStolen(coin: CoinDrop): void {
         const data: CoinStolenData = { value: coin.value };
         eventBus.emit(EVENT_COIN_STOLEN, data);
-        return true;
     }
 
     public destroy(): void {
