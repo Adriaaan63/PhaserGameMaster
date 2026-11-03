@@ -28,6 +28,7 @@ import {
     EVENT_CLIENT_SELECTED,
     EVENT_CHAIR_ASSIGNED,
     EVENT_TOGGLE_BUILD_MODE,
+    EVENT_TOGGLE_CLIENT_GUIDE,
     EVENT_CLIENT_SATISFIED,
     EVENT_CLIENT_MURDERED,
     EVENT_DEAD_BODY_CLEANED,
@@ -36,6 +37,7 @@ import {
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
     type BuildModeToggledData,
+    type ToggleClientGuideData,
     type ClientSatisfiedData,
     type ClientMurderedData,
     type DeadBodyData,
@@ -112,7 +114,8 @@ export class NightCantinaScene extends Scene {
     private selectedClient: Client | null = null;
     private cancelAssignmentKey!: Input.Keyboard.Key;
     private buildModeEnabled = true;
-    private isNightBuildPaused = false;
+    private isClientGuideOpen = false;
+    private isNightGameplayPaused = false;
     private coinManager!: CoinManager;
 
     public constructor() {
@@ -210,6 +213,7 @@ export class NightCantinaScene extends Scene {
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
+        eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.handleClientGuideToggled, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REPAIRED, this.handleFurnitureLayoutChanged, this);
@@ -243,8 +247,8 @@ export class NightCantinaScene extends Scene {
     }
 
     public update(_time: number, delta: number): void {
-        if (this.registry.get('gameMode') === GAME_MODE_NIGHT && this.buildModeEnabled) {
-            this.placementManager.update();
+        if (this.isNightGameplayPaused) {
+            if (this.buildModeEnabled) this.placementManager.update();
             return;
         }
         const cancelSelectionPressed = Input.Keyboard.JustDown(this.cancelAssignmentKey);
@@ -584,6 +588,7 @@ export class NightCantinaScene extends Scene {
 
     private cleanupClientSystems(): void {
         eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
+        eventBus.off(EVENT_TOGGLE_CLIENT_GUIDE, this.handleClientGuideToggled, this);
         eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
         eventBus.off(EVENT_FURNITURE_REPAIRED, this.handleFurnitureLayoutChanged, this);
@@ -611,15 +616,21 @@ export class NightCantinaScene extends Scene {
     private handleBuildModeToggled(data: BuildModeToggledData): void {
         this.buildModeEnabled = data.enabled;
         if (data.enabled) this.clearClientSelection();
-        const shouldPauseNight = data.enabled && this.registry.get('gameMode') === GAME_MODE_NIGHT;
-        this.setNightBuildPause(shouldPauseNight);
+        this.updateNightGameplayPause();
     }
 
-    private setNightBuildPause(paused: boolean): void {
-        if (this.isNightBuildPaused === paused) return;
-        this.isNightBuildPaused = paused;
+    private handleClientGuideToggled(data: ToggleClientGuideData): void {
+        this.isClientGuideOpen = data.enabled;
+        this.updateNightGameplayPause();
+    }
 
-        if (paused) {
+    private updateNightGameplayPause(): void {
+        const isNight = this.registry.get('gameMode') === GAME_MODE_NIGHT;
+        const shouldPauseGameplay = this.isClientGuideOpen || (isNight && this.buildModeEnabled);
+        if (this.isNightGameplayPaused === shouldPauseGameplay) return;
+        this.isNightGameplayPaused = shouldPauseGameplay;
+
+        if (shouldPauseGameplay) {
             this.player.setVelocity(0, 0);
             this.player.anims.pause();
             this.physics.world.pause();

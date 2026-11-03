@@ -33,10 +33,20 @@ export const UI_HUD_FRAME_SOURCE_BOUNDS = {
     visibleWidth: 249,
     visibleHeight: 65,
 } as const;
+export const UI_INVENTORY_SLOT_FRAME_KEY = 'ui-inventory-slot-frame';
+export const UI_INVENTORY_SLOT_FRAME_SOURCE_BOUNDS = {
+    sourceWidth: 176,
+    sourceHeight: 176,
+    visibleX: 21,
+    visibleY: 18,
+    visibleWidth: 135,
+    visibleHeight: 139,
+} as const;
 export const UI_GUIDE_ICON_KEY = 'ui-guide-icon';
 export const UI_MATERIALS_ICON_KEY = 'ui-materials-icon';
 export const UI_BUILD_ICON_KEY = 'ui-build-icon';
 export const UI_OPEN_ICON_KEY = 'ui-open-icon';
+export const UI_CAROUSEL_ARROW_KEY = 'ui-carousel-arrow';
 
 /** Station timing and animation configuration. */
 export const COOKING_TIME_MS = 4000;

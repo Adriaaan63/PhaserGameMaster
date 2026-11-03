@@ -170,6 +170,19 @@ export interface UiConfig {
     readonly playerProgressDepthOffset: number;
     readonly playerProgressBackgroundColor: number;
     readonly playerProgressFillColor: number;
+    readonly affinityWheelRadius: number;
+    readonly affinityWheelCenterX: number;
+    readonly affinityWheelCenterY: number;
+    readonly affinityNodeSize: number;
+    readonly affinityNodeLabelOffsetY: number;
+    readonly affinityNodeHoverScale: number;
+    readonly affinityConnectionColor: number;
+    readonly affinityConnectionHighlightColor: number;
+    readonly affinityConnectionWidth: number;
+    readonly affinityConnectionHighlightWidth: number;
+    readonly affinityWarningIconText: string;
+    readonly affinityWarningIconFontSize: number;
+    readonly affinityWarningIconColor: number;
 }
 
 export interface GameRegistry {
@@ -340,6 +353,19 @@ export const GAME_REGISTRY = {
         playerProgressDepthOffset: 100_000,
         playerProgressBackgroundColor: 0x242020,
         playerProgressFillColor: 0xf1c75b,
+        affinityWheelRadius: 100,
+        affinityWheelCenterX: 0,
+        affinityWheelCenterY: -20,
+        affinityNodeSize: 42,
+        affinityNodeLabelOffsetY: 8,
+        affinityNodeHoverScale: 1.1,
+        affinityConnectionColor: 0x660000,
+        affinityConnectionHighlightColor: 0xff0000,
+        affinityConnectionWidth: 2,
+        affinityConnectionHighlightWidth: 4,
+        affinityWarningIconText: '⚡ x2',
+        affinityWarningIconFontSize: 9,
+        affinityWarningIconColor: 0xff8080,
     },
     clients: {
         spawnIntervalMs: 8_000,
