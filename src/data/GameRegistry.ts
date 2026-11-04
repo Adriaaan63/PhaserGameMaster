@@ -22,6 +22,19 @@ export interface ReputationConfig {
     readonly maxReputation: number;
 }
 
+export interface JabbaRaidConfig {
+    readonly thugCount: number;
+    readonly thugSpeed: number;
+    readonly formationSpacing: number;
+    readonly formationRowOffsetY: number;
+    readonly marchSpeed: number;
+    readonly explosionDurationMs: number;
+    readonly thugBodyWidth: number;
+    readonly thugBodyHeight: number;
+    readonly thugColor: number;
+    readonly explosionColor: number;
+}
+
 export const CLIENT_RACES: readonly ClientRace[] = Object.freeze(Object.values(ClientRace));
 
 export const AFFINITY_PENALTY_MULTIPLIER = 2;
@@ -260,6 +273,7 @@ export interface GameRegistry {
     readonly combat: CombatConfig;
     readonly threat: ThreatConfig;
     readonly reputation: ReputationConfig;
+    readonly jabbaRaid: JabbaRaidConfig;
     readonly aftermath: AftermathConfig;
     readonly repairs: RepairConfig;
     readonly ui: UiConfig;
@@ -411,6 +425,18 @@ export const GAME_REGISTRY = {
         reputationLossPerMiss: -2,
         reputationLossPerBetrayal: -25,
         maxReputation: 100,
+    },
+    jabbaRaid: {
+        thugCount: 4,
+        thugSpeed: 82,
+        formationSpacing: 22,
+        formationRowOffsetY: 22,
+        marchSpeed: 48,
+        explosionDurationMs: 650,
+        thugBodyWidth: 18,
+        thugBodyHeight: 24,
+        thugColor: 0x4a2d2a,
+        explosionColor: 0xffc247,
     },
     aftermath: {
         cleaningTimeMs: 3_000,

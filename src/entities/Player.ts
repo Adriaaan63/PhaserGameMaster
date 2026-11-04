@@ -88,6 +88,7 @@ export class Player extends Physics.Arcade.Sprite {
         handsEmpty: boolean,
         deltaMs: number,
     ) => boolean = () => false;
+    private movementEnabled = true;
 
     public constructor(scene: Scene, x: number, y: number, gridManager: GridManager) {
         super(scene, x, y, PLAYER_SPRITESHEET_KEY, 0);
@@ -227,6 +228,13 @@ export class Player extends Physics.Arcade.Sprite {
      * - Mantiene el objeto acarreado sincronizado en la mano derecha de Wuher.
      */
     public update(delta: number): void {
+        if (!this.movementEnabled) {
+            this.setVelocity(0, 0);
+            this.playAnimation(this.getIdleAnimKey(this.facing));
+            this.updateHeldObjectPosition();
+            this.updateActionProgressPosition();
+            return;
+        }
         const horizontal = Number(this.movementKeys.right.isDown) - Number(this.movementKeys.left.isDown);
         const vertical = Number(this.movementKeys.down.isDown) - Number(this.movementKeys.up.isDown);
 
@@ -307,6 +315,14 @@ export class Player extends Physics.Arcade.Sprite {
 
         this.updateHeldObjectPosition();
         this.updateActionProgressPosition();
+    }
+
+    public setMovementEnabled(enabled: boolean): void {
+        this.movementEnabled = enabled;
+        if (!enabled) {
+            this.setVelocity(0, 0);
+            this.playAnimation(this.getIdleAnimKey(this.facing));
+        }
     }
 
     /** Registers a scene-owned contextual handler; return true when it consumed the action. */

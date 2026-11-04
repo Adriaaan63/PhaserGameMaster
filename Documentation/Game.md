@@ -138,8 +138,9 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **Reglas de Consecuencia de Reputación (La Visita de Jabba):**
     * Si la barra de Reputación llega a cero (0%), se activa de inmediato un evento punitivo.
     * **Pánico General:** Todos los clientes que estén sentados o en la cola pasan a estado `FLEEING`. Abandonan inmediatamente sus pedidos y corren hacia la puerta trasera para huir de la cantina, dejando el local vacío y deteniendo la generación (`spawn`) de nuevos clientes.
-    * **El Escarmiento:** Cuatro NPCs (Matones de Jabba) entran por la puerta principal. Tienen un único objetivo: destrozar el local.
-    * **Condición de Finalización:** Los matones buscarán muebles colocados (mesas y sillas) y los atacarán hasta pasar su estado a `DESTRUIDO`. Una vez que el contador interno de muebles destrozados por los matones llegue a 4, estos se retirarán satisfechos por la misma puerta. Solo entonces se reanudará el spawn normal de clientes (si aún queda tiempo en la noche).
+    * **El Escarmiento:** Cuatro NPCs (Matones de Jabba) entran por el objeto Tiled `cantina_entrada` en formación 2x2 y marchan hacia el interior hasta cruzar la línea de `zonaColaEntrada`.
+    * **Ataque y Retirada:** Tras romper la formación, cada matón recibe un mueble operativo único, llega mediante pathfinding, reproduce una explosión visual y lo marca como `DESTRUIDO`. Después regresan por pathfinding a `cantina_entrada`.
+    * **Condición de Finalización:** Cuando el cuarto matón desaparece por la entrada se emite `EVENT_JABBA_RAID_ENDED`, se desbloquea al jugador, se reanuda el spawn normal de clientes (si aún queda tiempo en la noche) y la reputación se restablece a 20/100.
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 

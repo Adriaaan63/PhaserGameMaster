@@ -231,8 +231,11 @@ export class NightCantinaScene extends Scene {
         this.threatManager = new ThreatManager(this);
         this.reputationManager = new ReputationManager(this);
         this.jabbaRaidManager = new JabbaRaidManager(
+            this,
+            this.player,
             this.clientManager,
             this.gridManager,
+            this.pathfindingManager,
             this.placementManager,
         );
         this.player.setNightInteractionHandler(this.handleNightInteraction);
@@ -291,6 +294,7 @@ export class NightCantinaScene extends Scene {
         this.clientManager.update(delta);
         this.coinManager.update();
         this.ratManager.update(delta);
+        this.jabbaRaidManager.update(delta);
     }
 
     public getGridManager(): GridManager {

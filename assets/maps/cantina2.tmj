@@ -20,11 +20,11 @@
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
             4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-            4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-            0, 0, 0, 0, 4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1157, 1159, 1160, 1158, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 1161, 1162, 1157, 1158, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+            4, 4, 4, 4, 4, 4, 4, 4, 4, 6, 1162, 1159, 1160, 1162, 6, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+            0, 0, 0, 0, 4, 4, 4, 4, 4, 6, 6, 1159, 1160, 6, 6, 4, 4, 4, 4, 4, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1157, 1158, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          "height":22,
          "id":1,
          "name":"suelo",
@@ -477,6 +477,75 @@
                  "width":62.3333,
                  "x":354.33335,
                  "y":547
+                }, 
+                {
+                 "height":30.3636363636364,
+                 "id":5,
+                 "name":"EntradaCantina",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Rejilla de ventilaci\u00f3n por donde salen los Scurriers ladrones."
+                        }],
+                 "rotation":0,
+                 "type":"cantina_entrada",
+                 "visible":true,
+                 "width":61.4242090909091,
+                 "x":352.742440909091,
+                 "y":672.727272727273
+                }, 
+                {
+                 "height":61,
+                 "id":6,
+                 "name":"puertaSecreta",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Puerta trasera sur-este. Los clientes salen por aqu\u00ed."
+                        }],
+                 "rotation":0,
+                 "type":"puerta_secreta",
+                 "visible":true,
+                 "width":61.6666666666667,
+                 "x":673.333333333333,
+                 "y":162
+                }, 
+                {
+                 "height":58.3333333333333,
+                 "id":7,
+                 "name":"cartel",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"descripcion",
+                         "type":"string",
+                         "value":"Puerta trasera sur-este. Los clientes salen por aqu\u00ed."
+                        }],
+                 "rotation":0,
+                 "type":"busca_captura",
+                 "visible":true,
+                 "width":61.6667,
+                 "x":482.16665,
+                 "y":162.166666666667
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -485,7 +554,7 @@
          "y":0
         }],
  "nextlayerid":10,
- "nextobjectid":5,
+ "nextobjectid":8,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",
@@ -931,6 +1000,104 @@
          "tileheight":32,
          "tiles":[
                 {
+                 "id":1060,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1061,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1062,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1063,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1064,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1065,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
+                 "id":1066,
+                 "properties":[
+                        {
+                         "name":"buildable",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"tipo",
+                         "type":"string",
+                         "value":"SUELO"
+                        }]
+                }, 
+                {
                  "id":1856,
                  "properties":[
                         {
@@ -1252,7 +1419,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":1873,
                  "properties":[
@@ -1385,8 +1553,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":1926,
                  "properties":[
@@ -1709,7 +1876,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":1989,
                  "properties":[
@@ -1842,8 +2010,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":1996,
                  "properties":[
@@ -2166,7 +2333,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":2059,
                  "properties":[
@@ -2299,8 +2467,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":2112,
                  "properties":[
@@ -2623,7 +2790,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":2129,
                  "properties":[
@@ -2756,8 +2924,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":2182,
                  "properties":[
@@ -3080,7 +3247,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":2245,
                  "properties":[
@@ -3213,8 +3381,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":2252,
                  "properties":[
@@ -3537,7 +3704,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":2315,
                  "properties":[
@@ -3670,8 +3838,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":2368,
                  "properties":[
@@ -3994,7 +4161,8 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                }, 
+                },
+            
                 {
                  "id":2385,
                  "properties":[
@@ -4127,8 +4295,7 @@
                          "type":"string",
                          "value":"PARED"
                         }]
-                },
-            
+                }, 
                 {
                  "id":2438,
                  "properties":[
