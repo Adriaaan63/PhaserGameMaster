@@ -13,6 +13,7 @@ import {
 import {
     EVENT_CANTINA_OPEN,
     EVENT_COIN_COLLECTED,
+    EVENT_CREDITS_UPDATED,
     EVENT_WANTED_REWARD_GRANTED,
     EVENT_FOOD_STOCK_UPDATED,
     EVENT_GAME_MODE_CHANGED,
@@ -21,11 +22,13 @@ import {
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_TOGGLE_CLIENT_GUIDE,
     EVENT_TOGGLE_MATERIALS,
+    GAME_MODE_PRE_OPENING,
     eventBus,
     GAME_MODE_DAY,
     GAME_MODE_NIGHT,
     type BuildModeToggledData,
     type CoinCollectedData,
+    type CreditsUpdatedData,
     type WantedRewardData,
     type FoodStockUpdatedData,
     type GameModeChangedData,
@@ -58,6 +61,7 @@ export class HUD {
     private readonly barContainer: GameObjects.Container;
     private readonly feedbackConfig = GAME_REGISTRY.ui;
     private isBuildModeEnabled = true;
+    private isMaterialsEnabled = true;
     private isMaterialsOpen = false;
     private isGuideOpen = false;
     private feedbackTween: Tweens.Tween | null = null;
@@ -78,6 +82,9 @@ export class HUD {
         this.setSlotValue('credits', `${data.totalCredits}`);
         this.showFeedback(`+${data.value} CRÉDITOS`);
     };
+    private readonly onCreditsUpdatedBound = (data: CreditsUpdatedData): void => {
+        this.setSlotValue('credits', `${data.totalCredits}`);
+    };
     private readonly onWantedRewardBound = (data: WantedRewardData): void => {
         this.setSlotValue('credits', `${data.totalCredits}`);
         this.showFeedback(`+${data.rewardCredits} CRÉDITOS`);
@@ -87,6 +94,9 @@ export class HUD {
     };
     private readonly onGuideToggledBound = (data: ToggleClientGuideData): void => {
         this.isGuideOpen = data.enabled;
+    };
+    private readonly onMaterialsToggledBound = (data: ToggleMaterialsData): void => {
+        this.isMaterialsOpen = data.enabled;
     };
 
     public constructor(private readonly scene: Scene) {
@@ -107,9 +117,11 @@ export class HUD {
         eventBus.on(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.on(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.on(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
+        eventBus.on(EVENT_CREDITS_UPDATED, this.onCreditsUpdatedBound);
         eventBus.on(EVENT_WANTED_REWARD_GRANTED, this.onWantedRewardBound);
         eventBus.on(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
+        eventBus.on(EVENT_TOGGLE_MATERIALS, this.onMaterialsToggledBound);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -123,9 +135,11 @@ export class HUD {
         eventBus.off(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.off(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.off(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
+        eventBus.off(EVENT_CREDITS_UPDATED, this.onCreditsUpdatedBound);
         eventBus.off(EVENT_WANTED_REWARD_GRANTED, this.onWantedRewardBound);
         eventBus.off(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.off(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
+        eventBus.off(EVENT_TOGGLE_MATERIALS, this.onMaterialsToggledBound);
         this.scene.scale.off('resize', this.reposition, this);
         if (this.feedbackTween !== null) {
             this.feedbackTween.stop();
@@ -227,11 +241,11 @@ export class HUD {
                 break;
             }
             case 'materials': {
+                if (!this.isMaterialsEnabled) return;
                 this.isMaterialsOpen = !this.isMaterialsOpen;
                 const data: ToggleMaterialsData = { enabled: this.isMaterialsOpen };
                 eventBus.emit(EVENT_TOGGLE_MATERIALS, data);
-                console.info(`Panel de materiales ${this.isMaterialsOpen ? 'abierto' : 'cerrado'}.`);
-                this.showFeedback(this.isMaterialsOpen ? 'MATERIALES: PRÓXIMAMENTE' : 'PANEL CERRADO');
+                this.showFeedback(this.isMaterialsOpen ? 'TIENDA ABIERTA' : 'PANEL CERRADO');
                 break;
             }
             case 'build': {
@@ -263,6 +277,16 @@ export class HUD {
         this.slots.get('build')?.icon?.setAlpha(this.isBuildModeEnabled ? 1 : 0.35);
     }
 
+    private refreshMaterialsSlot(): void {
+        const slot = this.slots.get('materials');
+        slot?.icon?.setAlpha(this.isMaterialsEnabled ? 1 : 0.35);
+        if (this.isMaterialsEnabled) {
+            slot?.hitArea?.setInteractive({ useHandCursor: true });
+        } else {
+            slot?.hitArea?.disableInteractive();
+        }
+    }
+
     private updatePhaseFromRegistry(): void {
         const mode = this.scene.registry.get('gameMode');
         this.updatePhase(mode === GAME_MODE_NIGHT || mode === GAME_MODE_DAY ? mode : 'PRE_APERTURA');
@@ -274,6 +298,12 @@ export class HUD {
             : mode === GAME_MODE_NIGHT ? 'NOCTURNA' : 'DÍA';
         this.setSlotValue('phase', phaseName);
         this.setSlotValue('time', '--:--');
+        this.isMaterialsEnabled = mode === GAME_MODE_PRE_OPENING;
+        if (!this.isMaterialsEnabled && this.isMaterialsOpen) {
+            this.isMaterialsOpen = false;
+            eventBus.emit(EVENT_TOGGLE_MATERIALS, { enabled: false });
+        }
+        this.refreshMaterialsSlot();
         const openSlot = this.slots.get('open');
         openSlot?.container.setVisible(mode === 'PRE_APERTURA');
     }

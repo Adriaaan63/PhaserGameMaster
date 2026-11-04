@@ -1,9 +1,15 @@
 import { Input, Scene } from 'phaser';
 
-import { CREDITS_REGISTRY_KEY, GAME_REGISTRY, SCRAPS_REGISTRY_KEY } from '../data/GameRegistry';
+import {
+    CREDITS_REGISTRY_KEY,
+    EMPTY_GLASSES_REGISTRY_KEY,
+    GAME_REGISTRY,
+    SCRAPS_REGISTRY_KEY,
+} from '../data/GameRegistry';
 import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
 import { WantedPoster } from '../entities/WantedPoster';
+import { InventoryCrate } from '../entities/InventoryCrate';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
 import { GridManager, TILE_TYPE_TABLE } from '../managers/GridManager';
@@ -122,6 +128,7 @@ export class NightCantinaScene extends Scene {
     private jabbaRaidManager!: JabbaRaidManager;
     private wantedManager!: WantedManager;
     private wantedPoster: WantedPoster | null = null;
+    private inventoryCrate: InventoryCrate | null = null;
     private bandManager!: BandManager;
     private audioManager!: AudioManager;
     private ratManager!: RatManager;
@@ -156,6 +163,9 @@ export class NightCantinaScene extends Scene {
         }
         if (typeof this.registry.get(SCRAPS_REGISTRY_KEY) !== 'number') {
             this.registry.set(SCRAPS_REGISTRY_KEY, GAME_REGISTRY.repairs.startingScraps);
+        }
+        if (typeof this.registry.get(EMPTY_GLASSES_REGISTRY_KEY) !== 'number') {
+            this.registry.set(EMPTY_GLASSES_REGISTRY_KEY, 0);
         }
         eventBus.on(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
         this.events.once('shutdown', this.cleanupModeEvents, this);
@@ -211,6 +221,7 @@ export class NightCantinaScene extends Scene {
         this.createTestInteractableObjects();
         this.createServiceStations(map);
         this.createWantedPoster();
+        this.createInventoryCrate(map);
 
         this.seatingManager = new SeatingManager(this, this.gridManager);
         // Placement receives seating state so it cannot remove reserved chairs.
@@ -484,6 +495,24 @@ export class NightCantinaScene extends Scene {
         return (baseTileY + 1) * TILE + 1.5;
     }
 
+    private createInventoryCrate(map: Phaser.Tilemaps.Tilemap): void {
+        const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
+        const crateObject = objectLayer?.objects.find((object) =>
+            object.name?.toLowerCase() === 'caja_inventario'
+            || object.type?.toLowerCase() === 'caja_inventario',
+        );
+        if (
+            crateObject === undefined
+            || crateObject.x === undefined
+            || crateObject.y === undefined
+        ) return;
+        this.inventoryCrate = new InventoryCrate(
+            this,
+            crateObject.x + (crateObject.width ?? TILE) / 2,
+            crateObject.y + (crateObject.height ?? TILE) / 2,
+        );
+    }
+
     private createServiceStations(map: Phaser.Tilemaps.Tilemap): void {
         const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
         if (objectLayer === null) {
@@ -744,6 +773,8 @@ export class NightCantinaScene extends Scene {
         this.wantedManager?.destroy();
         this.wantedPoster?.destroy();
         this.wantedPoster = null;
+        this.inventoryCrate?.destroy();
+        this.inventoryCrate = null;
         this.reputationManager?.destroy();
         this.hazardManager?.destroy();
         this.affinityManager?.destroy();

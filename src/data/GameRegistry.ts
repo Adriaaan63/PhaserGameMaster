@@ -5,6 +5,7 @@ export const IMPERIAL_HEAT_REGISTRY_KEY = 'imperialHeat';
 export const CRIMINAL_REPUTATION_REGISTRY_KEY = 'criminalReputation';
 export const WANTED_PROFILE_REGISTRY_KEY = 'wantedProfile';
 export const SCRAPS_REGISTRY_KEY = 'scraps';
+export const EMPTY_GLASSES_REGISTRY_KEY = 'emptyGlasses';
 
 export enum ClientRace {
     WOOKIEE = 'WOOKIEE',
@@ -294,6 +295,18 @@ export interface UiConfig {
     readonly wantedPosterOverlayAlpha: number;
     readonly wantedPosterTitleFontSize: number;
     readonly wantedPosterBodyFontSize: number;
+    readonly shopWidth: number;
+    readonly shopHeight: number;
+    readonly shopSlotWidth: number;
+    readonly shopSlotHeight: number;
+    readonly shopSlotGap: number;
+    readonly shopDepth: number;
+    readonly shopPanelColor: number;
+    readonly shopPanelBorderColor: number;
+    readonly shopTextColor: number;
+    readonly shopPriceColor: number;
+    readonly shopButtonColor: number;
+    readonly shopTooltipColor: number;
 }
 
 export interface GameRegistry {
@@ -576,6 +589,18 @@ export const GAME_REGISTRY = {
         wantedPosterOverlayAlpha: 0.78,
         wantedPosterTitleFontSize: 24,
         wantedPosterBodyFontSize: 16,
+        shopWidth: 660,
+        shopHeight: 390,
+        shopSlotWidth: 118,
+        shopSlotHeight: 170,
+        shopSlotGap: 12,
+        shopDepth: 2_000,
+        shopPanelColor: 0x18202b,
+        shopPanelBorderColor: 0xc49a61,
+        shopTextColor: 0xf4ede2,
+        shopPriceColor: 0xf6c453,
+        shopButtonColor: 0xd5a62a,
+        shopTooltipColor: 0x0b0f14,
     },
     clients: {
         spawnIntervalMs: 8_000,

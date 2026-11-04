@@ -18,6 +18,9 @@ export const EVENT_GAME_MODE_CHANGED = 'game:mode-changed';
 export const EVENT_GAME_WARNING = 'game:warning';
 export const EVENT_TOGGLE_CLIENT_GUIDE = 'ui:toggle-client-guide';
 export const EVENT_TOGGLE_MATERIALS = 'ui:toggle-materials';
+export const EVENT_CREDITS_UPDATED = 'economy:credits-updated';
+export const EVENT_SCRAPS_UPDATED = 'inventory:scraps-updated';
+export const EVENT_GLASSES_UPDATED = 'inventory:glasses-updated';
 export const EVENT_NIGHT_TIMER_UPDATED = 'game:night-timer-updated';
 export const EVENT_PLAYER_ACTION_PROGRESS = 'player:action-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
@@ -57,6 +60,9 @@ export const EVENT_WANTED_REWARD_GRANTED = 'wanted:reward-granted';
 export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface ToggleClientGuideData { readonly enabled: boolean; }
 export interface ToggleMaterialsData { readonly enabled: boolean; }
+export interface CreditsUpdatedData { readonly totalCredits: number; }
+export interface ScrapsUpdatedData { readonly stock: number; }
+export interface GlassesUpdatedData { readonly stock: number; }
 export interface BandStartedData { readonly durationMs: number; }
 export interface WantedProfileData { readonly profile: WantedProfile; }
 export interface WantedClientData { readonly clientId: number; }

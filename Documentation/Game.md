@@ -22,16 +22,13 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **2.3. Genre(s):** Gestión de Tiempo / Action-Roguelite.
 
 
-* **2.4. Game Flow Summary:** El flujo de juego se divide en 3 fases conectadas por un Ciclo Día/Noche:
+* **2.4. Game Flow Summary:** El flujo de juego se divide en:
 
 
-* **Fase Diurna:** Sin límite de tiempo, el jugador explora la Plaza de Mos Eisley (Hub) para comerciar y hace una incursión al Desierto para combatir y recolectar ingredientes.
+    * **Fase Pre-Apertura:** Al iniciar el día, el jugador accede al Menú de Materiales (Tienda) para comprar suministros con las ganancias de la noche anterior. Luego, usa el Modo Construcción y el Libro de Gestión para preparar la cantina.
 
 
-* **Fase Pre-Apertura:** Al caer los soles, se usa un Modo Construcción (Grid Tiled) y un Libro de Gestión para preparar la cantina y el menú.
-
-
-* **Fase Nocturna:** Un turno frenético de 3 a 4 minutos enfocado en sentar clientes, atenderlos, cobrar y evitar eventos como peleas o inspecciones imperiales.
+    * **Fase Nocturna:** Un turno frenético de 3 a 4 minutos enfocado en sentar clientes, atenderlos, cobrar y evitar eventos como peleas o inspecciones imperiales.
 
 
 
@@ -61,7 +58,7 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **3.3. Play Flow:** El bucle principal nocturno sigue los siguientes pasos: Entrada (Detector Droides) ➔ Sentar (Cuidar Afinidad Racial) ➔ Atender (Bebida/Comida/Música) ➔ Cobrar (Evitar Ratas) ➔ Eventos (Peleas / Imperio) ➔ Salida.
 
 
-* **3.4. Mission/challenge Structure:** Los retos se presentan a través de las incursiones diarias de caza peligrosas en el exterior. En el interior, los desafíos surgen de eventos sistémicos, principalmente mediante el **Sistema de Busca y Captura (*Wanted*)**. El jugador deberá leer el cartel de recompensas en la Pre-Apertura, identificar visualmente a un sospechoso generado aleatoriamente durante el caos de la noche, y decidir su destino ante las patrullas imperiales (delatarlo, encubrirlo o ignorarlo).
+* **3.4. Mission/challenge Structure:** Los retos surgen de eventos sistémicos, principalmente mediante el **Sistema de Busca y Captura (*Wanted*)**. El jugador deberá leer el cartel de recompensas en la Pre-Apertura, identificar visualmente a un sospechoso generado aleatoriamente durante el caos de la noche, y decidir su destino ante las patrullas imperiales (delatarlo, encubrirlo o ignorarlo).
     * **Implementación del ciclo Wanted:** `WantedManager` genera y persiste el perfil de la jornada, `ClientManager` fuerza al cliente objetivo (ID 5) a usar su raza, y `Sandtrooper` resuelve la inspección mediante rutas de pathfinding.
 
 
@@ -193,7 +190,8 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
         * **Tiempo de Atracción:** Una moneda permanece protegida durante 3 segundos; después queda disponible para ser fijada como objetivo por una rata libre.
         * **Intervención del Jugador:** Wuher puede pulsar `Espacio` frente a una rata que esté buscando o transportando una moneda. La rata suelta el botín si lo llevaba y huye al spawn, donde libera el punto para el siguiente ciclo.
 
-    * Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo.
+    * Se utiliza para comprar chatarra, vasos extra, decoración, barriles y sueldos diarios de mercenarios o empleados de apoyo en la tienda.
+    * **Gestión de Ingresos (Tienda):** Los créditos imperiales obtenidos durante la noche no se gastan en el mundo exterior (ya no hay exploración), sino que se invierten íntegramente a través del Menú de Materiales. Aquí el jugador toma decisiones económicas críticas: gastar en stock perecedero para la noche actual (comida, vasos limpios), comprar herramientas de mantenimiento (chatarra para reparar mesas rotas por peleas o matones), o invertir a largo plazo comprando nuevo mobiliario (distintos tipos de mesas) para aumentar la capacidad del local.
     * Las decisiones morales impactan la economía: delatar fugitivos otorga recompensas rápidas; ocultarlos brinda propinas enormes y sube la reputación.
     * Se pierden ingresos por clientes asesinados en peleas o por monedas robadas por ratas.
 
@@ -267,11 +265,6 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
     El jugador debe intervenir (`Espacio`). Si no lo hace, se generan disparos de bláster o golpes letales, lo que resulta en cadáveres, mobiliario destruido (`DESTRUIDO`) y la llegada de *Sandtroopers*.
 
 
-* **En las Afueras:** Las incursiones son combates *top-down* de esquiva y golpe contra bestias o campamentos.
-
-
-
-
 * **4.9. Screen Flow:** Se navega desde la pantalla exterior (Hub o Incursión), pasando a una pantalla de preparación y finalmente a la pantalla principal de servicio en la taberna.
 
 
@@ -300,13 +293,7 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
 
 
 * **6.2. Areas:**
-* **6.2.1-6.2.2. La Calle Comercial de Mos Eisley:** Mapa seguro sin combate para comerciantes como Watto, la Agencia de Mercenarios y el Mercado Negro.
-
-
-* **6.2.1-6.2.2. Desierto de Tatooine:** Mapa de acción para incursiones, habitado por *Banthas*, *Womp Rats*, Jawas y *Tusken*.
-
-
-* **6.2.1-6.2.2. La Cantina:** Estructurada en *tiles*, cuenta con la Barra en "U", una Puerta Principal (con Detector de Droides) para formar la cola, una Puerta Trasera de salida y el Escenario de la Banda.
+    * **6.2.1-6.2.2. La Cantina:** Estructurada en *tiles*, cuenta con la Barra en "U", una Puerta Principal (con Detector de Droides) para formar la cola, una Puerta Trasera de salida y el Escenario de la Banda.
 
 
 
@@ -410,7 +397,7 @@ Para dotar de legibilidad inmediata al caos de la cantina, los clientes se divid
 * **8.2.3. Objectives:** Sobrevivir al turno nocturno maximizando ganancias, evitando muertes en el local y sin perder la recaudación a manos de los Scurriers.
 * **8.2.4. Details of what happens in the level:**
 * **8.2.4.1. Map:** Exterior (desierto o calle comercial para reabastecimiento) y posteriormente el interior estático de la cantina.
-* **8.2.4.2. Critical path:** Recolectar stock $\rightarrow$ Distribuir mesas $\rightarrow$ Asignar menú $\rightarrow$ Abrir puertas $\rightarrow$ Ciclo rápido de servicio y limpieza $\rightarrow$ Fin del día.
+* **8.2.4.2. Critical path:** Comprar suministros en el Menú de Materiales $\rightarrow$ Distribuir mesas $\rightarrow$ Asignar menú $\rightarrow$ Abrir puertas $\rightarrow$ Ciclo rápido de servicio y limpieza $\rightarrow$ Fin del día.
 * **8.2.4.3. Important and incidental encounters:** Encuentros incidentales con clientes marcados como `Wanted` (Busca y Captura) y patrullas de Inspectores Imperiales que modifican drásticamente el comportamiento estándar del servicio.
 
 
@@ -489,6 +476,16 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
                 2. *Detalle a tener en cuenta:* (Ej. "Lleva un sombrero viejo" o "Altamente agresivo").
                 3. *Recompensa Imperial:* (Ej. "50 Créditos").
             *   **Navegación:** El jugador puede mantener este menú abierto todo el tiempo que necesite para memorizar las características. Se cierra de forma ágil volviendo a pulsar la tecla `Espacio` o haciendo clic fuera del recuadro, devolviendo el control a Wuher.
+    * **Menú de Materiales (La Tienda):**
+        * Accesible mediante el botón correspondiente en el HUD superior durante la fase de Pre-Apertura.
+        * **Diseño Visual:** Funciona como una interfaz de tienda clásica, superpuesta al juego, estructurada mediante los *sprites* y paneles alojados en `..\assets\sprites\UI`. Presenta una cuadrícula uniforme dividida en "Slots" o cajetines individuales de venta.
+        * **Slot de Producto:** Cada caja muestra en el centro el icono ilustrativo del ítem (un plato de carne, chatarra, una jarra, una mesa), y en la parte inferior, sobre un botón de "Comprar", el precio fijado dinámicamente.
+        * **Feedback Desplegable (Tooltip):** Para mantener la tienda limpia de texto, al pasar el ratón (*hover*) sobre un slot, emerge un *tooltip* lateral o inferior mostrando el Nombre del objeto y una breve descripción de sus características o ventajas mecánicas.
+        * **Mecánica de Compra y Volcado:** Al pulsar en comprar (si hay fondos suficientes), el flujo de los ítems difiere según su naturaleza:
+            1. **Chatarra y Comida:** Incrementan instantáneamente sus respectivos contadores en las variables del juego y en el panel numérico del HUD.
+            2. **Mobiliario (Mesas):** Añade un nuevo bloque o *slot* interactivo en la barra del inventario inferior del Modo Construcción, permitiendo arrastrarlo al mapa.
+            3. **Recipientes Vacíos:** Por cuestiones logísticas, los vasos comprados no van a un contador mágico, sino que se transfieren lógicamente al inventario espacial del objeto *Tiled* "caja" (designado con la clase `caja_inventario`), obligando a Wuher a ir a recogerlos allí durante el servicio.
+        * La implementación usa `ShopRegistry.ts` como catálogo único, `ShopUI.ts` como overlay y `InventoryCrate.ts` como almacén físico cuando el mapa contiene un objeto `caja_inventario`.
 
 
 * **9.1.3. Camera model:** El modelo de cámara de *Chalmun's Cantina: Mos Eisley Hustle* varía dependiendo de la fase de juego (Día/Noche) y la escena activa, adaptándose a las necesidades mecánicas de cada entorno. El juego utiliza un sistema de coordenadas dual: el sistema lógico del mundo (píxeles/tiles) y el "Viewport" (la ventana que renderiza la escena en pantalla), aplicando un escalado general (ej. `ROOM_SCALE = 2`) para la estética *pixel art*.
