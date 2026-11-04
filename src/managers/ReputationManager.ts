@@ -82,6 +82,14 @@ export class ReputationManager {
         this.changeReputation(this.registry.reputation.reputationLossPerBetrayal);
     }
 
+    public applyWantedCover(): void {
+        this.changeReputation(this.registry.wanted.coverReputationGain);
+    }
+
+    public applyWantedExposure(): void {
+        this.changeReputation(this.registry.wanted.exposeReputationLoss);
+    }
+
     private changeReputation(delta: number): void {
         if (this.raidActive || delta === 0) return;
         const previousReputation = this.reputation;

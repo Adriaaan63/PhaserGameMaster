@@ -2,6 +2,7 @@ import { Events } from 'phaser';
 
 import type { OrderItemId } from '../data/GameRegistry';
 import type { ClientRace } from '../data/GameRegistry';
+import type { WantedProfile } from '../data/GameRegistry';
 import type { FurnitureCategory } from '../data/FurnitureRegistry';
 
 export const EVENT_GAME_READY = 'game-ready';
@@ -45,11 +46,24 @@ export const EVENT_DEAD_BODY_CLEANED = 'aftermath:dead-body-cleaned';
 export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 export const EVENT_BAND_STARTED = 'band:started';
+export const EVENT_OPEN_WANTED_POSTER = 'wanted:poster-open';
+export const EVENT_CLOSE_WANTED_POSTER = 'wanted:poster-close';
+export const EVENT_WANTED_PROFILE_UPDATED = 'wanted:profile-updated';
+export const EVENT_WANTED_INSPECTION_STARTED = 'wanted:inspection-started';
+export const EVENT_WANTED_ARRESTED = 'wanted:arrested';
+export const EVENT_WANTED_ESCAPED = 'wanted:escaped';
+export const EVENT_WANTED_REWARD_GRANTED = 'wanted:reward-granted';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface ToggleClientGuideData { readonly enabled: boolean; }
 export interface ToggleMaterialsData { readonly enabled: boolean; }
 export interface BandStartedData { readonly durationMs: number; }
+export interface WantedProfileData { readonly profile: WantedProfile; }
+export interface WantedClientData { readonly clientId: number; }
+export interface WantedRewardData {
+    readonly rewardCredits: number;
+    readonly totalCredits: number;
+}
 export interface NightTimerUpdatedData { readonly remainingMs: number; }
 export interface PlayerActionProgressData {
     readonly active: boolean;
@@ -64,6 +78,7 @@ export interface ClientSeatedData {
     readonly race: ClientRace;
     readonly tileX: number;
     readonly tileY: number;
+    readonly isWanted?: boolean;
 }
 export interface ClientSeatVacatedData {
     readonly clientId: number;

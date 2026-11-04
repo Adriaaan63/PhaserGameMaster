@@ -269,6 +269,15 @@ export class Player extends Physics.Arcade.Sprite {
 
         const frontTile = this.getFrontTile();
         if (this.scene.registry.get('gameMode') !== GAME_MODE_NIGHT) {
+            if (
+                frontTile !== null
+                && Input.Keyboard.JustDown(this.interactionKey)
+                && (this.nightInteractionHandler?.(frontTile.tileX, frontTile.tileY) ?? false)
+            ) {
+                this.updateHeldObjectPosition();
+                this.updateActionProgressPosition();
+                return;
+            }
             this.nightHoldInteractionHandler(null, false, this.heldObject === null, delta);
             this.cancelFilling();
             this.updateHeldObjectPosition();

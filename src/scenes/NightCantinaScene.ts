@@ -3,6 +3,7 @@ import { Input, Scene } from 'phaser';
 import { CREDITS_REGISTRY_KEY, GAME_REGISTRY, SCRAPS_REGISTRY_KEY } from '../data/GameRegistry';
 import { Player } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
+import { WantedPoster } from '../entities/WantedPoster';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
 import { GridManager, TILE_TYPE_TABLE } from '../managers/GridManager';
@@ -23,6 +24,7 @@ import { AudioManager } from '../managers/AudioManager';
 import { RatManager } from '../managers/RatManager';
 import { ReputationManager } from '../managers/ReputationManager';
 import { JabbaRaidManager } from '../managers/JabbaRaidManager';
+import { WantedManager } from '../managers/WantedManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
@@ -38,6 +40,8 @@ import {
     EVENT_CLIENT_MURDERED,
     EVENT_DEAD_BODY_CLEANED,
     EVENT_DEAD_BODY_CREATED,
+    EVENT_CLOSE_WANTED_POSTER,
+    EVENT_OPEN_WANTED_POSTER,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
@@ -116,6 +120,8 @@ export class NightCantinaScene extends Scene {
     private threatManager!: ThreatManager;
     private reputationManager!: ReputationManager;
     private jabbaRaidManager!: JabbaRaidManager;
+    private wantedManager!: WantedManager;
+    private wantedPoster: WantedPoster | null = null;
     private bandManager!: BandManager;
     private audioManager!: AudioManager;
     private ratManager!: RatManager;
@@ -125,6 +131,7 @@ export class NightCantinaScene extends Scene {
     private cancelAssignmentKey!: Input.Keyboard.Key;
     private buildModeEnabled = true;
     private isClientGuideOpen = false;
+    private isWantedPosterOpen = false;
     private isNightGameplayPaused = false;
     private coinManager!: CoinManager;
 
@@ -203,12 +210,20 @@ export class NightCantinaScene extends Scene {
         this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
+        this.createWantedPoster();
 
         this.seatingManager = new SeatingManager(this, this.gridManager);
         // Placement receives seating state so it cannot remove reserved chairs.
         this.placementManager = new PlacementManager(this, this.gridManager, this.player, this.seatingManager);
         this.pathfindingManager = new PathfindingManager(this.gridManager);
         this.coinManager = new CoinManager(this, this.player, this.pathfindingManager);
+        this.reputationManager = new ReputationManager(this);
+        this.wantedManager = new WantedManager(
+            this,
+            this.gridManager,
+            this.pathfindingManager,
+            this.reputationManager,
+        );
         this.ratManager = new RatManager(
             this,
             this.gridManager.getObjectZoneCenterTiles('spawn_ratas'),
@@ -222,14 +237,15 @@ export class NightCantinaScene extends Scene {
             this.seatingManager,
             this.pathfindingManager,
             () => this.bandManager.isBandPlaying,
+            () => this.wantedManager.currentProfile,
         );
+        this.wantedManager.setClientManager(this.clientManager);
         this.coinManager.setBlockedPositionProvider(() => this.clientManager.getOccupiedPositions());
         this.deadBodyManager = new DeadBodyManager(this, this.gridManager);
         this.affinityManager = new AffinityManager(this.clientManager, this.gridManager);
         this.hazardManager = new HazardManager(this.clientManager, this.gridManager);
         this.fightManager = new FightManager(this.clientManager, this.pathfindingManager);
         this.threatManager = new ThreatManager(this);
-        this.reputationManager = new ReputationManager(this);
         this.jabbaRaidManager = new JabbaRaidManager(
             this,
             this.player,
@@ -248,6 +264,8 @@ export class NightCantinaScene extends Scene {
         eventBus.on(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
         eventBus.on(EVENT_CLIENT_MURDERED, this.handleClientMurdered, this);
         eventBus.on(EVENT_DEAD_BODY_CREATED, this.handleDeadBodyChanged, this);
+        eventBus.on(EVENT_OPEN_WANTED_POSTER, this.handleWantedPosterOpened, this);
+        eventBus.on(EVENT_CLOSE_WANTED_POSTER, this.handleWantedPosterClosed, this);
         eventBus.on(EVENT_DEAD_BODY_CLEANED, this.handleDeadBodyChanged, this);
         this.input.on('pointerdown', this.handlePointerDown, this);
         this.events.once('shutdown', this.cleanupClientSystems, this);
@@ -295,6 +313,7 @@ export class NightCantinaScene extends Scene {
         this.coinManager.update();
         this.ratManager.update(delta);
         this.jabbaRaidManager.update(delta);
+        this.wantedManager.update(delta);
     }
 
     public getGridManager(): GridManager {
@@ -412,6 +431,59 @@ export class NightCantinaScene extends Scene {
         }
     }
 
+    private createWantedPoster(): void {
+        const objectLayer = this.gridManager.tilemap.getObjectLayer('Objetos')
+            ?? this.gridManager.tilemap.getObjectLayer('objetos');
+        const posterObject = objectLayer?.objects.find((object) =>
+            object.name?.toLowerCase() === 'cartel'
+            || object.type?.toLowerCase() === 'busca_captura',
+        );
+        if (
+            posterObject === undefined
+            || posterObject.x === undefined
+            || posterObject.y === undefined
+        ) return;
+        const posterTile = {
+            tileX: Math.floor((posterObject.x + (posterObject.width ?? TILE) / 2) / TILE),
+            tileY: Math.floor((posterObject.y + (posterObject.height ?? TILE) / 2) / TILE),
+        };
+        const posterDepth = this.getWantedPosterDepth(posterTile.tileX, posterTile.tileY);
+        this.wantedPoster = new WantedPoster(
+            this,
+            posterTile,
+            {
+                x: posterObject.x + (posterObject.width ?? TILE) / 2,
+                y: posterObject.y + (posterObject.height ?? TILE) / 2,
+            },
+            posterDepth,
+            () => eventBus.emit(EVENT_OPEN_WANTED_POSTER, {
+                profile: this.wantedManager.currentProfile,
+            }),
+        );
+    }
+
+    private getWantedPosterDepth(tileX: number, tileY: number): number {
+        const wallsLayer = this.gridManager.tilemap.getLayer('paredes')?.tilemapLayer;
+        const highWallsLayer = this.gridManager.tilemap.getLayer('paredes_altas')?.tilemapLayer;
+        if (wallsLayer === null || wallsLayer === undefined || highWallsLayer === null || highWallsLayer === undefined) {
+            return (tileY + 1) * TILE + 0.5;
+        }
+
+        let baseTileY = tileY;
+        for (let offsetY = 1; offsetY <= 15; offsetY++) {
+            if (wallsLayer.hasTileAt(tileX, tileY + offsetY)) {
+                baseTileY = tileY + offsetY;
+                break;
+            }
+        }
+
+        if (!highWallsLayer.hasTileAt(tileX, tileY)) {
+            return (baseTileY + 1) * TILE + 0.5;
+        }
+
+        return (baseTileY + 1) * TILE + 1.5;
+    }
+
     private createServiceStations(map: Phaser.Tilemaps.Tilemap): void {
         const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
         if (objectLayer === null) {
@@ -486,6 +558,7 @@ export class NightCantinaScene extends Scene {
     }
 
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
+        if (this.wantedManager.interactAt(tileX, tileY)) return true;
         if (this.registry.get('gameMode') !== GAME_MODE_NIGHT || this.buildModeEnabled) return false;
 
         if (this.ratManager.scareAt(tileX, tileY)) return true;
@@ -563,6 +636,16 @@ export class NightCantinaScene extends Scene {
         handsEmpty: boolean,
         deltaMs: number,
     ): boolean => this.deadBodyManager?.updateCleaning(target, interactionHeld, handsEmpty, deltaMs) ?? false;
+
+    private handleWantedPosterOpened(): void {
+        this.isWantedPosterOpen = true;
+        this.updateNightGameplayPause();
+    }
+
+    private handleWantedPosterClosed(): void {
+        this.isWantedPosterOpen = false;
+        this.updateNightGameplayPause();
+    }
 
     private handlePointerDown(pointer: Phaser.Input.Pointer): void {
         if (
@@ -643,6 +726,8 @@ export class NightCantinaScene extends Scene {
         eventBus.off(EVENT_CLIENT_SATISFIED, this.handleClientSatisfied, this);
         eventBus.off(EVENT_CLIENT_MURDERED, this.handleClientMurdered, this);
         eventBus.off(EVENT_DEAD_BODY_CREATED, this.handleDeadBodyChanged, this);
+        eventBus.off(EVENT_OPEN_WANTED_POSTER, this.handleWantedPosterOpened, this);
+        eventBus.off(EVENT_CLOSE_WANTED_POSTER, this.handleWantedPosterClosed, this);
         eventBus.off(EVENT_DEAD_BODY_CLEANED, this.handleDeadBodyChanged, this);
         this.input.off('pointerdown', this.handlePointerDown, this);
         this.player?.setNightInteractionHandler(null);
@@ -656,6 +741,9 @@ export class NightCantinaScene extends Scene {
         this.audioManager?.destroy();
         this.threatManager?.destroy();
         this.jabbaRaidManager?.destroy();
+        this.wantedManager?.destroy();
+        this.wantedPoster?.destroy();
+        this.wantedPoster = null;
         this.reputationManager?.destroy();
         this.hazardManager?.destroy();
         this.affinityManager?.destroy();
@@ -679,7 +767,9 @@ export class NightCantinaScene extends Scene {
 
     private updateNightGameplayPause(): void {
         const isNight = this.registry.get('gameMode') === GAME_MODE_NIGHT;
-        const shouldPauseGameplay = this.isClientGuideOpen || (isNight && this.buildModeEnabled);
+        const shouldPauseGameplay = this.isWantedPosterOpen
+            || this.isClientGuideOpen
+            || (isNight && this.buildModeEnabled);
         if (this.isNightGameplayPaused === shouldPauseGameplay) return;
         this.isNightGameplayPaused = shouldPauseGameplay;
 

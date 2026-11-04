@@ -3,6 +3,7 @@ import { TEXTURE_DRINK_FULL, TEXTURE_FOOD } from './constants';
 export const CREDITS_REGISTRY_KEY = 'credits';
 export const IMPERIAL_HEAT_REGISTRY_KEY = 'imperialHeat';
 export const CRIMINAL_REPUTATION_REGISTRY_KEY = 'criminalReputation';
+export const WANTED_PROFILE_REGISTRY_KEY = 'wantedProfile';
 export const SCRAPS_REGISTRY_KEY = 'scraps';
 
 export enum ClientRace {
@@ -51,6 +52,31 @@ export const AFFINITY_RULES: Readonly<Record<ClientRace, readonly ClientRace[]>>
 export interface ClientRacePresentation {
     readonly label: string;
     readonly placeholderColor: number;
+}
+
+export interface WantedProfile {
+    readonly race: ClientRace;
+    readonly placeholderColor: number;
+    readonly visualDetail: string;
+    readonly rewardCredits: number;
+}
+
+export interface WantedConfig {
+    readonly targetClientId: number;
+    readonly inspectionDelayMs: number;
+    readonly detectionRadiusTiles: number;
+    readonly patrolPointCount: number;
+    readonly arrestDurationMs: number;
+    readonly coverReputationGain: number;
+    readonly exposeReputationLoss: number;
+    readonly sandtrooperSpeed: number;
+    readonly sandtrooperBodyWidth: number;
+    readonly sandtrooperBodyHeight: number;
+    readonly sandtrooperColor: number;
+    readonly posterBackgroundColor: number;
+    readonly posterPanelColor: number;
+    readonly posterTextColor: number;
+    readonly posterDetailColor: number;
 }
 
 export const CLIENT_RACE_PRESENTATION: Readonly<Record<ClientRace, ClientRacePresentation>> = {
@@ -261,6 +287,13 @@ export interface UiConfig {
     readonly reputationBarTrackColor: number;
     readonly reputationBarFillColor: number;
     readonly reputationBarTextColor: number;
+    readonly wantedPosterWidth: number;
+    readonly wantedPosterHeight: number;
+    readonly wantedPosterDepth: number;
+    readonly wantedPosterOverlayColor: number;
+    readonly wantedPosterOverlayAlpha: number;
+    readonly wantedPosterTitleFontSize: number;
+    readonly wantedPosterBodyFontSize: number;
 }
 
 export interface GameRegistry {
@@ -273,6 +306,7 @@ export interface GameRegistry {
     readonly combat: CombatConfig;
     readonly threat: ThreatConfig;
     readonly reputation: ReputationConfig;
+    readonly wanted: WantedConfig;
     readonly jabbaRaid: JabbaRaidConfig;
     readonly aftermath: AftermathConfig;
     readonly repairs: RepairConfig;
@@ -426,6 +460,23 @@ export const GAME_REGISTRY = {
         reputationLossPerBetrayal: -25,
         maxReputation: 100,
     },
+    wanted: {
+        targetClientId: 5,
+        inspectionDelayMs: 5_000,
+        detectionRadiusTiles: 3,
+        patrolPointCount: 4,
+        arrestDurationMs: 700,
+        coverReputationGain: 15,
+        exposeReputationLoss: -25,
+        sandtrooperSpeed: 76,
+        sandtrooperBodyWidth: 18,
+        sandtrooperBodyHeight: 26,
+        sandtrooperColor: 0xd8d2bb,
+        posterBackgroundColor: 0xc49a61,
+        posterPanelColor: 0x3a2418,
+        posterTextColor: 0xf4ede2,
+        posterDetailColor: 0x2a1710,
+    },
     jabbaRaid: {
         thugCount: 4,
         thugSpeed: 82,
@@ -518,6 +569,13 @@ export const GAME_REGISTRY = {
         reputationBarTrackColor: 0x171b21,
         reputationBarFillColor: 0xf1c75b,
         reputationBarTextColor: 0x241d0b,
+        wantedPosterWidth: 430,
+        wantedPosterHeight: 300,
+        wantedPosterDepth: 30_000,
+        wantedPosterOverlayColor: 0x080b10,
+        wantedPosterOverlayAlpha: 0.78,
+        wantedPosterTitleFontSize: 24,
+        wantedPosterBodyFontSize: 16,
     },
     clients: {
         spawnIntervalMs: 8_000,

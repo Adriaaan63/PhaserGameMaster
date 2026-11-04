@@ -4,6 +4,7 @@ import { InventoryUI } from '../ui/InventoryUI';
 import { HUD } from '../ui/HUD';
 import { ImperialBarUI } from '../ui/ImperialBarUI';
 import { ReputationBarUI } from '../ui/ReputationBarUI';
+import { WantedUI } from '../ui/WantedUI';
 
 /**
  * Scene dedicated exclusively to HUD, overlay dialogs, and UI elements.
@@ -15,6 +16,7 @@ export class UIScene extends Scene {
     private hud!: HUD;
     private imperialBar!: ImperialBarUI;
     private reputationBar!: ReputationBarUI;
+    private wantedUI!: WantedUI;
 
     public constructor() {
         super('UIScene');
@@ -26,6 +28,11 @@ export class UIScene extends Scene {
         this.hud = new HUD(this);
         this.imperialBar = new ImperialBarUI(this);
         this.reputationBar = new ReputationBarUI(this);
+        this.wantedUI = new WantedUI(this);
+    }
+
+    public update(): void {
+        this.wantedUI?.update();
     }
 
     public getInventoryUI(): InventoryUI {

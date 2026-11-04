@@ -13,6 +13,7 @@ import {
 import {
     EVENT_CANTINA_OPEN,
     EVENT_COIN_COLLECTED,
+    EVENT_WANTED_REWARD_GRANTED,
     EVENT_FOOD_STOCK_UPDATED,
     EVENT_GAME_MODE_CHANGED,
     EVENT_GAME_WARNING,
@@ -25,6 +26,7 @@ import {
     GAME_MODE_NIGHT,
     type BuildModeToggledData,
     type CoinCollectedData,
+    type WantedRewardData,
     type FoodStockUpdatedData,
     type GameModeChangedData,
     type GameWarningData,
@@ -76,6 +78,10 @@ export class HUD {
         this.setSlotValue('credits', `${data.totalCredits}`);
         this.showFeedback(`+${data.value} CRÉDITOS`);
     };
+    private readonly onWantedRewardBound = (data: WantedRewardData): void => {
+        this.setSlotValue('credits', `${data.totalCredits}`);
+        this.showFeedback(`+${data.rewardCredits} CRÉDITOS`);
+    };
     private readonly onNightTimerUpdatedBound = (data: NightTimerUpdatedData): void => {
         this.setSlotValue('time', this.formatTime(data.remainingMs));
     };
@@ -101,6 +107,7 @@ export class HUD {
         eventBus.on(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.on(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.on(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
+        eventBus.on(EVENT_WANTED_REWARD_GRANTED, this.onWantedRewardBound);
         eventBus.on(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         scene.scale.on('resize', this.reposition, this);
@@ -116,6 +123,7 @@ export class HUD {
         eventBus.off(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.off(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.off(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
+        eventBus.off(EVENT_WANTED_REWARD_GRANTED, this.onWantedRewardBound);
         eventBus.off(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.off(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         this.scene.scale.off('resize', this.reposition, this);

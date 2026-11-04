@@ -61,7 +61,8 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **3.3. Play Flow:** El bucle principal nocturno sigue los siguientes pasos: Entrada (Detector Droides) ➔ Sentar (Cuidar Afinidad Racial) ➔ Atender (Bebida/Comida/Música) ➔ Cobrar (Evitar Ratas) ➔ Eventos (Peleas / Imperio) ➔ Salida.
 
 
-* **3.4. Mission/challenge Structure:** Los retos se presentan a través de las incursiones diarias de caza peligrosas en el exterior. En el interior, los desafíos surgen de eventos sistémicos, como clientes en Busca y Captura (*Wanted*) que el jugador debe decidir si encubrir o delatar al Imperio.
+* **3.4. Mission/challenge Structure:** Los retos se presentan a través de las incursiones diarias de caza peligrosas en el exterior. En el interior, los desafíos surgen de eventos sistémicos, principalmente mediante el **Sistema de Busca y Captura (*Wanted*)**. El jugador deberá leer el cartel de recompensas en la Pre-Apertura, identificar visualmente a un sospechoso generado aleatoriamente durante el caos de la noche, y decidir su destino ante las patrullas imperiales (delatarlo, encubrirlo o ignorarlo).
+    * **Implementación del ciclo Wanted:** `WantedManager` genera y persiste el perfil de la jornada, `ClientManager` fuerza al cliente objetivo (ID 5) a usar su raza, y `Sandtrooper` resuelve la inspección mediante rutas de pathfinding.
 
 
 * **3.5. Puzzle Structure:** Funciona como un puzle táctico en tiempo real en la fase de sentado, gracias a una "Rueda de Afinidades" donde mezclar razas enemigas duplica la velocidad en la que cae su paciencia.
@@ -141,6 +142,14 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
     * **El Escarmiento:** Cuatro NPCs (Matones de Jabba) entran por el objeto Tiled `cantina_entrada` en formación 2x2 y marchan hacia el interior hasta cruzar la línea de `zonaColaEntrada`.
     * **Ataque y Retirada:** Tras romper la formación, cada matón recibe un mueble operativo único, llega mediante pathfinding, reproduce una explosión visual y lo marca como `DESTRUIDO`. Después regresan por pathfinding a `cantina_entrada`.
     * **Condición de Finalización:** Cuando el cuarto matón desaparece por la entrada se emite `EVENT_JABBA_RAID_ENDED`, se desbloquea al jugador, se reanuda el spawn normal de clientes (si aún queda tiempo en la noche) y la reputación se restablece a 20/100.
+* **Sistema de Busca y Captura (Wanted):**
+    * **Fase Pre-Apertura (El Cartel):** En el mapa `cantina2.tmj` existe un objeto llamado `cartel` con clase `busca_captura`. Si Wuher se acerca a él y pulsa `Espacio`, se despliega una interfaz (menú *Wanted*). Este menú muestra las pistas generadas procedimentalmente para esa noche: un cuadrado con el color representativo de su raza (ej. verde brillante para Rodiano), y 3 características textuales lógicas (ej. Raza: Rodiano, Detalle: Lleva un sombrero viejo, Recompensa: 50 Créditos).
+    * **Identificación (Fase Nocturna):** Durante el servicio, el motor instanciará a un cliente que coincida visualmente (añadiendo el *prop* correspondiente) con la descripción del cartel.
+    * **La Inspección Imperial:** Cuando el cliente *Wanted* es sentado en una silla, se activa un temporizador oculto. Al poco tiempo, un oficial *Sandtrooper* entrará por la puerta principal para realizar una inspección.
+    * **Opciones de Resolución del Jugador:**
+        1. **Delatar (Acercarse al Sandtrooper):** Wuher interactúa (`Espacio`) con el oficial. El Sandtrooper camina hacia el cliente y lo arresta. **Consecuencia:** El jugador gana los Créditos de recompensa al instante, pero su Barra de Reputación con Jabba sufre una caída drástica (`-25`).
+        2. **Encubrir (Ruta de Escape):** Wuher interactúa (`Espacio`) con el cliente *Wanted* sentado y le indica que huya por la puerta trasera u objeto `puertaSecreta` (clase `puerta_secreta` del tilemap). El cliente escapa antes de que el Sandtrooper lo vea. **Consecuencia:** El jugador no recibe dinero, pero su Reputación Criminal sube significativamente (`+15`).
+        3. **Ignorar (Inacción):** Wuher no hace nada y sigue sirviendo bebidas. Si el Sandtrooper, durante su ruta de patrulla, pasa por el campo de visión del cliente, lo arrestará por su cuenta. **Consecuencia:** Ninguna. No se gana recompensa (el mérito es del oficial) ni se pierde reputación (el jugador no fue el chivato).
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -232,6 +241,9 @@ El universo de la cantina modela a los clientes no como simples *sprites*, sino 
             * **Frente a una Pelea:** Si Wuher tiene las manos vacías y se acerca a dos clientes en estado `FIGHTING`, presionar (o mantener, según balanceo) `Espacio` obligará a los clientes a separarse y marcharse del local (`LEAVING`). No se gana dinero, pero se evita el cadáver, la destrucción del mobiliario y el *Heat* imperial.
             * *Frente a la Banda (tiles contiguos a `zonaBanda`):* Al presionar la tecla de Acción (`Espacio`) mirando hacia el escenario, Wuher da la señal a los músicos. Esto cambia el estado de la banda a `PLAYING`, activa las animaciones de los 4 sprites tocando sus instrumentos y dispara el evento global para resolver pedidos de música.
             * *Frente a una Rata Ladrona:* Si el jugador detecta a una rata intentando robar un botín o huyendo con él, puede acercarse (con las manos vacías o llenas) y presionar la tecla `Espacio`. Al igual que al detener una pelea, esta acción representa un "golpe" o pisotón que asusta a la rata. Al ser golpeada, la rata aborta su robo inmediatamente (soltando la moneda si ya la tenía) y huye a toda velocidad de regreso a su spawn original.
+            *   *Frente al Cartel de Busca y Captura (Solo Pre-Apertura):* Al presionar la tecla de Acción (`Espacio`) mirando hacia el objeto `cartel` en la pared, el juego pausa el movimiento y despliega en pantalla el Menú Informativo del cliente buscado para esa noche.
+            *   *Frente al Sandtrooper (Durante la Inspección):* Si el evento de inspección está activo, acercarse al oficial y pulsar `Espacio` ejecuta la "Ruta Delatar". Wuher le indica dónde está el sospechoso, ganando la recompensa pero perdiendo drásticamente Reputación Criminal.
+            *   *Frente al Cliente Wanted (Durante la Inspección):* Si el Sandtrooper está en el local, acercarse al cliente en Busca y Captura y pulsar `Espacio` ejecuta la "Ruta Encubrir". Wuher le avisa en secreto para que huya hacia la `puertaSecreta`, subiendo considerablemente la Reputación Criminal.
 
         * **Con las manos OCUPADAS (`State: HOLDING`):**
             * *Frente a la Torre Central (SOLO si sostiene vaso vacío):* Al mantener pulsado `Espacio`, inicia el llenado. Al soltar o terminar, el objeto sostenido cambia a "vaso lleno". Si sostiene un plato de comida, la acción se bloquea.
@@ -467,6 +479,16 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
             *   **Contenido Dinámico:** En el centro de cada *slot* se renderiza el sprite del mobiliario disponible (por ejemplo, el icono de la Mesa Básica o la Silla de madera). En la esquina inferior derecha de cada caja aparecerá un pequeño multiplicador de stock (ej. "x4"). Si el stock de un mueble llega a cero, el *slot* se ensombrece (filtro oscuro) y el texto cambia a rojo.
             *   **Sistema de Navegación por Carrusel:** Dado que el espacio en pantalla es limitado para no tapar la cantina, el jugador inicialmente solo verá un par de *slots* (ej. Mesa y Silla básica). Sin embargo, a medida que avance el juego y compre mesas para Wookiees, sillones Ithorianos o gramolas, se habilitará la navegación interactiva.
             *   **Flechas Laterales:** A los extremos izquierdo y derecho de la fila de *slots*, existirán dos botones interactivos con forma de flecha direccional. Al hacer clic en ellas (o al usar la rueda del ratón), los *slots* se desplazarán horizontalmente a izquierda o derecha de forma animada, permitiendo al jugador explorar todo su catálogo de muebles sin abrir engorrosas ventanas completas.
+    *   **Menú de Busca y Captura (Wanted Poster):**
+        *   Accesible exclusivamente durante la fase de Pre-Apertura al interactuar con el objeto `cartel` del tilemap.
+        *   **Diseño Visual:** Se presenta como un *overlay* emergente en el centro de la pantalla, simulando un pergamino físico o un panel de datos imperial (siguiendo el *mockup* de `MenuBC.png`). El resto del juego se oscurece ligeramente (efecto *dim*) para centrar la atención.
+        *   **Contenido Dinámico:**
+            *   **Retrato:** En el centro del cartel se muestra un recuadro grande rellenado con el color base representativo de la raza buscada (`placeholderColor`), sirviendo como principal ancla de memoria visual.
+            *   **Características (Texto):** Justo debajo, se genera una lista con 3 pistas clave procedimentales pero lógicas:
+                1. *Raza:* (Ej. "Rodiano").
+                2. *Detalle a tener en cuenta:* (Ej. "Lleva un sombrero viejo" o "Altamente agresivo").
+                3. *Recompensa Imperial:* (Ej. "50 Créditos").
+            *   **Navegación:** El jugador puede mantener este menú abierto todo el tiempo que necesite para memorizar las características. Se cierra de forma ágil volviendo a pulsar la tecla `Espacio` o haciendo clic fuera del recuadro, devolviendo el control a Wuher.
 
 
 * **9.1.3. Camera model:** El modelo de cámara de *Chalmun's Cantina: Mos Eisley Hustle* varía dependiendo de la fase de juego (Día/Noche) y la escena activa, adaptándose a las necesidades mecánicas de cada entorno. El juego utiliza un sistema de coordenadas dual: el sistema lógico del mundo (píxeles/tiles) y el "Viewport" (la ventana que renderiza la escena en pantalla), aplicando un escalado general (ej. `ROOM_SCALE = 2`) para la estética *pixel art*.

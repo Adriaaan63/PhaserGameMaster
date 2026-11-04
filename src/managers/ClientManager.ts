@@ -1,5 +1,5 @@
 import { Physics, Scene } from 'phaser';
-import { BAND_PLAYING_DURATION_MS, GAME_REGISTRY, samplePatienceDuration } from '../data/GameRegistry';
+import { BAND_PLAYING_DURATION_MS, GAME_REGISTRY, samplePatienceDuration, type WantedProfile } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
 import { Client, type ClientPosition } from '../entities/Client';
 import { CoinManager } from './CoinManager';
@@ -28,6 +28,7 @@ export class ClientManager {
     private queueIndex = 0;
     private nextClientId = 1;
     private enabled = false;
+    private wantedAssigned = false;
 
     public constructor(
         private readonly scene: Scene,
@@ -36,6 +37,7 @@ export class ClientManager {
         private readonly seating: SeatingManager,
         private readonly pathfinding: PathfindingManager,
         private readonly isBandPlaying: () => boolean,
+        private readonly getWantedProfile: () => WantedProfile | null = () => null,
     ) {
         this.queueTiles = this.grid.getObjectZoneTiles('zonaColaEntrada');
         this.collisionGroup = this.scene.physics.add.group();
@@ -98,6 +100,10 @@ export class ClientManager {
         const position = this.queueTiles[this.queueIndex];
         this.queueIndex = (this.queueIndex + 1) % this.queueTiles.length;
         const clientId = this.nextClientId++;
+        const wantedProfile = !this.wantedAssigned && clientId === GAME_REGISTRY.wanted.targetClientId
+            ? this.getWantedProfile()
+            : null;
+        if (wantedProfile !== null) this.wantedAssigned = true;
         const client = new Client(
             this.scene,
             clientId,
@@ -109,6 +115,7 @@ export class ClientManager {
             this.pathfinding,
             GAME_REGISTRY,
             this.isBandPlaying,
+            wantedProfile,
         );
         client.setData('clientId', clientId);
         this.clients.add(client);
@@ -134,6 +141,7 @@ export class ClientManager {
                 race: client.race,
                 tileX: seat.tileX,
                 tileY: seat.tileY,
+                isWanted: client.isWanted,
             };
             eventBus.emit(EVENT_CLIENT_SEATED, data);
         });
@@ -161,6 +169,18 @@ export class ClientManager {
 
     public getClientById(clientId: number): Client | null {
         return [...this.clients].find((client) => client.clientId === clientId) ?? null;
+    }
+
+    public getWantedClient(): Client | null {
+        return [...this.clients].find((client) => client.isWanted && client.active) ?? null;
+    }
+
+    public removeClient(clientId: number): void {
+        const client = this.getClientById(clientId);
+        if (client === null) return;
+        this.clients.delete(client);
+        this.collisionGroup.remove(client, false, false);
+        client.destroy();
     }
 
     public removeMurderedClient(clientId: number): void {

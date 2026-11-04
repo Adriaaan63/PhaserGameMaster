@@ -8,6 +8,7 @@ import {
     type ClientRace,
     type GameRegistry,
     type OrderOption,
+    type WantedProfile,
 } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
 import type { InteractableObjectType } from './InteractableObject';
@@ -75,6 +76,7 @@ export class Client extends GameObjects.Container {
     private fightTargetClientId: number | null = null;
     private exitStateAfterPathFailure: 'LEAVING' | 'FLEEING' = 'LEAVING';
     public readonly race: ClientRace;
+    public readonly isWanted: boolean;
 
     public constructor(
         scene: Scene,
@@ -87,11 +89,13 @@ export class Client extends GameObjects.Container {
         private readonly pathfinding: PathfindingManager,
         registry: GameRegistry = GAME_REGISTRY,
         private readonly isBandPlaying: () => boolean = () => false,
+        wantedProfile: WantedProfile | null = null,
     ) {
         super(scene, position.tileX * TILE + TILE / 2, position.tileY * TILE + TILE / 2);
         this.setExclusive(true);
         this.registry = registry;
-        this.race = chooseClientRace();
+        this.race = wantedProfile?.race ?? chooseClientRace();
+        this.isWanted = wantedProfile !== null;
         this.patienceRemainingMs = queuePatienceMs;
         this.patienceTotalMs = queuePatienceMs;
         this.bodyGraphic = scene.add.rectangle(
@@ -150,6 +154,19 @@ export class Client extends GameObjects.Container {
             fightLabel,
         ]).setVisible(false);
         this.add([this.bodyGraphic, this.indicator, this.affinityWarning, this.fightBubble]);
+        if (wantedProfile !== null) {
+            this.add(scene.add.text(
+                0,
+                -registry.clients.bodyHeight / 2 - 8,
+                'WANTED',
+                {
+                    fontFamily: 'monospace',
+                    fontSize: '8px',
+                    color: '#f1c75b',
+                    fontStyle: 'bold',
+                },
+            ).setOrigin(0.5));
+        }
         scene.add.existing(this);
         scene.physics.add.existing(this);
         const body = this.body;
@@ -292,6 +309,42 @@ export class Client extends GameObjects.Container {
         this.indicator.setVisible(false);
         this.emit('leaving', this);
         this.tryStartExitRoute();
+    }
+
+    public fleeToPosition(
+        destination: ClientPosition,
+        notifyLeaving = true,
+        predefinedRoute: readonly ClientPosition[] | null = null,
+    ): boolean {
+        if (this.currentState === 'DEAD' || this.currentState === 'FLEEING') return false;
+        this.clearFightVisuals();
+        this.activeOrder = null;
+        this.exitStateAfterPathFailure = 'FLEEING';
+        this.currentState = 'FLEEING';
+        this.indicator.setVisible(false);
+        if (notifyLeaving) this.emit('leaving', this);
+        const route = predefinedRoute ?? this.pathfinding.findPath(this.currentTile, destination);
+        if (route === null) {
+            this.enterExitBlocked(this.currentTile, destination, 'NO_PATH');
+            return false;
+        }
+        this.route = route;
+        this.routeIndex = 0;
+        if (route.length === 0) this.notifyExitComplete();
+        return true;
+    }
+
+    public arrest(): boolean {
+        if (this.currentState === 'DEAD') return false;
+        this.clearFightVisuals();
+        this.activeOrder = null;
+        this.currentState = 'FLEEING';
+        this.releaseSeatIfVacated();
+        this.currentState = 'DEAD';
+        this.setVisible(false);
+        const body = this.body;
+        if (body instanceof Physics.Arcade.Body) body.enable = false;
+        return true;
     }
 
     public leaveAfterFight(): boolean {
