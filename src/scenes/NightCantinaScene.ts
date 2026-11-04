@@ -21,6 +21,8 @@ import { ThreatManager } from '../managers/ThreatManager';
 import { BandManager } from '../managers/BandManager';
 import { AudioManager } from '../managers/AudioManager';
 import { RatManager } from '../managers/RatManager';
+import { ReputationManager } from '../managers/ReputationManager';
+import { JabbaRaidManager } from '../managers/JabbaRaidManager';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
@@ -112,6 +114,8 @@ export class NightCantinaScene extends Scene {
     private pathfindingManager!: PathfindingManager;
     private fightManager!: FightManager;
     private threatManager!: ThreatManager;
+    private reputationManager!: ReputationManager;
+    private jabbaRaidManager!: JabbaRaidManager;
     private bandManager!: BandManager;
     private audioManager!: AudioManager;
     private ratManager!: RatManager;
@@ -225,6 +229,12 @@ export class NightCantinaScene extends Scene {
         this.hazardManager = new HazardManager(this.clientManager, this.gridManager);
         this.fightManager = new FightManager(this.clientManager, this.pathfindingManager);
         this.threatManager = new ThreatManager(this);
+        this.reputationManager = new ReputationManager(this);
+        this.jabbaRaidManager = new JabbaRaidManager(
+            this.clientManager,
+            this.gridManager,
+            this.placementManager,
+        );
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
@@ -641,6 +651,8 @@ export class NightCantinaScene extends Scene {
         this.bandManager?.destroy();
         this.audioManager?.destroy();
         this.threatManager?.destroy();
+        this.jabbaRaidManager?.destroy();
+        this.reputationManager?.destroy();
         this.hazardManager?.destroy();
         this.affinityManager?.destroy();
         this.deadBodyManager?.destroy();

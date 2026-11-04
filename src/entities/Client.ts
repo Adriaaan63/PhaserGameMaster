@@ -280,6 +280,20 @@ export class Client extends GameObjects.Container {
         }
     }
 
+    /** Forces an immediate unpaid exit for external emergencies such as a raid. */
+    public fleeImmediately(): void {
+        if (this.currentState === 'DEAD' || this.currentState === 'FLEEING' || this.currentState === 'LEAVING') {
+            return;
+        }
+        this.clearFightVisuals();
+        this.activeOrder = null;
+        this.exitStateAfterPathFailure = 'FLEEING';
+        this.currentState = 'FLEEING';
+        this.indicator.setVisible(false);
+        this.emit('leaving', this);
+        this.tryStartExitRoute();
+    }
+
     public leaveAfterFight(): boolean {
         if (this.currentState !== 'FIGHTING') return false;
         this.clearFightVisuals();

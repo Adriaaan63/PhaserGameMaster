@@ -2,6 +2,7 @@ import { TEXTURE_DRINK_FULL, TEXTURE_FOOD } from './constants';
 
 export const CREDITS_REGISTRY_KEY = 'credits';
 export const IMPERIAL_HEAT_REGISTRY_KEY = 'imperialHeat';
+export const CRIMINAL_REPUTATION_REGISTRY_KEY = 'criminalReputation';
 export const SCRAPS_REGISTRY_KEY = 'scraps';
 
 export enum ClientRace {
@@ -10,6 +11,15 @@ export enum ClientRace {
     RODIAN = 'RODIAN',
     AQUALISH = 'AQUALISH',
     ITHORIAN = 'ITHORIAN',
+}
+
+export interface ReputationConfig {
+    readonly startingReputation: number;
+    readonly postRaidReputation: number;
+    readonly reputationGainPerOrder: number;
+    readonly reputationLossPerMiss: number;
+    readonly reputationLossPerBetrayal: number;
+    readonly maxReputation: number;
 }
 
 export const CLIENT_RACES: readonly ClientRace[] = Object.freeze(Object.values(ClientRace));
@@ -151,6 +161,9 @@ export interface CombatConfig {
 export interface ThreatConfig {
     readonly startingHeat: number;
     readonly heatPerMurder: number;
+    readonly heatPerSecondFighting: number;
+    readonly heatDecayPerSecond: number;
+    readonly maxHeat: number;
 }
 
 export interface AftermathConfig {
@@ -219,6 +232,22 @@ export interface UiConfig {
     readonly affinityWarningIconText: string;
     readonly affinityWarningIconFontSize: number;
     readonly affinityWarningIconColor: number;
+    readonly imperialBarWidth: number;
+    readonly imperialBarHeight: number;
+    readonly imperialBarMargin: number;
+    readonly imperialBarLabelWidth: number;
+    readonly imperialBarLabelColor: number;
+    readonly imperialBarTrackColor: number;
+    readonly imperialBarFillColor: number;
+    readonly imperialBarTextColor: number;
+    readonly reputationBarWidth: number;
+    readonly reputationBarHeight: number;
+    readonly reputationBarMargin: number;
+    readonly reputationBarLabelWidth: number;
+    readonly reputationBarLabelColor: number;
+    readonly reputationBarTrackColor: number;
+    readonly reputationBarFillColor: number;
+    readonly reputationBarTextColor: number;
 }
 
 export interface GameRegistry {
@@ -230,6 +259,7 @@ export interface GameRegistry {
     readonly economy: EconomyConfig;
     readonly combat: CombatConfig;
     readonly threat: ThreatConfig;
+    readonly reputation: ReputationConfig;
     readonly aftermath: AftermathConfig;
     readonly repairs: RepairConfig;
     readonly ui: UiConfig;
@@ -370,6 +400,17 @@ export const GAME_REGISTRY = {
     threat: {
         startingHeat: 0,
         heatPerMurder: 25,
+        heatPerSecondFighting: 2,
+        heatDecayPerSecond: 1,
+        maxHeat: 100,
+    },
+    reputation: {
+        startingReputation: 50,
+        postRaidReputation: 20,
+        reputationGainPerOrder: 1,
+        reputationLossPerMiss: -2,
+        reputationLossPerBetrayal: -25,
+        maxReputation: 100,
     },
     aftermath: {
         cleaningTimeMs: 3_000,
@@ -435,6 +476,22 @@ export const GAME_REGISTRY = {
         affinityWarningIconText: '⚡ x2',
         affinityWarningIconFontSize: 9,
         affinityWarningIconColor: 0xff8080,
+        imperialBarWidth: 220,
+        imperialBarHeight: 22,
+        imperialBarMargin: 12,
+        imperialBarLabelWidth: 68,
+        imperialBarLabelColor: 0x9e2525,
+        imperialBarTrackColor: 0x171b21,
+        imperialBarFillColor: 0xd93636,
+        imperialBarTextColor: 0xf4ede2,
+        reputationBarWidth: 220,
+        reputationBarHeight: 22,
+        reputationBarMargin: 12,
+        reputationBarLabelWidth: 92,
+        reputationBarLabelColor: 0xd5a62a,
+        reputationBarTrackColor: 0x171b21,
+        reputationBarFillColor: 0xf1c75b,
+        reputationBarTextColor: 0x241d0b,
     },
     clients: {
         spawnIntervalMs: 8_000,

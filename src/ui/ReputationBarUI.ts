@@ -1,0 +1,111 @@
+import { GameObjects, Scene, Tweens } from 'phaser';
+
+import {
+    CRIMINAL_REPUTATION_REGISTRY_KEY,
+    GAME_REGISTRY,
+} from '../data/GameRegistry';
+import {
+    eventBus,
+    EVENT_REPUTATION_UPDATED,
+    type ReputationUpdatedData,
+} from '../utils/EventBus';
+
+/** Responsive lower-right criminal reputation meter driven by reputation events. */
+export class ReputationBarUI {
+    private readonly container: GameObjects.Container;
+    private readonly track: GameObjects.Rectangle;
+    private readonly fill: GameObjects.Rectangle;
+    private readonly label: GameObjects.Rectangle;
+    private readonly labelText: GameObjects.Text;
+    private readonly config = GAME_REGISTRY.ui;
+    private reputationTween: Tweens.Tween | null = null;
+
+    private readonly handleReputationUpdated = (data: ReputationUpdatedData): void => {
+        const ratio = Math.max(
+            0,
+            Math.min(1, data.currentReputation / GAME_REGISTRY.reputation.maxReputation),
+        );
+        this.reputationTween?.stop();
+        this.reputationTween = this.scene.tweens.add({
+            targets: this.fill,
+            scaleX: ratio,
+            duration: 300,
+            ease: 'Sine.Out',
+            onComplete: () => {
+                this.reputationTween = null;
+            },
+        });
+    };
+
+    public constructor(private readonly scene: Scene) {
+        this.container = scene.add.container(0, 0)
+            .setScrollFactor(0)
+            .setDepth(this.config.topBarDepth);
+        const trackWidth = this.config.reputationBarWidth - this.config.reputationBarLabelWidth;
+        this.track = scene.add.rectangle(
+            0,
+            0,
+            trackWidth,
+            this.config.reputationBarHeight,
+            this.config.reputationBarTrackColor,
+        );
+        this.fill = scene.add.rectangle(
+            0,
+            0,
+            trackWidth,
+            this.config.reputationBarHeight - 4,
+            this.config.reputationBarFillColor,
+        ).setOrigin(0, 0.5).setScale(0, 1);
+        this.label = scene.add.rectangle(
+            0,
+            0,
+            this.config.reputationBarLabelWidth,
+            this.config.reputationBarHeight,
+            this.config.reputationBarLabelColor,
+        );
+        this.labelText = scene.add.text(0, 0, 'REPUTACIÓN', {
+            fontFamily: 'monospace',
+            fontSize: '11px',
+            color: `#${this.config.reputationBarTextColor.toString(16).padStart(6, '0')}`,
+            fontStyle: 'bold',
+        }).setOrigin(0.5);
+        this.container.add([this.track, this.fill, this.label, this.labelText]);
+
+        eventBus.on(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
+        scene.scale.on('resize', this.reposition, this);
+        scene.events.once('shutdown', this.destroy, this);
+        scene.events.once('destroy', this.destroy, this);
+        this.reposition();
+
+        const storedReputation = scene.registry.get(CRIMINAL_REPUTATION_REGISTRY_KEY);
+        this.handleReputationUpdated({
+            currentReputation: typeof storedReputation === 'number'
+                ? storedReputation
+                : GAME_REGISTRY.reputation.startingReputation,
+            change: 0,
+        });
+    }
+
+    public destroy(): void {
+        eventBus.off(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
+        this.scene.scale.off('resize', this.reposition, this);
+        this.reputationTween?.stop();
+        this.reputationTween = null;
+        this.container.destroy(true);
+    }
+
+    private reposition(): void {
+        const y = this.scene.scale.height
+            - this.config.reputationBarMargin
+            - this.config.reputationBarHeight / 2;
+        const x = this.scene.scale.width - this.config.reputationBarMargin - this.config.reputationBarWidth;
+        const trackWidth = this.config.reputationBarWidth - this.config.reputationBarLabelWidth;
+        this.label.setPosition(x + this.config.reputationBarLabelWidth / 2, y);
+        this.labelText.setPosition(x + this.config.reputationBarLabelWidth / 2, y);
+        this.track.setPosition(
+            x + this.config.reputationBarLabelWidth + trackWidth / 2,
+            y,
+        );
+        this.fill.setPosition(x + this.config.reputationBarLabelWidth, y);
+    }
+}

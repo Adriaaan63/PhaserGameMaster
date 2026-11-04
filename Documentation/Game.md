@@ -52,6 +52,10 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 
 
 * **3.2. Game Progression:** No sigue una campaña lineal; la progresión es sistémica y emergente, forjando reputación en el mercado negro de Jabba el Hutt o consiguiendo recompensas imperiales. Al avanzar los días, los ingresos se pueden usar para comprar mejoras de mobiliario o contratar NPCs que automatizan tareas.
+    * **Sistema de Reputación Criminal (Jabba):** A diferencia del *Heat* imperial, que es volátil y se reinicia cada noche, la Reputación es persistente y se mantiene entre los distintos días. El jugador inicia la partida con un nivel de reputación medio (ej. 50/100).
+    * **Fluctuación Diaria:** Atender con éxito los pedidos de los clientes incrementa marginalmente la barra, forjando una fama de local fiable. Por el contrario, ignorar pedidos (que la paciencia llegue a cero y el cliente se marche) reduce levemente la reputación.
+    * **El Peso de la Traición:** El mayor impacto a la reputación ocurre al interactuar con el Imperio. Si el jugador "vende" a un cliente en Busca y Captura (*Wanted*) a una patrulla de *Sandtroopers* y hay otros clientes criminales cerca como testigos, la reputación criminal se desploma severamente.
+    * **Incursión de Jabba:** La reputación persistente comienza en 50/100. Cada pedido satisfecho suma 1 punto y cada pedido abandonado resta 2. Al llegar a 0, los clientes huyen, se detiene temporalmente la generación y los matones destruyen cuatro muebles; al terminar, la reputación se restablece a 20/100.
 
 
 * **3.3. Play Flow:** El bucle principal nocturno sigue los siguientes pasos: Entrada (Detector Droides) ➔ Sentar (Cuidar Afinidad Racial) ➔ Atender (Bebida/Comida/Música) ➔ Cobrar (Evitar Ratas) ➔ Eventos (Peleas / Imperio) ➔ Salida.
@@ -67,6 +71,11 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 ## 4. Mechanics (Key Section)
 
 * **4.1. Rules:**
+* **Reputación Criminal y Respuesta de Jabba:**
+    * La reputación se guarda en el registro global entre noches y nunca se reinicializa mientras exista un valor guardado. Sus límites son 0 y 100.
+    * Un pedido satisfecho aplica `+1`; un pedido abandonado por paciencia aplica `-2`; una futura traición al código criminal aplicará `-25`.
+    * Cuando la reputación llega a 0, se emite `EVENT_JABBA_RAID_STARTED`: todos los clientes abandonan la cantina sin pago, se pausa la generación de nuevos clientes y se prepara la entrada de cuatro matones.
+    * La incursión termina tras contabilizar cuatro muebles destruidos y emite `EVENT_JABBA_RAID_ENDED`. Entonces se reactiva la generación y la reputación queda en 20 para evitar ataques encadenados.
 * **Reglas de Colocación (Modo Pre-Apertura):**
     * El jugador no puede colocar mesas ni sillas en áreas restringidas del mapa: `zonaBarra/Cocina`, `zonaBanda`, `zonaAlmacen`, `zonaColaEntrada`, ni sobre los `spawns` (de Wuher o de Ratas) ni fuera de las paredes delimitadoras de la cantina.
     * Una mesa ocupa 1 o 4 *tiles* (dependiendo del tipo). No puede superponerse a otra mesa, pared o bloque sólido.
@@ -116,11 +125,21 @@ A continuación, se presenta el Documento de Diseño de Juego (Game Design Docum
 * **Reglas de Escalada y Combate en la Cantina:**
     * Si el temporizador de paciencia de dos clientes de razas incompatibles (sentados juntos) llega a cero simultáneamente (o durante la ventana de penalización por proximidad), no abandonan el local pacíficamente. Entran en un estado de **PELEA**.
     * Una pelea es un evento crítico con un temporizador oculto. Si Wuher no interviene a tiempo, la pelea culmina en un golpe letal o disparo de bláster, resultando en un cadáver.
+    *   **Sistema de Heat (Alerta Imperial):** Un medidor oculto lógicamente en el universo, pero representado de forma explícita mediante una barra roja en el margen inferior izquierdo de la pantalla (UI). Rastrea el nivel de conflictividad en la cantina.
+        *   **Acumulación Continua (Peleas):** Cuando dos clientes inician una pelea (`FIGHTING`), el medidor de *Heat* comienza a llenarse lentamente por cada segundo que dura el altercado.
+        *   **Acumulación por Impacto (Muertes):** Si una pelea no se detiene a tiempo y termina en asesinato (`EVENT_CLIENT_MURDERED`), se aplica una penalización instantánea masiva al medidor de *Heat*, simbolizando el estruendo de un bláster letal.
+        *   **Decaimiento Pasivo (Cooldown):** Si la cantina está en paz (ningún cliente peleando), el medidor de *Heat* disminuye gradualmente de forma constante tras unos segundos de gracia. Esto permite al jugador recuperarse si mantiene la calma durante un buen rato.
+        *   **Clímax (Incursión Imperial):** Si la barra roja llega al 100% (o al límite numérico parametrizado en el registro) durante la Fase Nocturna, se bloquea el juego y se activa un evento global donde un pelotón de *Sandtroopers* irrumpe en el local, forzando un cierre prematuro del turno y penalizando los ingresos del día.
     * **Consecuencias de la Muerte:**
         1. **Cero Ingresos:** Ninguno de los involucrados paga su cuenta. El asesino abandona inmediatamente el local corriendo por la puerta trasera.
         2. **Daño Colateral:** La silla o mesa involucrada pasa a estado `DESTRUIDO`, inutilizándola por el resto del turno nocturno.
         3. **Suciedad Traumática:** Un cadáver y un charco de sangre ocupan los *tiles*. Los clientes evitarán sentarse cerca y su paciencia bajará más rápido por el asco/miedo, hasta que Wuher limpie la zona.
         4. **Heat (Alerta Imperial):** incrementa drásticamente la "Barra de Alerta Imperial" de la noche.
+* **Reglas de Consecuencia de Reputación (La Visita de Jabba):**
+    * Si la barra de Reputación llega a cero (0%), se activa de inmediato un evento punitivo.
+    * **Pánico General:** Todos los clientes que estén sentados o en la cola pasan a estado `FLEEING`. Abandonan inmediatamente sus pedidos y corren hacia la puerta trasera para huir de la cantina, dejando el local vacío y deteniendo la generación (`spawn`) de nuevos clientes.
+    * **El Escarmiento:** Cuatro NPCs (Matones de Jabba) entran por la puerta principal. Tienen un único objetivo: destrozar el local.
+    * **Condición de Finalización:** Los matones buscarán muebles colocados (mesas y sillas) y los atacarán hasta pasar su estado a `DESTRUIDO`. Una vez que el contador interno de muebles destrozados por los matones llegue a 4, estos se retirarán satisfechos por la misma puerta. Solo entonces se reanudará el spawn normal de clientes (si aún queda tiempo en la noche).
 
 * Si el jugador muere en la incursión exterior, pierde el botín recolectado.
 
@@ -419,9 +438,17 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
             * Tan pronto como un cliente se sienta, aparece sobre su cabeza un **globo o bocadillo cuadrado** (similar al estilo de *Meadgard*).
             * En el centro de este cuadrado se renderiza un icono que identifica claramente lo que desea (ej. un filete para Comida, una jarra para Bebida).
             * **Paciencia Dinámica Integrada:** El fondo de este bocadillo cuadrado, actúa como el temporizador visual. Se vacía progresivamente (como una barra vertical de color) cambiando de Verde a Rojo, indicando al jugador exactamente cuánto tiempo le queda para completar ese servicio específico antes de fracasar.
+        * **Feedback Visual de Pelea:** Sobre las cabezas de los clientes en disputa aparece un globo de diálogo grande o una nube estilo cómic (bocadillo temblando con símbolos de insultos, polvo y golpes) para avisar al jugador de que la crisis es inminente y requiere su atención inmediata.
+            * **Aura de Miedo/Asco:** Una sutil viñeta o tintado en el suelo alrededor de un cadáver que indica visualmente el área de efecto (AOE) donde los nuevos clientes se negarán a sentarse.
 
-    * **Feedback Visual de Pelea:** Sobre las cabezas de los clientes en disputa aparece un globo de diálogo grande o una nube estilo cómic (bocadillo temblando con símbolos de insultos, polvo y golpes) para avisar al jugador de que la crisis es inminente y requiere su atención inmediata.
-        * **Aura de Miedo/Asco:** Una sutil viñeta o tintado en el suelo alrededor de un cadáver que indica visualmente el área de efecto (AOE) donde los nuevos clientes se negarán a sentarse.
+    **E. Barra Inferior de Alerta Imperial:**
+    *   Ubicada en el margen inferior izquierdo de la pantalla, fijada en el layout de `UIScene`.
+    *   Consiste en un contenedor con marco metálico oscuro, una etiqueta roja con la leyenda `IMPERIO` y una barra de progreso interior (color rojo sangre) que se llena de izquierda a derecha. Se actualiza dinámicamente según el estado del `ThreatManager`.
+    *   En el margen inferior derecho se muestra la barra amarilla `REPUTACIÓN`, que representa la reputación criminal persistente ante Jabba. Se actualiza al completar o perder pedidos y reacciona visualmente a la incursión de matones.
+
+    **F. Barra Inferior de Reputación Criminal:**
+    * Ubicada en el margen inferior derecho de la pantalla (simétrica a la del Imperio), fijada en el layout de `UIScene`.
+    * Consiste en un contenedor con marco metálico oscuro, una etiqueta dorada/amarilla con la leyenda `REPUTACIÓN` y una barra de progreso interior (color amarillo) que se llena de izquierda a derecha. Se lee del registro y se mantiene constante al iniciar cada noche.
 
 * **9.1.2. Menus:** 
     * El "Libro de Gestión" donde se elige el menú y las mejoras antes de la apertura. Menú a pantalla completa (o *overlay* grande) accesible antes de iniciar el turno nocturno. En él, el jugador decide qué tipos de bebidas cargar en los tanques (`zonaCocina`), selecciona qué comidas estarán disponibles (basándose en los recursos del almacén) y gestiona los contratos del personal extra.

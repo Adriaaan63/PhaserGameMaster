@@ -114,6 +114,9 @@ export class ClientManager {
         this.clients.add(client);
         this.collisionGroup.add(client);
         client.once('queue-abandoned', () => this.fadeClientOut(client));
+        client.once('queue-abandoned', () => {
+            eventBus.emit(EVENT_CLIENT_LEAVING, { clientId: client.clientId });
+        });
         client.once('exited', () => this.fadeClientOut(client));
         client.once('leaving', () => {
             const data: ClientLeavingData = { clientId: client.clientId };
@@ -150,6 +153,10 @@ export class ClientManager {
 
     public getWaitingClients(): readonly Client[] {
         return [...this.clients].filter((client) => client.clientState === 'WAITING_IN_LINE');
+    }
+
+    public getClients(): readonly Client[] {
+        return [...this.clients];
     }
 
     public getClientById(clientId: number): Client | null {

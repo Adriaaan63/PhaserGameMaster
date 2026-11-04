@@ -36,6 +36,10 @@ export const EVENT_FIGHT_STARTED = 'fight:started';
 export const EVENT_FIGHT_STOPPED = 'fight:stopped';
 export const EVENT_CLIENT_MURDERED = 'client:murdered';
 export const EVENT_HEAT_UPDATED = 'threat:heat-updated';
+export const EVENT_IMPERIAL_RAID = 'threat:imperial-raid';
+export const EVENT_REPUTATION_UPDATED = 'reputation:updated';
+export const EVENT_JABBA_RAID_STARTED = 'reputation:jabba-raid-started';
+export const EVENT_JABBA_RAID_ENDED = 'reputation:jabba-raid-ended';
 export const EVENT_DEAD_BODY_CREATED = 'aftermath:dead-body-created';
 export const EVENT_DEAD_BODY_CLEANED = 'aftermath:dead-body-cleaned';
 export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
@@ -92,6 +96,13 @@ export interface HeatUpdatedData {
     readonly currentHeat: number;
     readonly addedHeat: number;
 }
+export interface ImperialRaidData { readonly heat: number; }
+export interface ReputationUpdatedData {
+    readonly currentReputation: number;
+    readonly change: number;
+}
+export interface JabbaRaidStartedData { readonly reputation: number; }
+export interface JabbaRaidEndedData { readonly destroyedFurnitureCount: number; }
 export interface DeadBodyData {
     readonly tileX: number;
     readonly tileY: number;
