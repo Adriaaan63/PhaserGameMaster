@@ -14,6 +14,7 @@ import {
 import {
     EVENT_CREDITS_UPDATED,
     EVENT_FOOD_STOCK_UPDATED,
+    EVENT_SHOP_FOOD_PURCHASED,
     EVENT_GAME_WARNING,
     EVENT_GLASSES_UPDATED,
     EVENT_SCRAPS_UPDATED,
@@ -155,6 +156,7 @@ export class ShopUI {
                 const stock = this.readNumber('foodStock', 0) + 1;
                 this.scene.registry.set('foodStock', stock);
                 eventBus.emit(EVENT_FOOD_STOCK_UPDATED, { stock });
+                eventBus.emit(EVENT_SHOP_FOOD_PURCHASED);
                 return true;
             }
             case 'SCRAP': {
@@ -207,6 +209,12 @@ export class ShopUI {
     }
 
     private close(): void {
+        if (this.scene.registry.get('requireFoodPurchase') === true) {
+            eventBus.emit(EVENT_GAME_WARNING, {
+                message: 'Debes comprar comida antes de cerrar la tienda.',
+            });
+            return;
+        }
         eventBus.emit(EVENT_TOGGLE_MATERIALS, { enabled: false });
     }
 

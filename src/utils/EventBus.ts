@@ -23,6 +23,9 @@ export const EVENT_SCRAPS_UPDATED = 'inventory:scraps-updated';
 export const EVENT_GLASSES_UPDATED = 'inventory:glasses-updated';
 export const EVENT_NIGHT_TIMER_UPDATED = 'game:night-timer-updated';
 export const EVENT_NIGHT_ENDED = 'game:night-ended';
+export const EVENT_NIGHT_END_REQUESTED = 'game:night-end-requested';
+export const EVENT_NIGHT_END_READY = 'game:night-end-ready';
+export const EVENT_NIGHT_TRANSITION_COMPLETE = 'game:night-transition-complete';
 export const EVENT_TUTORIAL_STARTED = 'tutorial:started';
 export const EVENT_TUTORIAL_ADVANCE = 'tutorial:advance';
 export const EVENT_TUTORIAL_CLOSED = 'tutorial:closed';
@@ -34,6 +37,7 @@ export const EVENT_TUTORIAL_PAUSE_CHANGED = 'tutorial:pause-changed';
 export const EVENT_NIGHT_FEATURES_CHANGED = 'game:night-features-changed';
 export const EVENT_PLAYER_ACTION_PROGRESS = 'player:action-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
+export const EVENT_SHOP_FOOD_PURCHASED = 'shop:food-purchased';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
@@ -73,7 +77,7 @@ export const EVENT_WANTED_REWARD_GRANTED = 'wanted:reward-granted';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface TutorialButtonHintData {
-    readonly button: 'open';
+    readonly button: 'open' | 'materials' | 'guide';
     readonly visible: boolean;
 }
 export interface ToggleClientGuideData { readonly enabled: boolean; }
@@ -90,6 +94,11 @@ export interface WantedRewardData {
 }
 export interface NightTimerUpdatedData { readonly remainingMs: number; }
 export interface NightEndedData {
+    readonly completedNight: number;
+    readonly nextNight: number;
+    readonly reason: 'TIME' | 'TUTORIAL_CONDITION';
+}
+export interface NightEndRequestedData {
     readonly completedNight: number;
     readonly nextNight: number;
     readonly reason: 'TIME' | 'TUTORIAL_CONDITION';

@@ -1,65 +1,123 @@
-Para integrar esta fantástica mecánica de la banda (que funciona como un "botón de área de efecto" o *AoE* para satisfacer a varios clientes a la vez) y establecer las bases del Gestor de Sonido, debemos actualizar el Documento de Diseño de Juego (GDD).
+## Estado actual
 
-A continuación, te detallo los textos estructurados para que modifiques o añadas a las secciones correspondientes de tu **`Game.md`**:
+### Decisiones tomadas
+
+- Phaser 4 + TypeScript con arquitectura modular.
+- Las escenas orquestan; entidades y managers encapsulan lógica.
+- Comunicación desacoplada mediante `EventBus`.
+- Parámetros centralizados en `GameRegistry.ts`.
+- Tutoriales bloqueantes mediante `TutorialManager` y `TutorialUI`.
+- La música de la Banda Bith funciona como área de efecto para clientes sentados.
+- Las transiciones entre noches deben esperar a resolver clientes, recompensas y música antes de cambiar de noche.
+- El HUD restaura la escala responsive original del icono de apertura calculada en `HUD.ts`.
+
+### Parámetros principales
+
+- Clientes: aparición cada 8 segundos.
+- Cola máxima: 4 clientes.
+- Velocidad de cliente: 72.
+- Peleas: 5 segundos.
+- Pedidos:
+  - Bebida: 52 %.
+  - Comida: 28 %.
+  - Música: 20 %.
+- Paciencia del pedido musical: 30 segundos.
+- Duración de actuación de la banda: 15 segundos.
+- Fade de audio: 700 ms.
+- Volúmenes:
+  - BGM: 0,65.
+  - SFX: 0,8.
+  - UI: 0,75.
+- Máximo de efectos simultáneos por bus: 5.
+- Banda provisional: 4 músicos.
+
+### Arquitectura actual
+
+- Escenas:
+  - `NightCantinaScene.ts`: gameplay y orquestación.
+  - `UIScene`: HUD, tutoriales, tienda y transición.
+  - `PreloadScene`: carga de recursos.
+- Entidades:
+  - Clientes, jugador, monedas, ratas, músicos, matones y soldados.
+- Managers:
+  - Clientes, asientos, pathfinding, peleas, monedas, ratas, banda, audio, tienda, reputación, heat, wanted y progresión.
+- Tutoriales:
+  - `Night1Script.ts`
+  - `Night2Script.ts`
+- Transición:
+  - `NightTransitionUI.ts`
+  - Usa eventos de solicitud, preparación y finalización.
+- HUD:
+  - `HUD.ts`
+  - Gestiona apertura de cantina, materiales, guía, construcción y feedback visual.
+
+### Problemas pendientes
+
+- La nueva transición todavía necesita una prueba manual completa en navegador.
+- Deben verificarse especialmente:
+  - Último cliente con pedido musical.
+  - Banda activa al terminar el tiempo.
+  - Generación de créditos antes de destruir al cliente.
+  - Cambio de `currentNight` únicamente al terminar la pantalla.
+  - Liberación correcta de asientos.
+- Falta confirmar que el audio de la banda se detiene completamente y no queda ningún estado residual.
+- El tutorial de Noche 2 está implementado parcialmente, pero aún necesita validación extremo a extremo.
+- Existe una posible mejora pendiente: sustituir el fallback fijo de posición del cartel Wanted por una referencia directa a la entidad real.
+- El build mantiene el warning preexistente de `MedievalSharp-Regular.ttf`.
+
+Sobre este estado actual hemos arreglado lo siguiente:
+- Analyzed ShopUI.ts:L60-140
+Analyzed ShopUI.ts:L190-239
+Ran check materials toggle in HUD
+Ran check EVENT_GAME_WARNING messages
+Analyzed ShopUI.ts:L30-58
+Analyzed Night2Script.ts:L1-211
+Edited NightCantinaScene.ts
+Editing ShopUI.ts
+Analyzed ShopUI.ts:L205-220
+Editing ShopUI.ts
+Analyzed ShopUI.ts:L208-216
+Editing ShopUI.ts
+Ran check line endings in ShopUI.ts
+Ran normalize line endings to LF
+Edited ShopUI.ts
+Analyzed HUD.ts:L310-325
+Edited HUD.ts
+Edited Night2Script.ts
+Ran verify TypeScript compilation
+Timed 2s
+
+Se han implementado y verificado las siguientes soluciones:
+
+### 1. Garantía de fondos para compra de comida (Bono Tutorial)
+* **Archivo modificado**: [`Night2Script.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/managers/Night2Script.ts).
+* **Comportamiento**: Al iniciar la Noche 2 (`showShopDialog()`), se comprueba el balance de créditos del jugador en el registro. Si dispone de menos de **8 créditos** (el coste de la ración de comida), se le asigna automáticamente un bono de cortesía tutorial estableciendo su balance en **15 créditos**, emitiendo `EVENT_CREDITS_UPDATED` (que refresca el slot del HUD de inmediato) y notificando al jugador con un aviso visual en pantalla (`EVENT_GAME_WARNING`).
 
 ---
 
-### Modificaciones para `Game.md`
-
-#### 4. Mechanics (Key Section)
-
-**Añadir/Modificar en 4.1. Rules (Reglas de Pedidos y Paciencia de Servicio):**
-
-* **Pedidos Globales (La Música):** A diferencia de las bebidas o la comida, que requieren recolección física y entrega individual, el pedido de "Música" funciona como una mecánica de satisfacción en área (AoE).
-* **Resolución Simultánea:** Cuando Wuher activa a la Banda Bith interactuando con el escenario, el pedido de **todos** los clientes sentados en la cantina que hayan solicitado "Música" pasa automáticamente a estado `SATISFIED`.
-* **Tiempo de Disfrute (Delay de salida):** Los clientes satisfechos por la banda no se levantan inmediatamente. Modifican su temporizador interno para quedarse sentados escuchando la actuación completa. Solo cuando termine el bucle de la canción (15 segundos), dejarán su propina y se marcharán hacia la salida.
-* **Bloqueo de Pedido Continuo:** Para mantener la fluidez lógica del juego, si la banda *ya está tocando*, ningún cliente recién sentado podrá generar un pedido de "Música". El sistema forzará a que pidan comida o bebida hasta que la banda termine su turno de 15 segundos y vuelva a estar inactiva.
-
-
-
-**Añadir en 4.7. Actions (Acción Contextual Principal - Tecla `Espacio`):**
-
-* **Con las manos VACÍAS (`State: EMPTY`):**
-* *Frente a la Banda (tiles contiguos a `zonaBanda`):* Al presionar la tecla de Acción (`Espacio`) mirando hacia el escenario, Wuher "paga" o da la señal a los músicos. Esto cambia el estado de la banda a `PLAYING`, activa las animaciones de los 4 sprites tocando sus instrumentos y dispara el evento global para resolver pedidos de música.
-
-
-
-#### 7. Characters
-
-**Añadir en 7.3. Non-combat and Friendly Characters:**
-
-* **Figrin D'an y los Modal Nodes (La Banda Bith):** Cuatro NPCs estáticos colocados en formación sobre la `zonaBanda`. Carecen de IA de *pathfinding* o combate. Tienen dos estados visuales: `IDLE` (afinando instrumentos, quietos) y `PLAYING` (animación sincronizada tocando sus instrumentos de viento y percusión galáctica).
-
-#### 9. Interface (y Audio)
-
-**Sustituir y Ampliar el apartado 9.3. Audio, music, sound effects:**
-
-* **Arquitectura de Audio (Gestor Centralizado - Phaser v4):**
-Para garantizar un rendimiento óptimo y evitar que los sonidos se pisen (especialmente durante peleas o lluvias de monedas), el juego implementa un `AudioManager.ts` (patrón Singleton o Inyectado). Este gestor divide las pistas en tres buses principales (Web Audio API):
-1. `BGM` (Background Music): Música ambiental de la cantina o ruidos de la calle.
-2. `SFX` (Sound Effects): Efectos espaciales interactivos (blásters, clink de monedas, quejas de clientes). Utiliza *pooling* (limita la cantidad máxima de efectos idénticos simultáneos a 3-5) para evitar la saturación de decibelios.
-3. `UI`: Efectos limpios, sin filtros espaciales, para botones, éxito o error en los pedidos.
-
-
-* **El Evento Musical (Cantina Band):**
-El elemento sonoro clave del juego no es música de fondo perpetua, sino un recurso de jugabilidad táctica. Cuando el jugador activa la `zonaBanda`, el `AudioManager` dispara un archivo de audio específico: un bucle perfecto de **15 segundos** del icónico tema de *Star Wars* "Mad About Me" (estilo *Jizz*).
-* **Dinámica:** Mientras suena el bucle, la música general de fondo (si la hubiera) reduce su volumen (*ducking*). Al finalizar los 15 segundos, el clip musical se detiene (con un pequeño y sutil *fade-out*), las animaciones de los músicos cesan y los clientes musicales sueltan su dinero.
-
-
+### 2. Vinculación del Cartel Wanted real y limpieza de punteros
+* **Archivos modificados**:
+  * [`NightCantinaScene.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/scenes/NightCantinaScene.ts#L948-L955): Se reemplazó la búsqueda frágil por zona Tiled por una referencia directa a la propiedad real de la entidad:
+    ```ts
+    const posterTile = this.wantedPoster?.tilePosition
+        ?? this.gridManager.getObjectZoneCenterTiles('cartel')[0]
+        ?? { tileX: 4, tileY: 7 };
+    ```
+  * [`Night2Script.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/managers/Night2Script.ts): Se añadió la limpieza explícita de punteros (`this.tutorial.showPointers([])`) inmediatamente al abrir cada uno de los menús:
+    * Al abrir la Tienda de Materiales (`SHOP_OPEN`).
+    * Al abrir la Guía de Clientes (`GUIDE_OPEN`).
+    * Al interactuar con el Cartel Wanted (`WANTED_OPEN`).
+    * Al activarse los diálogos emergentes de Heat y Reputación.
 
 ---
 
-### Explicación de la Arquitectura de Sonido (Para tener en cuenta al programar)
+### 3. Obligación de compra y corrección de desincronización de la tienda
+* **Archivos modificados**:
+  * [`ShopUI.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/ui/ShopUI.ts#L211-L218): En el método `close()`, antes de emitir el cierre se consulta el flag de registro `requireFoodPurchase`. Si está activo, cancela el cierre y emite el aviso `'Debes comprar comida antes de cerrar la tienda.'`. Esto bloquea tanto el botón 'X' de la ventana como la tecla `ESC`.
+  * [`HUD.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/ui/HUD.ts#L312-L318): Se añade la misma salvaguarda si el jugador pulsa el icono de materiales en la barra superior para forzar el cierre.
+  * [`Night2Script.ts`](file:///d:/MASTER/phaser/PhaserGameMaster/src/managers/Night2Script.ts):
+    * Activa `requireFoodPurchase = true` al entrar en la fase de tienda.
+    * En `handleFoodPurchased()`, desactiva `requireFoodPurchase = false`.
+    * En `handleMaterialsToggled()`, si la tienda se intentara cerrar sin comida comprada, advierte y fuerza la reapertura; si ya se compró comida, transiciona limpiamente a `showGuideDialog()`.
+    * Limpia de forma segura el flag y los timers (`heatTimer`, `reputationTimer`) en `destroy()`.
 
-Cuando le pasemos esta orden a tu agente de IA, le pediremos que cree el `AudioManager.ts`. La estrategia óptima en Phaser para esta mecánica será:
-
-1. **Carga Previa:** Cargar el track de la banda (`cantina_band_loop.mp3` o `.ogg`) en la fase de `preload`.
-2. **EventBus Orientado:** Usar el `EventBus` para emitir un evento `EVENT_BAND_STARTED`.
-3. **Suscripciones Independientes:**
-* El `AudioManager` escucha el evento y da al *play* a la canción.
-* El `ClientManager` escucha el evento, busca qué clientes querían música y les pone un timer de 15,000 milisegundos (`SATISFIED_MUSIC_DELAY`).
-* Un `BandManager` o script de la escena escucha el evento y pone a los 4 sprites a animarse (y bloquea nuevas peticiones mediante un *flag* booleano tipo `isBandPlaying = true`).
-
-
-
-Con este diseño, el código quedará extremadamente limpio y los clientes no necesitarán saber si la banda existe o no; simplemente reaccionarán a los eventos globales, respetando la arquitectura estricta que definiste en `Agent.md`.

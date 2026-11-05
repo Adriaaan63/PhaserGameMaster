@@ -80,6 +80,11 @@ export class SeatingManager {
         this.updateHighlights();
     }
 
+    public clearOccupancy(): void {
+        this.occupied.clear();
+        this.updateHighlights();
+    }
+
     public isOccupied(tileX: number, tileY: number): boolean {
         return this.occupied.has(this.key({ tileX, tileY }));
     }

@@ -54,6 +54,8 @@ import {
     EVENT_CLOSE_WANTED_POSTER,
     EVENT_OPEN_WANTED_POSTER,
     EVENT_NIGHT_ENDED,
+    EVENT_NIGHT_END_REQUESTED,
+    EVENT_NIGHT_END_READY,
     EVENT_TUTORIAL_PAUSE_CHANGED,
     EVENT_NIGHT_FEATURES_CHANGED,
     eventBus,
@@ -144,10 +146,13 @@ export class NightCantinaScene extends Scene {
     private hazardManager!: HazardManager;
     private selectedClient: Client | null = null;
     private cancelAssignmentKey!: Input.Keyboard.Key;
+    private debugNight2Key: Input.Keyboard.Key | null = null;
+    private debugF2Key: Input.Keyboard.Key | null = null;
     private buildModeEnabled = true;
     private isClientGuideOpen = false;
     private isWantedPosterOpen = false;
     private isNightGameplayPaused = false;
+    private nightEnding = false;
     private coinManager!: CoinManager;
     private progressionManager!: ProgressionManager;
     private tutorialManager!: TutorialManager;
@@ -157,6 +162,11 @@ export class NightCantinaScene extends Scene {
 
     public constructor() {
         super('NightCantinaScene');
+    }
+
+    private handleNightEndReady(): void {
+        this.isTutorialPaused = true;
+        this.updateNightGameplayPause();
     }
 
     public init(): void {
@@ -232,6 +242,10 @@ export class NightCantinaScene extends Scene {
             throw new Error('No se encontró el teclado para cancelar la asignación de clientes.');
         }
         this.cancelAssignmentKey = keyboard.addKey(Input.Keyboard.KeyCodes.ESC);
+        this.debugNight2Key = keyboard.addKey(Input.Keyboard.KeyCodes.TWO);
+        this.debugF2Key = keyboard.addKey(Input.Keyboard.KeyCodes.F2);
+        this.debugNight2Key.on('down', () => this.debugJumpToNight(2));
+        this.debugF2Key.on('down', () => this.debugJumpToNight(2));
         this.updatePlayerDepth();
         this.createTestInteractableObjects();
         this.createServiceStations(map);
@@ -307,10 +321,12 @@ export class NightCantinaScene extends Scene {
                 },
             });
         } else if (this.progressionManager.currentNight === 2) {
-            this.night2Script = new Night2Script(this, this.tutorialManager);
+            this.createNight2Script();
         }
         eventBus.on(EVENT_TUTORIAL_PAUSE_CHANGED, this.handleTutorialPauseChanged, this);
         eventBus.on(EVENT_NIGHT_ENDED, this.handleNightEnded, this);
+        eventBus.on(EVENT_NIGHT_END_REQUESTED, this.handleNightEndRequested, this);
+        eventBus.on(EVENT_NIGHT_END_READY, this.handleNightEndReady, this);
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
@@ -350,6 +366,9 @@ export class NightCantinaScene extends Scene {
     }
 
     public update(_time: number, delta: number): void {
+        if (this.nightEnding && !this.isNightGameplayPaused) {
+            this.checkNightEndReady();
+        }
         if (this.isNightGameplayPaused) {
             if (this.buildModeEnabled) this.placementManager.update();
             return;
@@ -650,6 +669,8 @@ export class NightCantinaScene extends Scene {
         eventBus.off(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
         eventBus.off(EVENT_TUTORIAL_PAUSE_CHANGED, this.handleTutorialPauseChanged, this);
         eventBus.off(EVENT_NIGHT_ENDED, this.handleNightEnded, this);
+        eventBus.off(EVENT_NIGHT_END_REQUESTED, this.handleNightEndRequested, this);
+        eventBus.off(EVENT_NIGHT_END_READY, this.handleNightEndReady, this);
     }
 
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
@@ -830,6 +851,14 @@ export class NightCantinaScene extends Scene {
         if (this.cancelAssignmentKey !== undefined) {
             this.input.keyboard?.removeKey(this.cancelAssignmentKey);
         }
+        if (this.debugNight2Key !== null) {
+            this.input.keyboard?.removeKey(this.debugNight2Key);
+            this.debugNight2Key = null;
+        }
+        if (this.debugF2Key !== null) {
+            this.input.keyboard?.removeKey(this.debugF2Key);
+            this.debugF2Key = null;
+        }
         this.clearClientSelection();
         this.fightManager?.destroy();
         this.bandManager?.destroy();
@@ -895,8 +924,29 @@ export class NightCantinaScene extends Scene {
         this.updateNightGameplayPause();
     }
 
-    private handleNightEnded(): void {
+    private handleNightEndRequested(): void {
+        this.nightEnding = true;
         this.clientManager.setEnabled(false);
+        this.isTutorialPaused = false;
+        this.updateNightGameplayPause();
+    }
+
+    private checkNightEndReady(): void {
+        if (this.bandManager.isBandPlaying) return;
+        const pendingMusicRewards = this.clientManager.getClients().some((client) => (
+            client.clientState === 'SATISFIED' && client.orderItemId === 'MUSIC'
+        ));
+        if (pendingMusicRewards) return;
+        this.nightEnding = false;
+        this.progressionManager.completeSafeNightEnd();
+    }
+
+    private handleNightEnded(): void {
+        if (this.progressionManager.currentNight === 2 && this.night2Script === null) {
+            this.createNight2Script();
+        }
+        this.clientManager.setEnabled(false);
+        this.seatingManager.clearOccupancy();
         this.clientManager.clearClients();
         this.placementManager.setEnabled(true);
         eventBus.emit(EVENT_NIGHT_FEATURES_CHANGED, {
@@ -905,7 +955,17 @@ export class NightCantinaScene extends Scene {
         });
         this.wantedPoster?.setVisible(true);
         this.isTutorialPaused = false;
+        this.nightEnding = false;
         this.setBuildModeForPreOpening();
+    }
+
+    private createNight2Script(): void {
+        const posterTile = this.wantedPoster?.tilePosition
+            ?? this.gridManager.getObjectZoneCenterTiles('cartel')[0]
+            ?? { tileX: 4, tileY: 7 };
+        this.night2Script = new Night2Script(this, this.tutorialManager, {
+            wantedPoster: posterTile,
+        });
     }
 
     private setBuildModeForPreOpening(): void {
@@ -946,6 +1006,31 @@ export class NightCantinaScene extends Scene {
 
     private handleDeadBodyChanged(_data: DeadBodyData): void {
         this.seatingManager.refresh();
+    }
+
+    private debugJumpToNight(nightNumber: number): void {
+        this.clearClientSelection();
+        this.tutorialManager?.hide();
+        this.tutorialManager?.showPointers([]);
+        this.night1Script?.destroy();
+        this.night1Script = null;
+        this.night2Script?.destroy();
+        this.night2Script = null;
+        this.nightEnding = false;
+        this.isTutorialPaused = false;
+        this.updateNightGameplayPause();
+
+        this.progressionManager.setNight(nightNumber);
+        this.registry.set('gameMode', GAME_MODE_PRE_OPENING);
+        eventBus.emit(EVENT_GAME_MODE_CHANGED, { mode: GAME_MODE_PRE_OPENING });
+        eventBus.emit(EVENT_NIGHT_ENDED, {
+            completedNight: nightNumber - 1,
+            nextNight: nightNumber,
+            reason: 'TUTORIAL_CONDITION',
+        });
+        eventBus.emit(EVENT_GAME_WARNING, {
+            message: `[DEBUG] Saltando a Noche ${nightNumber}`,
+        });
     }
 
 }

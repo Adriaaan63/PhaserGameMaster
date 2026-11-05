@@ -28,7 +28,19 @@ export class TutorialUI {
     private readonly closeKey: Input.Keyboard.Key;
     private isOpen = false;
     private readonly handlePointerDown = (pointer: Input.Pointer): void => {
-        if (pointer.button === 0 && this.isOpen) eventBus.emit(EVENT_TUTORIAL_ADVANCE);
+        // Only advance tutorial if clicking on the dialog itself
+        if (!this.isOpen) return;
+        // Get dialog bounds and check if click is inside
+        const dialogRect = this.dialog.getBounds();
+        const worldPos = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+        if (
+            worldPos.x >= dialogRect.x - 10 &&
+            worldPos.x <= dialogRect.x + dialogRect.width + 10 &&
+            worldPos.y >= dialogRect.y - 10 &&
+            worldPos.y <= dialogRect.y + dialogRect.height + 10
+        ) {
+            eventBus.emit(EVENT_TUTORIAL_ADVANCE);
+        }
     };
 
     private readonly handleStarted = (data: TutorialStartedData): void => {

@@ -92,11 +92,15 @@ export class TutorialManager {
         this.showPointer(x, y);
     }
 
-    public showButtonHint(button: 'open'): void {
+    public showButtonHint(button: 'open' | 'materials' | 'guide'): void {
         this.stepIndex = -1;
         this.steps = [];
         this.setPaused(false);
         eventBus.emit(EVENT_TUTORIAL_BUTTON_HINT, { button, visible: true });
+    }
+
+    public hideButtonHint(button: 'open' | 'materials' | 'guide'): void {
+        eventBus.emit(EVENT_TUTORIAL_BUTTON_HINT, { button, visible: false });
     }
 
     public pointToWorld(x: number, y: number): void {

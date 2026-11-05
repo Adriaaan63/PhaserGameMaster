@@ -72,7 +72,8 @@ export class HUD {
     private isGuideOpen = false;
     private isGuideEnabled = false;
     private feedbackTween: Tweens.Tween | null = null;
-    private openButtonHintTween: Tweens.Tween | null = null;
+    private readonly buttonHintTweens = new Map<HudSlotId, Tweens.Tween>();
+    private readonly buttonBaseScales = new Map<HudSlotId, number>();
     private feedbackText!: GameObjects.Text;
 
     private readonly onFoodStockUpdatedBound = (data: FoodStockUpdatedData): void => {
@@ -126,24 +127,23 @@ export class HUD {
         this.refreshGuideSlot();
     };
     private readonly onTutorialButtonHintBound = (data: TutorialButtonHintData): void => {
-        if (data.button !== 'open') return;
-        const icon = this.slots.get('open')?.icon;
+        const slot = this.slots.get(data.button);
+        const icon = slot?.icon;
         if (icon === null || icon === undefined) return;
-        this.openButtonHintTween?.stop();
-        this.openButtonHintTween = null;
-        if (!data.visible) {
-            icon.setScale(1).setAlpha(1);
-            return;
-        }
-        this.openButtonHintTween = this.scene.tweens.add({
+        this.stopButtonHint(data.button);
+        if (!data.visible) return;
+
+        const baseScale = this.buttonBaseScales.get(data.button) ?? icon.scaleX;
+        const tween = this.scene.tweens.add({
             targets: icon,
-            scale: 1.2,
+            scale: baseScale * 1.25,
             alpha: 0.55,
             duration: 450,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.InOut',
         });
+        this.buttonHintTweens.set(data.button, tween);
     };
     private readonly onTutorialPauseChangedBound = (data: TutorialPauseChangedData): void => {
         if (data.paused) {
@@ -210,8 +210,9 @@ export class HUD {
             this.feedbackTween.stop();
             this.feedbackTween = null;
         }
-        this.openButtonHintTween?.stop();
-        this.openButtonHintTween = null;
+        for (const id of [...this.buttonHintTweens.keys()]) {
+            this.stopButtonHint(id);
+        }
         this.barContainer.destroy(true);
         this.feedbackText.destroy();
         this.slots.clear();
@@ -301,15 +302,15 @@ export class HUD {
 
     private handleSlotPressed(id: HudSlotId): void {
         switch (id) {
-            case 'guide': {
-                if (!this.isGuideEnabled) return;
-                this.isGuideOpen = !this.isGuideOpen;
-                const data: ToggleClientGuideData = { enabled: this.isGuideOpen };
-                eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, data);
-                break;
-            }
             case 'materials': {
                 if (!this.isMaterialsEnabled) return;
+                this.stopButtonHint('materials');
+                if (this.isMaterialsOpen && this.scene.registry.get('requireFoodPurchase') === true) {
+                    eventBus.emit(EVENT_GAME_WARNING, {
+                        message: 'Debes comprar comida antes de cerrar la tienda.',
+                    });
+                    return;
+                }
                 this.isMaterialsOpen = !this.isMaterialsOpen;
                 const data: ToggleMaterialsData = { enabled: this.isMaterialsOpen };
                 eventBus.emit(EVENT_TOGGLE_MATERIALS, data);
@@ -317,14 +318,25 @@ export class HUD {
                 break;
             }
             case 'build': {
+                this.stopButtonHint('build');
                 this.isBuildModeEnabled = !this.isBuildModeEnabled;
                 const data: BuildModeToggledData = { enabled: this.isBuildModeEnabled };
                 eventBus.emit(EVENT_TOGGLE_BUILD_MODE, data);
                 this.refreshBuildModeSlot();
                 break;
             }
+            case 'guide': {
+                if (!this.isGuideEnabled) return;
+                this.stopButtonHint('guide');
+                this.isGuideOpen = !this.isGuideOpen;
+                const data: ToggleClientGuideData = { enabled: this.isGuideOpen };
+                eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, data);
+                this.showFeedback(this.isGuideOpen ? 'GUÍA ABIERTA' : 'GUÍA CERRADA');
+                break;
+            }
             case 'open': {
                 if (!this.isOpenButtonVisible()) return;
+                this.stopButtonHint('open');
                 this.setBuildMode(false);
                 eventBus.emit(EVENT_CANTINA_OPEN);
                 break;
@@ -394,6 +406,20 @@ export class HUD {
 
     private isOpenButtonVisible(): boolean {
         return this.slots.get('open')?.container.visible ?? false;
+    }
+
+    private stopButtonHint(id: HudSlotId): void {
+        const tween = this.buttonHintTweens.get(id);
+        if (tween !== undefined) {
+            tween.stop();
+            this.buttonHintTweens.delete(id);
+        }
+        const baseScale = this.buttonBaseScales.get(id) ?? 1;
+        this.slots.get(id)?.icon?.setScale(baseScale).setAlpha(1);
+    }
+
+    private stopOpenButtonHint(): void {
+        this.stopButtonHint('open');
     }
 
     private isTutorialNight(): boolean {
@@ -484,8 +510,10 @@ export class HUD {
                 );
             if (slot.icon instanceof GameObjects.Image) {
                 slot.icon.setDisplaySize(iconSize, iconSize);
+                this.buttonBaseScales.set(id, slot.icon.scaleX);
             } else if (slot.icon instanceof GameObjects.Ellipse) {
                 slot.icon.setScale(iconSize / this.feedbackConfig.coinIconBaseSize);
+                this.buttonBaseScales.set(id, slot.icon.scaleX);
             }
             slot.value.setPosition(valueX, 0).setFontSize(`${this.getResponsiveValueFontSize(id, slotWidth)}px`);
             slot.hitArea

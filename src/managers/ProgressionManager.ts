@@ -11,9 +11,13 @@ import {
     EVENT_CLIENT_SATISFIED,
     EVENT_GAME_MODE_CHANGED,
     EVENT_NIGHT_ENDED,
+    EVENT_NIGHT_END_REQUESTED,
+    EVENT_NIGHT_END_READY,
+    EVENT_NIGHT_TRANSITION_COMPLETE,
     EVENT_NIGHT_TIMER_UPDATED,
     GAME_MODE_PRE_OPENING,
     type ClientSatisfiedData,
+    type NightEndRequestedData,
 } from '../utils/EventBus';
 
 /** Owns the persistent five-night progression and the active night timer. */
@@ -23,6 +27,8 @@ export class ProgressionManager {
     private satisfiedClients = 0;
     private nightActive = false;
     private nightFinished = false;
+    private pendingEnd: NightEndRequestedData | null = null;
+    private safeEndReady = false;
 
     private readonly handleSatisfied = (_data: ClientSatisfiedData): void => {
         if (!this.nightActive || this.currentNight !== 1) return;
@@ -46,6 +52,7 @@ export class ProgressionManager {
             : registry.progression.startingNight;
         scene.registry.set(CURRENT_NIGHT_REGISTRY_KEY, currentNight);
         eventBus.on(EVENT_CLIENT_SATISFIED, this.handleSatisfied);
+        eventBus.on(EVENT_NIGHT_TRANSITION_COMPLETE, this.handleTransitionComplete);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
     }
@@ -60,6 +67,23 @@ export class ProgressionManager {
 
     public get difficulty() {
         return getNightDifficulty(this.currentNight, this.registry);
+    }
+
+    public setNight(nightNumber: number): void {
+        this.timer?.remove(false);
+        this.timer = null;
+        this.nightActive = false;
+        this.nightFinished = false;
+        this.pendingEnd = null;
+        this.safeEndReady = false;
+        this.satisfiedClients = 0;
+        this.remainingMs = this.registry.progression.nightDurationMs;
+        const clampedNight = PhaserMath.Clamp(
+            Math.floor(nightNumber),
+            this.registry.progression.startingNight,
+            this.registry.progression.finalNight,
+        );
+        this.scene.registry.set(CURRENT_NIGHT_REGISTRY_KEY, clampedNight);
     }
 
     public startNight(): void {
@@ -81,6 +105,7 @@ export class ProgressionManager {
 
     public destroy(): void {
         eventBus.off(EVENT_CLIENT_SATISFIED, this.handleSatisfied);
+        eventBus.off(EVENT_NIGHT_TRANSITION_COMPLETE, this.handleTransitionComplete);
         this.timer?.remove(false);
     }
 
@@ -95,11 +120,25 @@ export class ProgressionManager {
         if (!this.nightActive || this.nightFinished) return;
         this.nightFinished = true;
         this.nightActive = false;
+        this.timer?.remove(false);
+        this.timer = null;
+        const nextNight = Math.min(this.registry.progression.finalNight, this.currentNight + 1);
+        this.pendingEnd = { completedNight: this.currentNight, nextNight, reason };
+        eventBus.emit(EVENT_NIGHT_END_REQUESTED, this.pendingEnd);
+    }
+
+    public completeSafeNightEnd(): void {
+        if (this.pendingEnd === null || this.safeEndReady) return;
+        this.safeEndReady = true;
+        eventBus.emit(EVENT_NIGHT_END_READY, this.pendingEnd);
+    }
+
+    private readonly handleTransitionComplete = (): void => {
+        if (this.pendingEnd === null) return;
         const completedNight = this.currentNight;
-        const nextNight = Math.min(
-            this.registry.progression.finalNight,
-            completedNight + 1,
-        );
+        const { nextNight, reason } = this.pendingEnd;
+        this.pendingEnd = null;
+        this.safeEndReady = false;
         this.scene.registry.set(CURRENT_NIGHT_REGISTRY_KEY, nextNight);
         this.scene.registry.set('gameMode', GAME_MODE_PRE_OPENING);
         eventBus.emit(EVENT_GAME_MODE_CHANGED, { mode: GAME_MODE_PRE_OPENING });

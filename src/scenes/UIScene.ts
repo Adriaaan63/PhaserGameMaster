@@ -7,6 +7,7 @@ import { ReputationBarUI } from '../ui/ReputationBarUI';
 import { WantedUI } from '../ui/WantedUI';
 import { ShopUI } from '../ui/ShopUI';
 import { TutorialUI } from '../ui/TutorialUI';
+import { NightTransitionUI } from '../ui/NightTransitionUI';
 
 /**
  * Scene dedicated exclusively to HUD, overlay dialogs, and UI elements.
@@ -21,6 +22,7 @@ export class UIScene extends Scene {
     private wantedUI!: WantedUI;
     private shopUI!: ShopUI;
     private tutorialUI!: TutorialUI;
+    private nightTransitionUI!: NightTransitionUI;
 
     public constructor() {
         super('UIScene');
@@ -35,6 +37,7 @@ export class UIScene extends Scene {
         this.wantedUI = new WantedUI(this);
         this.shopUI = new ShopUI(this, this.inventoryUI);
         this.tutorialUI = new TutorialUI(this);
+        this.nightTransitionUI = new NightTransitionUI(this);
     }
 
     public update(): void {
