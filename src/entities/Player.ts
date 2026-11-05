@@ -512,13 +512,13 @@ export class Player extends Physics.Arcade.Sprite {
         // Interacción con Parrilla
         if (resolvedStation instanceof Grill) {
             if (resolvedStation.isCooking()) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'La comida se está cocinando...' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Food is being cooked...' });
                 return;
             }
 
             if (resolvedStation.isFoodReady()) {
                 if (this.heldObject !== null) {
-                    eventBus.emit(EVENT_GAME_WARNING, { message: '¡Tienes las manos ocupadas!' });
+                    eventBus.emit(EVENT_GAME_WARNING, { message: 'You have your hands occupied!' });
                     return;
                 }
 
@@ -531,12 +531,12 @@ export class Player extends Physics.Arcade.Sprite {
             }
 
             if (this.heldObject !== null) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: '¡Tienes las manos ocupadas para cocinar!' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'You have your hands occupied for cooking!' });
                 return;
             }
 
             if (!resolvedStation.canStartCooking()) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: '¡No quedan ingredientes para cocinar!' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'No ingredients left to cook!' });
                 return;
             }
 
@@ -548,28 +548,28 @@ export class Player extends Physics.Arcade.Sprite {
         if (resolvedStation instanceof BeverageTower) {
             if (this.heldObject === null) {
                 eventBus.emit(EVENT_GAME_WARNING, {
-                    message: 'Necesitas traer un vaso vacío para llenarlo.',
+                    message: 'You need to bring an empty glass to fill it.',
                 });
                 return;
             }
 
             if (this.heldObject.isFoodPlate()) {
                 eventBus.emit(EVENT_GAME_WARNING, {
-                    message: 'No puedes llenar comida en la torre de bebidas.',
+                    message: 'You cannot put food in the beverage tower.',
                 });
                 return;
             }
 
             if (this.heldObject.isFilledCup()) {
                 eventBus.emit(EVENT_GAME_WARNING, {
-                    message: 'Esta bebida ya está llena.',
+                    message: 'This drink is already full.',
                 });
                 return;
             }
 
             if (this.heldObject.isEmptyCup()) {
                 eventBus.emit(EVENT_GAME_WARNING, {
-                    message: 'Mantén ESPACIO para llenar la jarra.',
+                    message: 'Hold SPACE to fill the jug.',
                 });
                 return;
             }

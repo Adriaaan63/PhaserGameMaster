@@ -152,7 +152,7 @@ export class Client extends GameObjects.Container {
             registry.combat.fightBubbleBorderColor,
             1,
         );
-        const fightLabel = scene.add.text(0, 0, '¡PELEA!', {
+        const fightLabel = scene.add.text(0, 0, 'FIGHT!', {
             fontFamily: 'monospace',
             fontSize: `${registry.combat.fightBubbleFontSize}px`,
             color: `#${registry.combat.fightBubbleTextColor.toString(16).padStart(6, '0')}`,

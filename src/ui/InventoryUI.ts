@@ -278,7 +278,7 @@ export class InventoryUI {
 
     private createBottomBar(): void {
         this.barBackground = this.scene.add.image(0, 0, UI_HUD_FRAME_KEY).setAlpha(0.96);
-        this.barTitle = this.scene.add.text(0, -BAR_HEIGHT / 2 + 7, 'INVENTARIO - MOBILIARIO', {
+        this.barTitle = this.scene.add.text(0, -BAR_HEIGHT / 2 + 7, 'INVENTORY - FURNITURE', {
             fontFamily: 'monospace',
             fontSize: '9px',
             color: '#bfa068',
@@ -393,14 +393,14 @@ export class InventoryUI {
     }
 
     private createAffinityGuidePanel(): void {
-        const title = this.scene.add.text(0, -GUIDE_PANEL_HEIGHT / 2 + 34, 'GUÍA DE CLIENTES', {
+        const title = this.scene.add.text(0, -GUIDE_PANEL_HEIGHT / 2 + 34, 'CLIENT GUIDE', {
             fontFamily: 'monospace', fontSize: '20px', color: '#ffd166',
             stroke: '#241e18', strokeThickness: 3,
         }).setOrigin(0.5);
         const hint = this.scene.add.text(
             0,
             GUIDE_PANEL_HEIGHT / 2 - 24,
-            'Pulsa GUÍA DE CLIENTES para cerrar',
+            'Press CLIENT GUIDE to close',
             { fontFamily: 'monospace', fontSize: '10px', color: '#c8b99f' },
         ).setOrigin(0.5);
         const linesGraphics = this.scene.add.graphics();

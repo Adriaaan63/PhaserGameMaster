@@ -129,7 +129,7 @@ export class TutorialUI {
             fontFamily: 'monospace',
             fontSize: '16px',
             color: '#f4ede2',
-            wordWrap: { width: Math.min(width - 96, 650) },
+            wordWrap: { width: Math.min(width - 96, 800) },
             align: 'center',
         }).setOrigin(0.5);
         const hint = scene.add.text(0, 44, '[Left Click] Continue', {

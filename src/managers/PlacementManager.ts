@@ -157,7 +157,7 @@ export class PlacementManager {
      */
     public removeFurnitureAt(tileX: number, tileY: number): boolean {
         if (this.gridManager.isFurnitureDestroyed(tileX, tileY)) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'El mueble está destruido y requiere reparación diurna.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'The furniture is destroyed and requires daytime repair.' });
             return false;
         }
         // The GridManager entry knows the root tile; look it up.
@@ -175,7 +175,7 @@ export class PlacementManager {
             )
         ) {
             eventBus.emit(EVENT_GAME_WARNING, {
-                message: 'No puedes retirar una silla reservada por un cliente sentado o en camino.',
+                message: 'You cannot remove a chair reserved by a seated or en route client.',
             });
             return false;
         }
@@ -232,7 +232,7 @@ export class PlacementManager {
     /** Repairs furniture during the day by spending the configured scrap cost. */
     public repairFurnitureAt(tileX: number, tileY: number): boolean {
         if (this.scene.registry.get('gameMode') !== GAME_MODE_DAY) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'Los muebles solo se reparan durante el día.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Furniture can only be repaired during the day.' });
             return false;
         }
         if (!this.gridManager.isFurnitureDestroyed(tileX, tileY)) return false;
@@ -241,7 +241,7 @@ export class PlacementManager {
         const scraps = typeof storedScraps === 'number' ? storedScraps : 0;
         const cost = GAME_REGISTRY.repairs.scrapsPerFurniture;
         if (scraps < cost) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'No tienes suficiente chatarra para reparar este mueble.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'You don\'t have enough scrap to repair this furniture.' });
             return false;
         }
         if (!this.gridManager.repairFurniture(tileX, tileY)) return false;

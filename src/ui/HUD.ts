@@ -81,22 +81,22 @@ export class HUD {
     };
     private readonly onGameModeChangedBound = (data: GameModeChangedData): void => {
         this.updatePhase(data.mode);
-        if (data.mode === GAME_MODE_NIGHT) this.showFeedback('¡CANTINA ABIERTA!');
-        if (data.mode === GAME_MODE_DAY) this.showFeedback('FASE DIURNA');
+        if (data.mode === GAME_MODE_NIGHT) this.showFeedback('CANTINA OPEN!');
+        if (data.mode === GAME_MODE_DAY) this.showFeedback('DAY PHASE');
     };
     private readonly onWarningBound = (data: GameWarningData): void => {
         this.showFeedback(data.message, true);
     };
     private readonly onCoinCollectedBound = (data: CoinCollectedData): void => {
         this.setSlotValue('credits', `${data.totalCredits}`);
-        this.showFeedback(`+${data.value} CRÉDITOS`);
+        this.showFeedback(`+${data.value} CREDITS`);
     };
     private readonly onCreditsUpdatedBound = (data: CreditsUpdatedData): void => {
         this.setSlotValue('credits', `${data.totalCredits}`);
     };
     private readonly onWantedRewardBound = (data: WantedRewardData): void => {
         this.setSlotValue('credits', `${data.totalCredits}`);
-        this.showFeedback(`+${data.rewardCredits} CRÉDITOS`);
+        this.showFeedback(`+${data.rewardCredits} CREDITS`);
     };
     private readonly onNightTimerUpdatedBound = (data: NightTimerUpdatedData): void => {
         this.setSlotValue('time', this.formatTime(data.remainingMs));
@@ -307,14 +307,14 @@ export class HUD {
                 this.stopButtonHint('materials');
                 if (this.isMaterialsOpen && this.scene.registry.get('requireFoodPurchase') === true) {
                     eventBus.emit(EVENT_GAME_WARNING, {
-                        message: 'Debes comprar comida antes de cerrar la tienda.',
+                        message: 'You must buy food before closing the store.',
                     });
                     return;
                 }
                 this.isMaterialsOpen = !this.isMaterialsOpen;
                 const data: ToggleMaterialsData = { enabled: this.isMaterialsOpen };
                 eventBus.emit(EVENT_TOGGLE_MATERIALS, data);
-                this.showFeedback(this.isMaterialsOpen ? 'TIENDA ABIERTA' : 'PANEL CERRADO');
+                this.showFeedback(this.isMaterialsOpen ? 'SHOP OPEN' : 'SHOP CLOSED');
                 break;
             }
             case 'build': {
@@ -331,7 +331,7 @@ export class HUD {
                 this.isGuideOpen = !this.isGuideOpen;
                 const data: ToggleClientGuideData = { enabled: this.isGuideOpen };
                 eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, data);
-                this.showFeedback(this.isGuideOpen ? 'GUÍA ABIERTA' : 'GUÍA CERRADA');
+                this.showFeedback(this.isGuideOpen ? 'GUIDE OPEN' : 'GUIDE CLOSED');
                 break;
             }
             case 'open': {
@@ -385,8 +385,8 @@ export class HUD {
     private updatePhase(mode: GameModeChangedData['mode']): void {
         this.onTutorialButtonHintBound({ button: 'open', visible: false });
         const phaseName = mode === 'PRE_APERTURA'
-            ? 'PRE-APERTURA'
-            : mode === GAME_MODE_NIGHT ? 'NOCTURNA' : 'DÍA';
+            ? 'PRE-OPPENING'
+            : mode === GAME_MODE_NIGHT ? 'NIGHT' : 'DAY';
         this.setSlotValue('phase', phaseName);
         this.setSlotValue('time', '--:--');
         const tutorialSystemsVisible = this.isTutorialNight();

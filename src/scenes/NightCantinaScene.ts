@@ -379,7 +379,7 @@ export class NightCantinaScene extends Scene {
         }
         if (this.selectedClient !== null && cancelSelectionPressed) {
             this.clearClientSelection();
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'Asignación cancelada.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Assignment cancelled.' });
         }
         this.player.update(delta);
         this.updatePlayerDepth();
@@ -635,7 +635,7 @@ export class NightCantinaScene extends Scene {
 
         if (tableCount < 1 || chairCount < 2) {
             eventBus.emit(EVENT_GAME_WARNING, {
-                message: 'Necesitas 1 mesa y 2 sillas para abrir.',
+                message: 'You need 1 table and 2 chairs to open.',
             });
             return;
         }
@@ -681,15 +681,15 @@ export class NightCantinaScene extends Scene {
 
         if (this.bandManager.isInteractionTile(tileX, tileY)) {
             if (this.player.getHeldObjectType() !== null) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para dar la señal a la banda.' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Leave the object to give the signal to the band.' });
                 return true;
             }
             this.clearClientSelection();
             if (!this.bandManager.startPerformance()) {
                 eventBus.emit(EVENT_GAME_WARNING, {
                     message: this.bandManager.isBandPlaying
-                        ? 'La banda ya está tocando.'
-                        : 'La banda no está disponible en este escenario.',
+                        ? 'The band is already playing.'
+                        : 'The band is not available in this scenario.',
                 });
             }
             return true;
@@ -697,7 +697,7 @@ export class NightCantinaScene extends Scene {
 
         if (this.deadBodyManager.hasBodyAt(tileX, tileY)) {
             if (this.player.getHeldObjectType() !== null) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para limpiar el cadáver.' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Leave the object to clean the corpse.' });
             }
             return true;
         }
@@ -708,7 +708,7 @@ export class NightCantinaScene extends Scene {
         const fightingClient = this.clientManager.getFightingClientAt(tileX, tileY);
         if (fightingClient !== null) {
             if (this.player.getHeldObjectType() !== null) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'Deja el objeto para separar la pelea.' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'Leave the object to separate the fight.' });
                 return true;
             }
             return this.fightManager.intervene(fightingClient.clientId);
@@ -718,7 +718,7 @@ export class NightCantinaScene extends Scene {
         const heldItemType = this.player.getHeldObjectType();
         if (orderClient !== null && heldItemType !== null) {
             if (orderClient.orderItemId !== heldItemType) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'Ese cliente pidió otra cosa.' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'That client asked for something else.' });
                 return true;
             }
 
@@ -726,7 +726,7 @@ export class NightCantinaScene extends Scene {
                 return true;
             }
 
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'No se pudo entregar el pedido.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Order could not be delivered.' });
             return true;
         }
 
@@ -736,7 +736,7 @@ export class NightCantinaScene extends Scene {
         );
         if (client === undefined) return false;
         if (this.seatingManager.getValidChairs().length === 0) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'No hay sillas libres para este cliente.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'No free chairs for this client.' });
             return true;
         }
         this.selectedClient = client;
@@ -785,12 +785,12 @@ export class NightCantinaScene extends Scene {
             if (this.seatingManager.getValidChairs().length === 0) {
                 this.clearClientSelection();
                 eventBus.emit(EVENT_GAME_WARNING, {
-                    message: 'Ya no quedan sillas libres. Asignación cancelada.',
+                    message: 'No free chairs left. Assignment cancelled.',
                 });
                 return true;
             }
             if (this.seatingManager.isChair(tileX, tileY)) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'Esa silla está inactiva u ocupada.' });
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'That chair is inactive or occupied.' });
                 return true;
             }
             return false;
@@ -811,7 +811,7 @@ export class NightCantinaScene extends Scene {
         if (!client.assignRoute(route)) {
             this.seatingManager.release(client.clientId, tileX, tileY);
             this.clearClientSelection();
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'El cliente ya no puede recibir una silla.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'The client can no longer receive a chair.' });
             return true;
         }
         this.clearClientSelection();
@@ -1029,7 +1029,7 @@ export class NightCantinaScene extends Scene {
             reason: 'TUTORIAL_CONDITION',
         });
         eventBus.emit(EVENT_GAME_WARNING, {
-            message: `[DEBUG] Saltando a Noche ${nightNumber}`,
+            message: '[DEBUG] Skipping to Night ' + nightNumber,
         });
     }
 

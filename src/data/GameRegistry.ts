@@ -102,10 +102,10 @@ export interface ProgressionConfig {
 export const CLIENT_RACE_PRESENTATION: Readonly<Record<ClientRace, ClientRacePresentation>> = {
     [ClientRace.HUMAN]: { label: 'Human', placeholderColor: 0xb88452 },
     [ClientRace.WOOKIEE]: { label: 'Wookiee', placeholderColor: 0x79543b },
-    [ClientRace.TRANDOSHAN]: { label: 'Trandoshano', placeholderColor: 0x87933f },
-    [ClientRace.RODIAN]: { label: 'Rodiano', placeholderColor: 0x42a34b },
+    [ClientRace.TRANDOSHAN]: { label: 'Trandoshan', placeholderColor: 0x87933f },
+    [ClientRace.RODIAN]: { label: 'Rodian', placeholderColor: 0x42a34b },
     [ClientRace.AQUALISH]: { label: 'Aqualish', placeholderColor: 0x536f83 },
-    [ClientRace.ITHORIAN]: { label: 'Ithoriano', placeholderColor: 0xb48272 },
+    [ClientRace.ITHORIAN]: { label: 'Ithorian', placeholderColor: 0xb48272 },
 };
 
 /** Selects a client archetype from the immutable race list. */

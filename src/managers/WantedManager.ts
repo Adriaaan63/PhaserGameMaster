@@ -27,11 +27,11 @@ import { PathfindingManager } from './PathfindingManager';
 import { ReputationManager } from './ReputationManager';
 
 const WANTED_DETAILS: Readonly<Record<string, readonly string[]>> = {
-    WOOKIEE: ['Lleva una trenza de cuero', 'Tiene una cicatriz en el hombro'],
-    TRANDOSHAN: ['Viste una bandolera roja', 'Tiene una escama dorada'],
-    RODIAN: ['Lleva un sombrero viejo', 'Tiene una antena rota'],
-    AQUALISH: ['Usa un pañuelo azul', 'Tiene una ceja marcada'],
-    ITHORIAN: ['Lleva un collar metálico', 'Tiene una marca en el cuello'],
+    WOOKIEE: ['Wears a leather braid', 'Has a scar on the shoulder'],
+    TRANDOSHAN: ['Wears a red bandolier', 'Has a golden scale'],
+    RODIAN: ['Wears an old hat', 'Has a broken antenna'],
+    AQUALISH: ['Uses a blue scarf', 'Has marked eyebrow'],
+    ITHORIAN: ['Wears a metal collar', 'Has a mark on the neck'],
 };
 
 /** Owns the wanted profile, poster interaction, inspection and its outcomes. */

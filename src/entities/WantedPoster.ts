@@ -19,7 +19,7 @@ export class WantedPoster extends GameObjects.Container {
         const height = 56;
         const paper = scene.add.rectangle(0, 0, width, height, config.posterBackgroundColor)
             .setStrokeStyle(3, config.posterPanelColor);
-        const title = scene.add.text(0, -height / 2 + 8, 'BUSCA', {
+        const title = scene.add.text(0, -height / 2 + 8, 'SEEK', {
             fontFamily: 'monospace',
             fontSize: '9px',
             color: `#${config.posterDetailColor.toString(16).padStart(6, '0')}`,

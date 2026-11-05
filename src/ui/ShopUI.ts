@@ -40,7 +40,7 @@ export class ShopUI {
             && this.scene.registry.get('gameMode') !== GAME_MODE_PRE_OPENING
         ) {
             eventBus.emit(EVENT_GAME_WARNING, {
-                message: 'La tienda solo está disponible durante la Pre-Apertura.',
+                message: 'The store is only available during Pre-Opening.',
             });
             return;
         }
@@ -53,7 +53,7 @@ export class ShopUI {
     ) {
         this.panel = scene.add.rectangle(0, 0, this.config.shopWidth, this.config.shopHeight, this.config.shopPanelColor)
             .setStrokeStyle(3, this.config.shopPanelBorderColor);
-        const title = scene.add.text(0, -this.config.shopHeight / 2 + 28, 'TIENDA DE MATERIALES', {
+        const title = scene.add.text(0, -this.config.shopHeight / 2 + 28, 'SHOP', {
             fontFamily: 'monospace',
             fontSize: '24px',
             color: `#${this.config.shopTextColor.toString(16).padStart(6, '0')}`,
@@ -113,7 +113,7 @@ export class ShopUI {
             color: `#${this.config.shopPriceColor.toString(16).padStart(6, '0')}`,
             fontStyle: 'bold',
         }).setOrigin(0.5);
-        const buy = this.scene.add.text(0, 70, 'COMPRAR', {
+        const buy = this.scene.add.text(0, 70, 'BUY', {
             fontFamily: 'monospace',
             fontSize: '11px',
             color: '#241d0b',
@@ -140,14 +140,14 @@ export class ShopUI {
     private purchase(item: ShopItem): void {
         const credits = this.readNumber(CREDITS_REGISTRY_KEY, 0);
         if (credits < item.price) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'No tienes créditos suficientes.' });
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'You don\'t have enough credits.' });
             return;
         }
         if (!this.routePurchase(item)) return;
         const totalCredits = credits - item.price;
         this.scene.registry.set(CREDITS_REGISTRY_KEY, totalCredits);
         eventBus.emit(EVENT_CREDITS_UPDATED, { totalCredits });
-        eventBus.emit(EVENT_GAME_WARNING, { message: `${item.name} comprado.` });
+        eventBus.emit(EVENT_GAME_WARNING, { message: `${item.name} Purchased.` });
     }
 
     private routePurchase(item: ShopItem): boolean {
@@ -211,7 +211,7 @@ export class ShopUI {
     private close(): void {
         if (this.scene.registry.get('requireFoodPurchase') === true) {
             eventBus.emit(EVENT_GAME_WARNING, {
-                message: 'Debes comprar comida antes de cerrar la tienda.',
+                message: 'You must buy food before closing the store.',
             });
             return;
         }

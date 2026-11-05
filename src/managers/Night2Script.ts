@@ -67,6 +67,13 @@ export class Night2Script {
                 this.tutorial.showButtonHint('guide');
                 this.tutorial.pointToScreen(this.getHudButtonPosition('guide').x, 26);
                 break;
+            case 'GUIDE_OPEN':
+                this.stage = 'AFFINITY_DIALOG';
+                this.affinityDialogShown = true;
+                this.tutorial.showTutorial(
+                    'The affinity wheel shows which species get along. Seating incompatible customers can cause fights, bodies, and blood that make the cantina harder to manage.',
+                );
+                break;
             case 'AFFINITY_DIALOG':
                 this.stage = 'HEAT_HINT';
                 this.tutorial.pointToScreen(this.getHeatPosition().x, this.getHeatPosition().y);
@@ -123,7 +130,7 @@ export class Night2Script {
             if (!this.foodPurchased) {
                 if (!data.enabled) {
                     eventBus.emit(EVENT_GAME_WARNING, {
-                        message: 'Debes comprar comida antes de cerrar la tienda.',
+                        message: 'You must buy food before closing the store.',
                     });
                     this.scene.time.delayedCall(0, () => {
                         eventBus.emit(EVENT_TOGGLE_MATERIALS, { enabled: true });
@@ -221,7 +228,7 @@ export class Night2Script {
             this.scene.registry.set(CREDITS_REGISTRY_KEY, newTotal);
             eventBus.emit(EVENT_CREDITS_UPDATED, { totalCredits: newTotal });
             eventBus.emit(EVENT_GAME_WARNING, {
-                message: '¡Bono de cortesía concedido para el tutorial (+15 CR)!',
+                message: 'Courtesy bonus granted for tutorial (+15 CR)!',
             });
         }
     }

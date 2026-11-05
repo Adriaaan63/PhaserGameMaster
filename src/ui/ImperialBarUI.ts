@@ -61,7 +61,7 @@ export class ImperialBarUI {
             this.config.imperialBarHeight,
             this.config.imperialBarLabelColor,
         );
-        this.labelText = scene.add.text(0, 0, 'IMPERIO', {
+        this.labelText = scene.add.text(0, 0, 'IMPERIUM', {
             fontFamily: 'monospace',
             fontSize: '11px',
             color: `#${this.config.imperialBarTextColor.toString(16).padStart(6, '0')}`,

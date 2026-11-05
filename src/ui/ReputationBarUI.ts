@@ -69,7 +69,7 @@ export class ReputationBarUI {
             this.config.reputationBarHeight,
             this.config.reputationBarLabelColor,
         );
-        this.labelText = scene.add.text(0, 0, 'REPUTACIÓN', {
+        this.labelText = scene.add.text(0, 0, 'REPUTATION', {
             fontFamily: 'monospace',
             fontSize: '11px',
             color: `#${this.config.reputationBarTextColor.toString(16).padStart(6, '0')}`,

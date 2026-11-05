@@ -27,12 +27,12 @@ export class WantedUI {
         const reward = this.overlay.getAt(5);
         if (panel instanceof GameObjects.Rectangle) panel.setFillStyle(GAME_REGISTRY.wanted.posterBackgroundColor);
         if (portrait instanceof GameObjects.Rectangle) portrait.setFillStyle(profile.placeholderColor);
-        if (title instanceof GameObjects.Text) title.setText('BUSCA Y CAPTURA');
+        if (title instanceof GameObjects.Text) title.setText('SEEK AND CAPTURE');
         if (detail instanceof GameObjects.Text) {
-            detail.setText(`RAZA: ${profile.race}\nDETALLE: ${profile.visualDetail}`);
+            detail.setText(`RACE: ${profile.race}\nDETAIL: ${profile.visualDetail}`);
         }
         if (reward instanceof GameObjects.Text) {
-            reward.setText(`RECOMPENSA: ${profile.rewardCredits} CRÉDITOS`);
+            reward.setText(`REWARD: ${profile.rewardCredits} CREDITS`);
         }
     };
 
