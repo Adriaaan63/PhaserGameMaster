@@ -19,9 +19,12 @@ import {
     EVENT_GAME_MODE_CHANGED,
     EVENT_GAME_WARNING,
     EVENT_NIGHT_TIMER_UPDATED,
+    EVENT_NIGHT_FEATURES_CHANGED,
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_TOGGLE_CLIENT_GUIDE,
     EVENT_TOGGLE_MATERIALS,
+    EVENT_TUTORIAL_BUTTON_HINT,
+    EVENT_TUTORIAL_PAUSE_CHANGED,
     GAME_MODE_PRE_OPENING,
     eventBus,
     GAME_MODE_DAY,
@@ -34,8 +37,11 @@ import {
     type GameModeChangedData,
     type GameWarningData,
     type NightTimerUpdatedData,
+    type NightFeaturesData,
     type ToggleClientGuideData,
     type ToggleMaterialsData,
+    type TutorialButtonHintData,
+    type TutorialPauseChangedData,
 } from '../utils/EventBus';
 
 type HudSlotId = 'phase' | 'food' | 'credits' | 'time' | 'guide' | 'materials' | 'build' | 'open';
@@ -64,7 +70,9 @@ export class HUD {
     private isMaterialsEnabled = true;
     private isMaterialsOpen = false;
     private isGuideOpen = false;
+    private isGuideEnabled = false;
     private feedbackTween: Tweens.Tween | null = null;
+    private openButtonHintTween: Tweens.Tween | null = null;
     private feedbackText!: GameObjects.Text;
 
     private readonly onFoodStockUpdatedBound = (data: FoodStockUpdatedData): void => {
@@ -98,8 +106,58 @@ export class HUD {
     private readonly onMaterialsToggledBound = (data: ToggleMaterialsData): void => {
         this.isMaterialsOpen = data.enabled;
     };
+    private readonly onNightFeaturesChangedBound = (data: NightFeaturesData): void => {
+        const tutorialNight = this.isTutorialNight();
+        this.isGuideEnabled = data.clientGuideEnabled && !tutorialNight;
+        this.isMaterialsEnabled = data.advancedSystemsEnabled
+            && this.scene.registry.get('gameMode') === GAME_MODE_PRE_OPENING
+            && !tutorialNight;
+        this.slots.get('guide')?.container.setVisible(data.clientGuideEnabled || tutorialNight);
+        this.slots.get('materials')?.container.setVisible(data.advancedSystemsEnabled || tutorialNight);
+        if (!this.isGuideEnabled && this.isGuideOpen) {
+            this.isGuideOpen = false;
+            eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, { enabled: false });
+        }
+        if (!this.isMaterialsEnabled && this.isMaterialsOpen) {
+            this.isMaterialsOpen = false;
+            eventBus.emit(EVENT_TOGGLE_MATERIALS, { enabled: false });
+        }
+        this.refreshMaterialsSlot();
+        this.refreshGuideSlot();
+    };
+    private readonly onTutorialButtonHintBound = (data: TutorialButtonHintData): void => {
+        if (data.button !== 'open') return;
+        const icon = this.slots.get('open')?.icon;
+        if (icon === null || icon === undefined) return;
+        this.openButtonHintTween?.stop();
+        this.openButtonHintTween = null;
+        if (!data.visible) {
+            icon.setScale(1).setAlpha(1);
+            return;
+        }
+        this.openButtonHintTween = this.scene.tweens.add({
+            targets: icon,
+            scale: 1.2,
+            alpha: 0.55,
+            duration: 450,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.InOut',
+        });
+    };
+    private readonly onTutorialPauseChangedBound = (data: TutorialPauseChangedData): void => {
+        if (data.paused) {
+            for (const slot of this.slots.values()) slot.hitArea?.disableInteractive();
+            return;
+        }
+        this.refreshMaterialsSlot();
+        this.refreshGuideSlot();
+        this.slots.get('build')?.hitArea?.setInteractive({ useHandCursor: true });
+        this.slots.get('open')?.hitArea?.setInteractive({ useHandCursor: true });
+    };
 
     public constructor(private readonly scene: Scene) {
+        this.isGuideEnabled = !this.isTutorialNight();
         this.barContainer = scene.add.container(0, 0).setDepth(this.feedbackConfig.topBarDepth);
         this.createTopBar();
         this.createFeedbackText();
@@ -111,6 +169,7 @@ export class HUD {
         )}`);
         this.setSlotValue('time', '--:--');
         this.refreshBuildModeSlot();
+        this.refreshGuideSlot();
         this.reposition();
 
         eventBus.on(EVENT_FOOD_STOCK_UPDATED, this.onFoodStockUpdatedBound);
@@ -122,6 +181,9 @@ export class HUD {
         eventBus.on(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         eventBus.on(EVENT_TOGGLE_MATERIALS, this.onMaterialsToggledBound);
+        eventBus.on(EVENT_NIGHT_FEATURES_CHANGED, this.onNightFeaturesChangedBound);
+        eventBus.on(EVENT_TUTORIAL_BUTTON_HINT, this.onTutorialButtonHintBound);
+        eventBus.on(EVENT_TUTORIAL_PAUSE_CHANGED, this.onTutorialPauseChangedBound);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -140,11 +202,16 @@ export class HUD {
         eventBus.off(EVENT_NIGHT_TIMER_UPDATED, this.onNightTimerUpdatedBound);
         eventBus.off(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         eventBus.off(EVENT_TOGGLE_MATERIALS, this.onMaterialsToggledBound);
+        eventBus.off(EVENT_NIGHT_FEATURES_CHANGED, this.onNightFeaturesChangedBound);
+        eventBus.off(EVENT_TUTORIAL_BUTTON_HINT, this.onTutorialButtonHintBound);
+        eventBus.off(EVENT_TUTORIAL_PAUSE_CHANGED, this.onTutorialPauseChangedBound);
         this.scene.scale.off('resize', this.reposition, this);
         if (this.feedbackTween !== null) {
             this.feedbackTween.stop();
             this.feedbackTween = null;
         }
+        this.openButtonHintTween?.stop();
+        this.openButtonHintTween = null;
         this.barContainer.destroy(true);
         this.feedbackText.destroy();
         this.slots.clear();
@@ -235,6 +302,7 @@ export class HUD {
     private handleSlotPressed(id: HudSlotId): void {
         switch (id) {
             case 'guide': {
+                if (!this.isGuideEnabled) return;
                 this.isGuideOpen = !this.isGuideOpen;
                 const data: ToggleClientGuideData = { enabled: this.isGuideOpen };
                 eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, data);
@@ -287,29 +355,50 @@ export class HUD {
         }
     }
 
+    private refreshGuideSlot(): void {
+        const slot = this.slots.get('guide');
+        slot?.icon?.setAlpha(this.isGuideEnabled ? 1 : 0.35);
+        if (this.isGuideEnabled) {
+            slot?.hitArea?.setInteractive({ useHandCursor: true });
+        } else {
+            slot?.hitArea?.disableInteractive();
+        }
+    }
+
     private updatePhaseFromRegistry(): void {
         const mode = this.scene.registry.get('gameMode');
         this.updatePhase(mode === GAME_MODE_NIGHT || mode === GAME_MODE_DAY ? mode : 'PRE_APERTURA');
     }
 
     private updatePhase(mode: GameModeChangedData['mode']): void {
+        this.onTutorialButtonHintBound({ button: 'open', visible: false });
         const phaseName = mode === 'PRE_APERTURA'
             ? 'PRE-APERTURA'
             : mode === GAME_MODE_NIGHT ? 'NOCTURNA' : 'DÍA';
         this.setSlotValue('phase', phaseName);
         this.setSlotValue('time', '--:--');
-        this.isMaterialsEnabled = mode === GAME_MODE_PRE_OPENING;
+        const tutorialSystemsVisible = this.isTutorialNight();
+        this.isMaterialsEnabled = mode === GAME_MODE_PRE_OPENING && !tutorialSystemsVisible;
+        const advancedSystemsVisible = !tutorialSystemsVisible;
+        this.slots.get('materials')?.container.setVisible(advancedSystemsVisible || tutorialSystemsVisible);
+        this.slots.get('guide')?.container.setVisible(advancedSystemsVisible || tutorialSystemsVisible);
         if (!this.isMaterialsEnabled && this.isMaterialsOpen) {
             this.isMaterialsOpen = false;
             eventBus.emit(EVENT_TOGGLE_MATERIALS, { enabled: false });
         }
         this.refreshMaterialsSlot();
+        this.refreshGuideSlot();
         const openSlot = this.slots.get('open');
         openSlot?.container.setVisible(mode === 'PRE_APERTURA');
     }
 
     private isOpenButtonVisible(): boolean {
         return this.slots.get('open')?.container.visible ?? false;
+    }
+
+    private isTutorialNight(): boolean {
+        const currentNight = this.scene.registry.get('currentNight');
+        return typeof currentNight !== 'number' || currentNight === 1;
     }
 
     private setSlotValue(id: HudSlotId, value: string): void {

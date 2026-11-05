@@ -536,3 +536,26 @@ Se sitúa en el margen superior de la pantalla, alineado horizontalmente y divid
 
 
 * **9.5. Help System:** El juego brinda información de apoyo en forma de advertencias visuales dentro del HUD (por ejemplo, rayos rojos entre razas enemigas) que enseñan las reglas del sistema de afinidades.
+
+## 10. Progresión de noches y tutoriales
+
+`ProgressionManager` persiste `currentNight` en el registro global y controla el
+temporizador de cada turno nocturno. La Noche 1 termina al satisfacer tres
+clientes; las noches siguientes terminan cuando expira el tiempo configurado en
+`GameRegistry.ts`. Al finalizar una noche, los clientes se limpian, se vuelve a
+la Pre-Apertura y se incrementa la noche hasta la quinta.
+
+`TutorialManager` emite los pasos mediante `EventBus.ts` y `TutorialUI` los
+renderiza en `UIScene`. Los diálogos se avanzan con clic izquierdo, pueden
+pausar el gameplay y admiten un indicador triangular animado mediante
+`pointTo()` o `pointToGameObject()`. Las Noches 1 y 2 utilizan scripts
+secuenciales independientes; desde la Noche 3 se aplica únicamente el
+escalado paramétrico de `GameRegistry.progression`.
+
+La Noche 1 se ejecuta como una secuencia bloqueante: movimiento, construcción,
+apertura, vasos vacíos, torre de bebidas, banda, selección del primer cliente,
+asignación de silla, pedido y recompensa. Cada paso de acción se desbloquea
+mediante eventos reales del gameplay, no únicamente avanzando el diálogo.
+Durante esta noche se ocultan la guía, la tienda, las barras de Heat y
+Reputación, el cartel Wanted y los pedidos de comida; los clientes se fuerzan
+a la raza humana y la noche finaliza tras tres clientes satisfechos.

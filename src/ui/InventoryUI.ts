@@ -27,6 +27,7 @@ import {
     EVENT_START_PLACEMENT,
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_TOGGLE_CLIENT_GUIDE,
+    EVENT_TUTORIAL_PAUSE_CHANGED,
     eventBus,
     type BuildModeToggledData,
     type FurniturePlacedData,
@@ -35,6 +36,7 @@ import {
     type PlacementMoveData,
     type PlacementStartData,
     type ToggleClientGuideData,
+    type TutorialPauseChangedData,
 } from '../utils/EventBus';
 
 interface SlotElements {
@@ -86,6 +88,7 @@ export class InventoryUI {
     private isDragging = false;
     private activeDragId: string | null = null;
     private isBuildModeEnabled = true;
+    private isTutorialPaused = false;
 
     private readonly barContainer: GameObjects.Container;
     private readonly slotsContainer: GameObjects.Container;
@@ -119,6 +122,15 @@ export class InventoryUI {
             this.isDragging = false;
             this.activeDragId = null;
         }
+        this.refreshInteractionState();
+    };
+    private readonly onTutorialPauseChangedBound = (data: TutorialPauseChangedData): void => {
+        this.isTutorialPaused = data.paused;
+        if (data.paused) {
+            this.isDragging = false;
+            this.activeDragId = null;
+        }
+        this.refreshInteractionState();
     };
     private readonly onGuideToggledBound = (data: ToggleClientGuideData): void => {
         this.isGuideOpen = data.enabled;
@@ -247,6 +259,7 @@ export class InventoryUI {
         eventBus.off(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.off(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
         eventBus.off(EVENT_TOGGLE_BUILD_MODE, this.onBuildModeToggledBound);
+        eventBus.off(EVENT_TUTORIAL_PAUSE_CHANGED, this.onTutorialPauseChangedBound);
         eventBus.off(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         this.scene.scale.off('resize', this.reposition, this);
         this.scene.input.off('pointermove', this.handleScenePointerMove, this);
@@ -572,12 +585,36 @@ export class InventoryUI {
         eventBus.on(EVENT_FURNITURE_PLACED, this.onFurniturePlacedBound);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.onFurnitureRemovedBound);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.onBuildModeToggledBound);
+        eventBus.on(EVENT_TUTORIAL_PAUSE_CHANGED, this.onTutorialPauseChangedBound);
         eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.onGuideToggledBound);
         this.scene.scale.on('resize', this.reposition, this);
         this.scene.input.on('pointermove', this.handleScenePointerMove, this);
         this.scene.input.on('pointerup', this.handleScenePointerUp, this);
         this.scene.input.on('wheel', this.handleSceneWheel, this);
         this.scene.input.keyboard?.on('keydown-ESC', this.onGuideEscapeBound, this);
+    }
+
+    private refreshInteractionState(): void {
+        const enabled = !this.isTutorialPaused;
+        for (const slot of this.slots.values()) {
+            if (enabled && this.isBuildModeEnabled) {
+                slot.hitArea.setInteractive({ useHandCursor: true });
+            } else {
+                slot.hitArea.disableInteractive();
+            }
+        }
+        for (const arrow of [this.leftArrow, this.rightArrow]) {
+            if (enabled && this.carouselUsesArrows) {
+                arrow.setInteractive({ useHandCursor: true });
+            } else {
+                arrow.disableInteractive();
+            }
+        }
+        if (enabled && this.isGuideOpen) {
+            this.guideBackdrop.setInteractive();
+        } else {
+            this.guideBackdrop.disableInteractive();
+        }
     }
 
     private configureArrow(arrow: GameObjects.Image, direction: -1 | 1): void {
@@ -614,6 +651,17 @@ export class InventoryUI {
             },
         });
         this.refreshArrowStates();
+    }
+
+    public getFurnitureSlotCenter(furnitureId: string): { readonly x: number; readonly y: number } {
+        const slot = this.slots.get(furnitureId);
+        if (slot === undefined) {
+            throw new Error(`No existe el mueble ${furnitureId} en el inventario.`);
+        }
+        return {
+            x: this.barContainer.x + this.slotsContainer.x + slot.container.x,
+            y: this.barContainer.y + this.slotsContainer.y + slot.container.y,
+        };
     }
 
     private handleSceneWheel(

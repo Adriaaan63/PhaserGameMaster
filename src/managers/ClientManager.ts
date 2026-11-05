@@ -1,5 +1,13 @@
 import { Physics, Scene } from 'phaser';
-import { BAND_PLAYING_DURATION_MS, GAME_REGISTRY, samplePatienceDuration, type WantedProfile } from '../data/GameRegistry';
+import {
+    BAND_PLAYING_DURATION_MS,
+    ClientRace,
+    GAME_REGISTRY,
+    samplePatienceDuration,
+    type NightDifficulty,
+    type OrderItemId,
+    type WantedProfile,
+} from '../data/GameRegistry';
 import { TILE } from '../data/constants';
 import { Client, type ClientPosition } from '../entities/Client';
 import { CoinManager } from './CoinManager';
@@ -9,6 +17,7 @@ import { PathfindingManager } from './PathfindingManager';
 import {
     eventBus,
     EVENT_CLIENT_SATISFIED,
+    EVENT_CLIENT_SPAWNED,
     EVENT_CLIENT_SEATED,
     EVENT_CLIENT_LEAVING,
     EVENT_CLIENT_EXIT_PATH_FAILED,
@@ -29,6 +38,13 @@ export class ClientManager {
     private nextClientId = 1;
     private enabled = false;
     private wantedAssigned = false;
+    private spawnIntervalMs: number = GAME_REGISTRY.clients.spawnIntervalMs;
+    private patienceMultiplier = 1;
+    private forcedRace: ClientRace | null = null;
+    private allowedOrderItems: readonly OrderItemId[] | null = null;
+    private wantedEnabled = true;
+    private spawnAfterBand = false;
+    private bandActivated = true;
 
     public constructor(
         private readonly scene: Scene,
@@ -45,6 +61,26 @@ export class ClientManager {
     }
 
     public setEnabled(enabled: boolean): void { this.enabled = enabled; }
+
+    public configureNight(
+        difficulty: NightDifficulty,
+        options: {
+            readonly forcedRace?: ClientRace | null;
+            readonly allowedOrderItems?: readonly OrderItemId[] | null;
+            readonly wantedEnabled?: boolean;
+            readonly spawnAfterBand?: boolean;
+        } = {},
+    ): void {
+        this.spawnIntervalMs = difficulty.spawnIntervalMs;
+        this.patienceMultiplier = difficulty.patienceMultiplier;
+        this.forcedRace = options.forcedRace ?? null;
+        this.allowedOrderItems = options.allowedOrderItems ?? null;
+        this.wantedEnabled = options.wantedEnabled ?? true;
+        this.spawnAfterBand = options.spawnAfterBand ?? false;
+        this.bandActivated = !this.spawnAfterBand;
+        this.wantedAssigned = false;
+        this.elapsedMs = 0;
+    }
 
     public update(deltaMs: number): void {
         const orderedClients = [...this.clients].sort((left, right) => {
@@ -91,16 +127,18 @@ export class ClientManager {
             }
         }
 
-        if (!this.enabled || this.queueTiles.length === 0) return;
+        if (!this.enabled || this.queueTiles.length === 0 || !this.bandActivated) return;
         this.elapsedMs += deltaMs;
-        if (this.elapsedMs < GAME_REGISTRY.clients.spawnIntervalMs) return;
-        this.elapsedMs %= GAME_REGISTRY.clients.spawnIntervalMs;
+        if (this.elapsedMs < this.spawnIntervalMs) return;
+        this.elapsedMs %= this.spawnIntervalMs;
         const waiting = [...this.clients].filter((client) => client.clientState === 'WAITING_IN_LINE').length;
         if (waiting >= GAME_REGISTRY.clients.maxWaiting) return;
         const position = this.queueTiles[this.queueIndex];
         this.queueIndex = (this.queueIndex + 1) % this.queueTiles.length;
         const clientId = this.nextClientId++;
-        const wantedProfile = !this.wantedAssigned && clientId === GAME_REGISTRY.wanted.targetClientId
+        const wantedProfile = this.wantedEnabled
+            && !this.wantedAssigned
+            && clientId === GAME_REGISTRY.wanted.targetClientId
             ? this.getWantedProfile()
             : null;
         if (wantedProfile !== null) this.wantedAssigned = true;
@@ -116,10 +154,14 @@ export class ClientManager {
             GAME_REGISTRY,
             this.isBandPlaying,
             wantedProfile,
+            this.patienceMultiplier,
+            this.forcedRace,
+            this.allowedOrderItems,
         );
         client.setData('clientId', clientId);
         this.clients.add(client);
         this.collisionGroup.add(client);
+        eventBus.emit(EVENT_CLIENT_SPAWNED, { clientId: client.clientId });
         client.once('queue-abandoned', () => this.fadeClientOut(client));
         client.once('queue-abandoned', () => {
             eventBus.emit(EVENT_CLIENT_LEAVING, { clientId: client.clientId });
@@ -183,6 +225,14 @@ export class ClientManager {
         client.destroy();
     }
 
+    public clearClients(): void {
+        for (const client of [...this.clients]) {
+            this.removeClient(client.clientId);
+        }
+        this.elapsedMs = 0;
+        this.queueIndex = 0;
+    }
+
     public removeMurderedClient(clientId: number): void {
         const client = this.getClientById(clientId);
         if (client === null) return;
@@ -244,6 +294,8 @@ export class ClientManager {
     }
 
     private readonly onBandStartedBound = (data: BandStartedData): void => {
+        this.bandActivated = true;
+        this.elapsedMs = this.spawnIntervalMs;
         const durationMs = Math.min(data.durationMs, BAND_PLAYING_DURATION_MS);
         for (const client of this.clients) client.satisfyMusicOrder(durationMs);
     };

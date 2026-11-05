@@ -22,11 +22,25 @@ export const EVENT_CREDITS_UPDATED = 'economy:credits-updated';
 export const EVENT_SCRAPS_UPDATED = 'inventory:scraps-updated';
 export const EVENT_GLASSES_UPDATED = 'inventory:glasses-updated';
 export const EVENT_NIGHT_TIMER_UPDATED = 'game:night-timer-updated';
+export const EVENT_NIGHT_ENDED = 'game:night-ended';
+export const EVENT_TUTORIAL_STARTED = 'tutorial:started';
+export const EVENT_TUTORIAL_ADVANCE = 'tutorial:advance';
+export const EVENT_TUTORIAL_CLOSED = 'tutorial:closed';
+export const EVENT_TUTORIAL_POINTER = 'tutorial:pointer';
+export const EVENT_TUTORIAL_DRAG = 'tutorial:drag';
+export const EVENT_TUTORIAL_DRAG_COMPLETED = 'tutorial:drag-completed';
+export const EVENT_TUTORIAL_BUTTON_HINT = 'tutorial:button-hint';
+export const EVENT_TUTORIAL_PAUSE_CHANGED = 'tutorial:pause-changed';
+export const EVENT_NIGHT_FEATURES_CHANGED = 'game:night-features-changed';
 export const EVENT_PLAYER_ACTION_PROGRESS = 'player:action-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
+export const EVENT_CLIENT_SPAWNED = 'client:spawned';
+export const EVENT_INTERACTABLE_PICKED = 'interaction:object-picked';
+export const EVENT_BEVERAGE_FILLED = 'interaction:beverage-filled';
+export const EVENT_CLIENT_ORDER_STARTED = 'client:order-started';
 export const EVENT_CLIENT_SEAT_VACATED = 'client:seat-vacated';
 export const EVENT_CLIENT_LEAVING = 'client:leaving';
 export const EVENT_CLIENT_SATISFIED = 'client:satisfied';
@@ -58,6 +72,10 @@ export const EVENT_WANTED_ESCAPED = 'wanted:escaped';
 export const EVENT_WANTED_REWARD_GRANTED = 'wanted:reward-granted';
 
 export interface BuildModeToggledData { readonly enabled: boolean; }
+export interface TutorialButtonHintData {
+    readonly button: 'open';
+    readonly visible: boolean;
+}
 export interface ToggleClientGuideData { readonly enabled: boolean; }
 export interface ToggleMaterialsData { readonly enabled: boolean; }
 export interface CreditsUpdatedData { readonly totalCredits: number; }
@@ -71,6 +89,32 @@ export interface WantedRewardData {
     readonly totalCredits: number;
 }
 export interface NightTimerUpdatedData { readonly remainingMs: number; }
+export interface NightEndedData {
+    readonly completedNight: number;
+    readonly nextNight: number;
+    readonly reason: 'TIME' | 'TUTORIAL_CONDITION';
+}
+export interface TutorialStartedData {
+    readonly text: string;
+    readonly pauseGameplay: boolean;
+}
+export interface TutorialPointerData {
+    readonly x: number;
+    readonly y: number;
+    readonly visible: boolean;
+    readonly points?: readonly { readonly x: number; readonly y: number }[];
+}
+export interface TutorialDragData {
+    readonly sourceX: number;
+    readonly sourceY: number;
+    readonly targetX: number;
+    readonly targetY: number;
+}
+export interface TutorialPauseChangedData { readonly paused: boolean; }
+export interface NightFeaturesData {
+    readonly clientGuideEnabled: boolean;
+    readonly advancedSystemsEnabled: boolean;
+}
 export interface PlayerActionProgressData {
     readonly active: boolean;
     readonly progress: number;
@@ -85,6 +129,17 @@ export interface ClientSeatedData {
     readonly tileX: number;
     readonly tileY: number;
     readonly isWanted?: boolean;
+}
+export interface ClientSpawnedData { readonly clientId: number; }
+export interface InteractablePickedData {
+    readonly objectType: 'EMPTY_CUP' | 'FILLED_CUP' | 'FOOD_PLATE';
+    readonly tileX: number;
+    readonly tileY: number;
+}
+export interface BeverageFilledData { readonly tileX: number; readonly tileY: number; }
+export interface ClientOrderStartedData {
+    readonly clientId: number;
+    readonly orderItemId: OrderItemId;
 }
 export interface ClientSeatVacatedData {
     readonly clientId: number;

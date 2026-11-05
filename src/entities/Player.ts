@@ -22,6 +22,8 @@ import {
 import {
     EVENT_GAME_WARNING,
     EVENT_PLAYER_ACTION_PROGRESS,
+    EVENT_BEVERAGE_FILLED,
+    EVENT_INTERACTABLE_PICKED,
     GAME_MODE_NIGHT,
     eventBus,
     type PlayerActionProgressData,
@@ -303,11 +305,18 @@ export class Player extends Physics.Arcade.Sprite {
 
             // Filling an empty cup held in hand at BeverageTower
             if (this.heldObject !== null && this.heldObject.isEmptyCup() && station instanceof BeverageTower) {
+                const wasFilling = station.isFilling(this.heldObject);
                 if (this.interactionKey.isDown && !station.isFilling(this.heldObject)) {
                     station.startFilling(this.heldObject);
                 }
                 station.updateFilling(delta, this.interactionKey.isDown);
                 this.fillingStation = station;
+                if (wasFilling && !station.isFilling(this.heldObject) && this.heldObject.isFilledCup()) {
+                    eventBus.emit(EVENT_BEVERAGE_FILLED, {
+                        tileX: station.tileX,
+                        tileY: station.tileY,
+                    });
+                }
             } else if (
                 Input.Keyboard.JustDown(this.interactionKey)
                 && !(this.nightInteractionHandler?.(frontTile.tileX, frontTile.tileY) ?? false)
@@ -572,6 +581,11 @@ export class Player extends Physics.Arcade.Sprite {
             if (object !== null) {
                 this.heldObject = object;
                 object.pickUp();
+                eventBus.emit(EVENT_INTERACTABLE_PICKED, {
+                    objectType: object.getObjectType(),
+                    tileX: targetTileX,
+                    tileY: targetTileY,
+                });
             }
             return;
         }

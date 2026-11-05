@@ -6,7 +6,9 @@ import {
 } from '../data/GameRegistry';
 import {
     eventBus,
+    EVENT_NIGHT_FEATURES_CHANGED,
     EVENT_REPUTATION_UPDATED,
+    type NightFeaturesData,
     type ReputationUpdatedData,
 } from '../utils/EventBus';
 
@@ -19,6 +21,9 @@ export class ReputationBarUI {
     private readonly labelText: GameObjects.Text;
     private readonly config = GAME_REGISTRY.ui;
     private reputationTween: Tweens.Tween | null = null;
+    private readonly handleFeaturesChanged = (data: NightFeaturesData): void => {
+        this.container.setVisible(data.advancedSystemsEnabled);
+    };
 
     private readonly handleReputationUpdated = (data: ReputationUpdatedData): void => {
         const ratio = Math.max(
@@ -41,6 +46,7 @@ export class ReputationBarUI {
         this.container = scene.add.container(0, 0)
             .setScrollFactor(0)
             .setDepth(this.config.topBarDepth);
+        this.container.setVisible(scene.registry.get('currentNight') !== 1);
         const trackWidth = this.config.reputationBarWidth - this.config.reputationBarLabelWidth;
         this.track = scene.add.rectangle(
             0,
@@ -72,6 +78,7 @@ export class ReputationBarUI {
         this.container.add([this.track, this.fill, this.label, this.labelText]);
 
         eventBus.on(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
+        eventBus.on(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -88,6 +95,7 @@ export class ReputationBarUI {
 
     public destroy(): void {
         eventBus.off(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
+        eventBus.off(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
         this.scene.scale.off('resize', this.reposition, this);
         this.reputationTween?.stop();
         this.reputationTween = null;

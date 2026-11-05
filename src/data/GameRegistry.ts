@@ -6,8 +6,10 @@ export const CRIMINAL_REPUTATION_REGISTRY_KEY = 'criminalReputation';
 export const WANTED_PROFILE_REGISTRY_KEY = 'wantedProfile';
 export const SCRAPS_REGISTRY_KEY = 'scraps';
 export const EMPTY_GLASSES_REGISTRY_KEY = 'emptyGlasses';
+export const CURRENT_NIGHT_REGISTRY_KEY = 'currentNight';
 
 export enum ClientRace {
+    HUMAN = 'HUMAN',
     WOOKIEE = 'WOOKIEE',
     TRANDOSHAN = 'TRANDOSHAN',
     RODIAN = 'RODIAN',
@@ -43,6 +45,7 @@ export const AFFINITY_PENALTY_MULTIPLIER = 2;
 export const AFFINITY_ADJACENCY_RADIUS_TILES = 1;
 
 export const AFFINITY_RULES: Readonly<Record<ClientRace, readonly ClientRace[]>> = {
+    [ClientRace.HUMAN]: [],
     [ClientRace.WOOKIEE]: [ClientRace.TRANDOSHAN],
     [ClientRace.TRANDOSHAN]: [ClientRace.WOOKIEE, ClientRace.RODIAN, ClientRace.ITHORIAN],
     [ClientRace.RODIAN]: [ClientRace.TRANDOSHAN, ClientRace.AQUALISH],
@@ -80,7 +83,24 @@ export interface WantedConfig {
     readonly posterDetailColor: number;
 }
 
+export interface NightDifficulty {
+    readonly spawnIntervalMs: number;
+    readonly patienceMultiplier: number;
+    readonly eventProbability: number;
+}
+
+export interface ProgressionConfig {
+    readonly startingNight: number;
+    readonly finalNight: number;
+    readonly nightDurationMs: number;
+    readonly nightOneSatisfiedClients: number;
+    readonly nightSummaryDurationMs: number;
+    readonly basePostNightMode: 'PRE_APERTURA';
+    readonly difficultyByNight: Readonly<Record<number, NightDifficulty>>;
+}
+
 export const CLIENT_RACE_PRESENTATION: Readonly<Record<ClientRace, ClientRacePresentation>> = {
+    [ClientRace.HUMAN]: { label: 'Human', placeholderColor: 0xb88452 },
     [ClientRace.WOOKIEE]: { label: 'Wookiee', placeholderColor: 0x79543b },
     [ClientRace.TRANDOSHAN]: { label: 'Trandoshano', placeholderColor: 0x87933f },
     [ClientRace.RODIAN]: { label: 'Rodiano', placeholderColor: 0x42a34b },
@@ -310,6 +330,7 @@ export interface UiConfig {
 }
 
 export interface GameRegistry {
+    readonly progression: ProgressionConfig;
     readonly patience: PatienceConfig;
     readonly orders: OrderConfig;
     readonly audio: AudioConfig;
@@ -370,6 +391,21 @@ export interface GameRegistry {
 
 /** Central balance and visual tuning values for night customers and rewards. */
 export const GAME_REGISTRY = {
+    progression: {
+        startingNight: 1,
+        finalNight: 5,
+        nightDurationMs: 210_000,
+        nightOneSatisfiedClients: 3,
+        nightSummaryDurationMs: 2_500,
+        basePostNightMode: 'PRE_APERTURA',
+        difficultyByNight: {
+            1: { spawnIntervalMs: 8_000, patienceMultiplier: 1.25, eventProbability: 0 },
+            2: { spawnIntervalMs: 18_000, patienceMultiplier: 1.1, eventProbability: 0.1 },
+            3: { spawnIntervalMs: 12_000, patienceMultiplier: 0.9, eventProbability: 0.25 },
+            4: { spawnIntervalMs: 8_500, patienceMultiplier: 0.72, eventProbability: 0.45 },
+            5: { spawnIntervalMs: 6_000, patienceMultiplier: 0.58, eventProbability: 0.7 },
+        },
+    },
     patience: {
         queue: { baseMs: 30_000, variationMs: 5_000 },
         service: {
@@ -645,6 +681,19 @@ export const GAME_REGISTRY = {
         orderBubbleProgressAlpha: 0.55,
     },
 } as const satisfies GameRegistry;
+
+/** Returns the configured difficulty for a night, clamping unknown values to the final night. */
+export function getNightDifficulty(
+    night: number,
+    registry: GameRegistry = GAME_REGISTRY,
+): NightDifficulty {
+    const normalizedNight = Math.max(
+        registry.progression.startingNight,
+        Math.min(registry.progression.finalNight, Math.floor(night)),
+    );
+    return registry.progression.difficultyByNight[normalizedNight]
+        ?? registry.progression.difficultyByNight[registry.progression.finalNight];
+}
 
 /** Samples a patience duration around its configured base value. */
 export function samplePatienceDuration(

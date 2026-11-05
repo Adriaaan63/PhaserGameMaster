@@ -8,6 +8,7 @@ import {
     type ClientRace,
     type GameRegistry,
     type OrderOption,
+    type OrderItemId,
     type WantedProfile,
 } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
@@ -19,6 +20,7 @@ import type { CoinManager } from '../managers/CoinManager';
 import {
     eventBus,
     EVENT_FIGHT_REQUESTED,
+    EVENT_CLIENT_ORDER_STARTED,
     EVENT_CLIENT_SEAT_VACATED,
     type ClientSeatVacatedData,
     EVENT_FIGHT_APPROACH_COMPLETE,
@@ -75,6 +77,8 @@ export class Client extends GameObjects.Container {
     private fightApproachFailedNotified = false;
     private fightTargetClientId: number | null = null;
     private exitStateAfterPathFailure: 'LEAVING' | 'FLEEING' = 'LEAVING';
+    private readonly patienceMultiplier: number;
+    private readonly allowedOrderItems: readonly OrderItemId[] | null;
     public readonly race: ClientRace;
     public readonly isWanted: boolean;
 
@@ -90,11 +94,16 @@ export class Client extends GameObjects.Container {
         registry: GameRegistry = GAME_REGISTRY,
         private readonly isBandPlaying: () => boolean = () => false,
         wantedProfile: WantedProfile | null = null,
+        patienceMultiplier = 1,
+        forcedRace: ClientRace | null = null,
+        allowedOrderItems: readonly OrderItemId[] | null = null,
     ) {
         super(scene, position.tileX * TILE + TILE / 2, position.tileY * TILE + TILE / 2);
         this.setExclusive(true);
         this.registry = registry;
-        this.race = wantedProfile?.race ?? chooseClientRace();
+        this.race = wantedProfile?.race ?? forcedRace ?? chooseClientRace();
+        this.patienceMultiplier = patienceMultiplier;
+        this.allowedOrderItems = allowedOrderItems;
         this.isWanted = wantedProfile !== null;
         this.patienceRemainingMs = queuePatienceMs;
         this.patienceTotalMs = queuePatienceMs;
@@ -514,15 +523,25 @@ export class Client extends GameObjects.Container {
         }
 
         this.activeOrder = selectedOrder;
-        this.patienceTotalMs = samplePatienceDuration(this.registry.patience.service[selectedOrder.itemId]);
+        this.patienceTotalMs = Math.round(
+            samplePatienceDuration(this.registry.patience.service[selectedOrder.itemId])
+                * this.patienceMultiplier,
+        );
         this.patienceRemainingMs = this.patienceTotalMs;
         this.createOrderBubble(selectedOrder);
         this.refreshOrderBubble();
+        eventBus.emit(EVENT_CLIENT_ORDER_STARTED, {
+            clientId: this.clientId,
+            orderItemId: selectedOrder.itemId,
+        });
     }
 
     private chooseOrder(): OrderOption | null {
         const orderOptions = this.registry.orders.options.filter((option) => (
             option.itemId !== 'MUSIC' || !this.isBandPlaying()
+        ) && (
+            this.allowedOrderItems === null
+            || this.allowedOrderItems.includes(option.itemId)
         ));
         if (orderOptions.length === 0) return null;
 

@@ -31,6 +31,11 @@ import { RatManager } from '../managers/RatManager';
 import { ReputationManager } from '../managers/ReputationManager';
 import { JabbaRaidManager } from '../managers/JabbaRaidManager';
 import { WantedManager } from '../managers/WantedManager';
+import { ProgressionManager } from '../managers/ProgressionManager';
+import { TutorialManager } from '../managers/TutorialManager';
+import { Night1Script } from '../managers/Night1Script';
+import { Night2Script } from '../managers/Night2Script';
+import { UIScene } from './UIScene';
 import {
     EVENT_CANTINA_OPEN,
     EVENT_GAME_MODE_CHANGED,
@@ -48,6 +53,9 @@ import {
     EVENT_DEAD_BODY_CREATED,
     EVENT_CLOSE_WANTED_POSTER,
     EVENT_OPEN_WANTED_POSTER,
+    EVENT_NIGHT_ENDED,
+    EVENT_TUTORIAL_PAUSE_CHANGED,
+    EVENT_NIGHT_FEATURES_CHANGED,
     eventBus,
     GAME_MODE_NIGHT,
     GAME_MODE_PRE_OPENING,
@@ -56,7 +64,7 @@ import {
     type ClientSatisfiedData,
     type ClientMurderedData,
     type DeadBodyData,
-    type GameModeChangedData,
+    type TutorialPauseChangedData,
 } from '../utils/EventBus';
 
 const MAP_KEY = 'cantina';
@@ -141,6 +149,11 @@ export class NightCantinaScene extends Scene {
     private isWantedPosterOpen = false;
     private isNightGameplayPaused = false;
     private coinManager!: CoinManager;
+    private progressionManager!: ProgressionManager;
+    private tutorialManager!: TutorialManager;
+    private night1Script: Night1Script | null = null;
+    private night2Script: Night2Script | null = null;
+    private isTutorialPaused = false;
 
     public constructor() {
         super('NightCantinaScene');
@@ -208,6 +221,8 @@ export class NightCantinaScene extends Scene {
         this.bandManager = new BandManager(this, this.gridManager, GAME_REGISTRY.band);
         this.audioManager = new AudioManager(this, GAME_REGISTRY.audio);
         this.registry.set('foodStock', 5);
+        this.progressionManager = new ProgressionManager(this);
+        this.tutorialManager = new TutorialManager(this);
 
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
@@ -265,6 +280,37 @@ export class NightCantinaScene extends Scene {
             this.pathfindingManager,
             this.placementManager,
         );
+        if (this.progressionManager.currentNight === 1) {
+            this.night1Script = new Night1Script(this, this.tutorialManager, {
+                emptyCups: [{ tileX: 9, tileY: 6 }, { tileX: 14, tileY: 6 }],
+                beverageTower: { tileX: 11, tileY: 9 },
+                band: this.gridManager.getObjectZoneCenterTiles('zonaBanda')[0]
+                    ?? { tileX: 16, tileY: 10 },
+                firstClient: (clientId) => {
+                    const client = this.clientManager.getClientById(clientId);
+                    return client === null ? null : client.currentTile;
+                },
+                chairs: () => this.seatingManager.getValidChairs(),
+                buildTarget: () => {
+                    for (let tileY = 0; tileY < map.height - 1; tileY++) {
+                        for (let tileX = 0; tileX < map.width - 1; tileX++) {
+                            if (this.gridManager.isTileBuildable(tileX, tileY, 2, 2)) {
+                                return { tileX, tileY };
+                            }
+                        }
+                    }
+                    return { tileX: 1, tileY: 1 };
+                },
+                furnitureSlot: () => {
+                    const uiScene = this.scene.get('UIScene') as UIScene;
+                    return uiScene.getInventoryUI().getFurnitureSlotCenter('mesa_redonda_0');
+                },
+            });
+        } else if (this.progressionManager.currentNight === 2) {
+            this.night2Script = new Night2Script(this, this.tutorialManager);
+        }
+        eventBus.on(EVENT_TUTORIAL_PAUSE_CHANGED, this.handleTutorialPauseChanged, this);
+        eventBus.on(EVENT_NIGHT_ENDED, this.handleNightEnded, this);
         this.player.setNightInteractionHandler(this.handleNightInteraction);
         this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
@@ -471,6 +517,7 @@ export class NightCantinaScene extends Scene {
                 profile: this.wantedManager.currentProfile,
             }),
         );
+        this.wantedPoster.setVisible(this.progressionManager.currentNight > 1);
     }
 
     private getWantedPosterDepth(tileX: number, tileY: number): number {
@@ -574,16 +621,35 @@ export class NightCantinaScene extends Scene {
             return;
         }
 
+        this.clientManager.configureNight(
+            this.progressionManager.difficulty,
+            this.progressionManager.currentNight === 1
+                ? {
+                    forcedRace: this.night1Script?.forcedRace ?? null,
+                    allowedOrderItems: ['FILLED_CUP', 'MUSIC'],
+                    wantedEnabled: false,
+                    spawnAfterBand: true,
+                }
+                : undefined,
+        );
+        this.threatManager.setEnabled(this.progressionManager.currentNight > 1);
+        this.reputationManager.setEnabled(this.progressionManager.currentNight > 1);
+        this.wantedManager.setEnabled(this.progressionManager.currentNight > 1);
+        eventBus.emit(EVENT_NIGHT_FEATURES_CHANGED, {
+            clientGuideEnabled: this.progressionManager.currentNight > 1,
+            advancedSystemsEnabled: this.progressionManager.currentNight > 1,
+        });
+        this.wantedPoster?.setVisible(this.progressionManager.currentNight > 1);
         this.registry.set('gameMode', GAME_MODE_NIGHT);
         this.placementManager.setEnabled(false);
         this.clientManager.setEnabled(true);
-
-        const modeData: GameModeChangedData = { mode: GAME_MODE_NIGHT };
-        eventBus.emit(EVENT_GAME_MODE_CHANGED, modeData);
+        this.progressionManager.startNight();
     }
 
     private cleanupModeEvents(): void {
         eventBus.off(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
+        eventBus.off(EVENT_TUTORIAL_PAUSE_CHANGED, this.handleTutorialPauseChanged, this);
+        eventBus.off(EVENT_NIGHT_ENDED, this.handleNightEnded, this);
     }
 
     private handleNightInteraction = (tileX: number, tileY: number): boolean => {
@@ -783,6 +849,10 @@ export class NightCantinaScene extends Scene {
         this.seatingManager?.destroy();
         this.ratManager?.destroy();
         this.coinManager?.destroy();
+        this.night1Script?.destroy();
+        this.night2Script?.destroy();
+        this.tutorialManager?.destroy();
+        this.progressionManager?.destroy();
     }
 
     private handleBuildModeToggled(data: BuildModeToggledData): void {
@@ -800,6 +870,7 @@ export class NightCantinaScene extends Scene {
         const isNight = this.registry.get('gameMode') === GAME_MODE_NIGHT;
         const shouldPauseGameplay = this.isWantedPosterOpen
             || this.isClientGuideOpen
+            || this.isTutorialPaused
             || (isNight && this.buildModeEnabled);
         if (this.isNightGameplayPaused === shouldPauseGameplay) return;
         this.isNightGameplayPaused = shouldPauseGameplay;
@@ -817,6 +888,30 @@ export class NightCantinaScene extends Scene {
         this.time.paused = false;
         this.tweens.paused = false;
         this.player.anims.resume();
+    }
+
+    private handleTutorialPauseChanged(data: TutorialPauseChangedData): void {
+        this.isTutorialPaused = data.paused;
+        this.updateNightGameplayPause();
+    }
+
+    private handleNightEnded(): void {
+        this.clientManager.setEnabled(false);
+        this.clientManager.clearClients();
+        this.placementManager.setEnabled(true);
+        eventBus.emit(EVENT_NIGHT_FEATURES_CHANGED, {
+            clientGuideEnabled: true,
+            advancedSystemsEnabled: true,
+        });
+        this.wantedPoster?.setVisible(true);
+        this.isTutorialPaused = false;
+        this.setBuildModeForPreOpening();
+    }
+
+    private setBuildModeForPreOpening(): void {
+        this.buildModeEnabled = true;
+        eventBus.emit(EVENT_TOGGLE_BUILD_MODE, { enabled: true });
+        this.updateNightGameplayPause();
     }
 
     private handleFurnitureLayoutChanged(): void {

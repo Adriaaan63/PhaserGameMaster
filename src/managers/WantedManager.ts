@@ -46,9 +46,10 @@ export class WantedManager {
     private patrolPoints: readonly ClientPosition[] = [];
     private patrolPointIndex = 0;
     private resolved = false;
+    private enabled = true;
 
     private readonly handleClientSeated = (data: ClientSeatedData): void => {
-        if (!data.isWanted || this.clientManager === null) return;
+        if (!this.enabled || !data.isWanted || this.clientManager === null) return;
         this.wantedClientId = data.clientId;
         this.inspectionTimer?.remove(false);
         this.inspectionTimer = this.scene.time.delayedCall(
@@ -77,8 +78,18 @@ export class WantedManager {
         return this.profile;
     }
 
+    public setEnabled(enabled: boolean): void {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.inspectionTimer?.remove(false);
+            this.inspectionTimer = null;
+            this.sandtrooper?.destroy();
+            this.sandtrooper = null;
+        }
+    }
+
     public update(deltaMs: number): void {
-        if (this.sandtrooper === null) return;
+        if (!this.enabled || this.sandtrooper === null) return;
         this.sandtrooper.update(deltaMs);
         if (this.sandtrooper.currentState === 'PATROLLING' && !this.resolved) {
             if (this.isWantedClientDetected()) {
@@ -102,6 +113,7 @@ export class WantedManager {
     }
 
     public interactAt(tileX: number, tileY: number): boolean {
+        if (!this.enabled) return false;
         if (this.isPosterTile(tileX, tileY)) {
             eventBus.emit(EVENT_OPEN_WANTED_POSTER, { profile: this.profile });
             return true;

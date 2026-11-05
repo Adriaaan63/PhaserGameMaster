@@ -80,7 +80,11 @@ export class CoinDrop extends Physics.Arcade.Image {
 
     /** Claims this drop exactly once, whether Wuher collects it or a rat steals it. */
     public claim(disposition: 'COLLECTED' | 'STOLEN'): boolean {
-        if (this.disposition !== 'AVAILABLE' && this.disposition !== 'CARRIED') return false;
+        if (
+            this.disposition !== 'AVAILABLE'
+            && this.disposition !== 'ASSIGNED'
+            && this.disposition !== 'CARRIED'
+        ) return false;
         this.disposition = disposition;
         this.destroy();
         return true;

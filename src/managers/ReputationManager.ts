@@ -24,15 +24,16 @@ export class ReputationManager {
     private readonly satisfiedClients = new Set<number>();
     private raidActive = false;
     private raidTriggered = false;
+    private enabled = true;
 
     private readonly handleSatisfied = (data: ClientSatisfiedData): void => {
-        if (this.raidActive) return;
+        if (!this.enabled || this.raidActive) return;
         this.satisfiedClients.add(data.clientId);
         this.changeReputation(this.registry.reputation.reputationGainPerOrder);
     };
 
     private readonly handleLeaving = (data: ClientLeavingData): void => {
-        if (this.raidActive) return;
+        if (!this.enabled || this.raidActive) return;
         if (this.satisfiedClients.delete(data.clientId)) return;
         this.changeReputation(this.registry.reputation.reputationLossPerMiss);
     };
@@ -76,6 +77,10 @@ export class ReputationManager {
 
     public get currentReputation(): number {
         return this.reputation;
+    }
+
+    public setEnabled(enabled: boolean): void {
+        this.enabled = enabled;
     }
 
     public applyBetrayal(): void {

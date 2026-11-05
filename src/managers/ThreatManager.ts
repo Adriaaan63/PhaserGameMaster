@@ -19,13 +19,16 @@ export class ThreatManager {
     private heat: number;
     private activeFights = 0;
     private raidTriggered = false;
+    private enabled = true;
     private readonly heatTimer: Time.TimerEvent;
 
     private readonly handleClientMurdered = (_data: ClientMurderedData): void => {
+        if (!this.enabled) return;
         this.changeHeat(this.registry.threat.heatPerMurder);
     };
 
     private readonly handleFightStarted = (_data: FightStartedData): void => {
+        if (!this.enabled) return;
         this.activeFights++;
     };
 
@@ -34,7 +37,7 @@ export class ThreatManager {
     };
 
     private readonly updateHeat = (): void => {
-        if (this.raidTriggered) return;
+        if (!this.enabled || this.raidTriggered) return;
         const change = this.activeFights > 0
             ? this.registry.threat.heatPerSecondFighting
             : -this.registry.threat.heatDecayPerSecond;
@@ -71,6 +74,10 @@ export class ThreatManager {
 
     public get currentHeat(): number {
         return this.heat;
+    }
+
+    public setEnabled(enabled: boolean): void {
+        this.enabled = enabled;
     }
 
     private changeHeat(delta: number): void {

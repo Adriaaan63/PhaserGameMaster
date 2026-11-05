@@ -3,8 +3,10 @@ import { GameObjects, Scene, Tweens } from 'phaser';
 import { IMPERIAL_HEAT_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import {
     EVENT_HEAT_UPDATED,
+    EVENT_NIGHT_FEATURES_CHANGED,
     eventBus,
     type HeatUpdatedData,
+    type NightFeaturesData,
 } from '../utils/EventBus';
 
 /** Responsive lower-left Imperial alert meter driven by threat events. */
@@ -16,6 +18,9 @@ export class ImperialBarUI {
     private readonly labelText: GameObjects.Text;
     private readonly config = GAME_REGISTRY.ui;
     private heatTween: Tweens.Tween | null = null;
+    private readonly handleFeaturesChanged = (data: NightFeaturesData): void => {
+        this.container.setVisible(data.advancedSystemsEnabled);
+    };
 
     private readonly handleHeatUpdated = (data: HeatUpdatedData): void => {
         const ratio = Math.max(
@@ -38,6 +43,7 @@ export class ImperialBarUI {
         this.container = scene.add.container(0, 0)
             .setScrollFactor(0)
             .setDepth(this.config.topBarDepth);
+        this.container.setVisible(scene.registry.get('currentNight') !== 1);
 
         const trackWidth = this.config.imperialBarWidth - this.config.imperialBarLabelWidth;
         this.track = scene.add.rectangle(0, 0, trackWidth, this.config.imperialBarHeight, this.config.imperialBarTrackColor);
@@ -64,6 +70,7 @@ export class ImperialBarUI {
         this.container.add([this.track, this.fill, this.label, this.labelText]);
 
         eventBus.on(EVENT_HEAT_UPDATED, this.handleHeatUpdated);
+        eventBus.on(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -77,6 +84,7 @@ export class ImperialBarUI {
 
     public destroy(): void {
         eventBus.off(EVENT_HEAT_UPDATED, this.handleHeatUpdated);
+        eventBus.off(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
         this.scene.scale.off('resize', this.reposition, this);
         this.heatTween?.stop();
         this.heatTween = null;
