@@ -8,8 +8,10 @@ import {
     eventBus,
     EVENT_NIGHT_FEATURES_CHANGED,
     EVENT_REPUTATION_UPDATED,
+    EVENT_TUTORIAL_METER_HINT,
     type NightFeaturesData,
     type ReputationUpdatedData,
+    type TutorialMeterHintData,
 } from '../utils/EventBus';
 
 /** Responsive lower-right criminal reputation meter driven by reputation events. */
@@ -21,8 +23,17 @@ export class ReputationBarUI {
     private readonly labelText: GameObjects.Text;
     private readonly config = GAME_REGISTRY.ui;
     private reputationTween: Tweens.Tween | null = null;
+    private hintTween: Tweens.Tween | null = null;
+    private reputationHintActive = false;
     private readonly handleFeaturesChanged = (data: NightFeaturesData): void => {
         this.container.setVisible(data.advancedSystemsEnabled);
+        this.refreshHintAnimation();
+    };
+
+    private readonly handleMeterHint = (data: TutorialMeterHintData): void => {
+        if (data.meter !== 'CRIMINAL_REPUTATION') return;
+        this.reputationHintActive = data.active;
+        this.refreshHintAnimation();
     };
 
     private readonly handleReputationUpdated = (data: ReputationUpdatedData): void => {
@@ -79,6 +90,7 @@ export class ReputationBarUI {
 
         eventBus.on(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
         eventBus.on(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
+        eventBus.on(EVENT_TUTORIAL_METER_HINT, this.handleMeterHint);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -96,10 +108,32 @@ export class ReputationBarUI {
     public destroy(): void {
         eventBus.off(EVENT_REPUTATION_UPDATED, this.handleReputationUpdated);
         eventBus.off(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
+        eventBus.off(EVENT_TUTORIAL_METER_HINT, this.handleMeterHint);
         this.scene.scale.off('resize', this.reposition, this);
         this.reputationTween?.stop();
         this.reputationTween = null;
+        this.hintTween?.stop();
+        this.hintTween = null;
         this.container.destroy(true);
+    }
+
+    private refreshHintAnimation(): void {
+        if (!this.reputationHintActive || !this.container.visible) {
+            this.hintTween?.stop();
+            this.hintTween = null;
+            this.container.setAlpha(1);
+            return;
+        }
+        if (this.hintTween !== null) return;
+
+        this.hintTween = this.scene.tweens.add({
+            targets: this.container,
+            alpha: this.config.tutorialMeterMinimumAlpha,
+            duration: this.config.tutorialMeterPulseDurationMs,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.InOut',
+        });
     }
 
     private reposition(): void {

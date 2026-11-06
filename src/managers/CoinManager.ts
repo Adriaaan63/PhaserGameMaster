@@ -85,6 +85,11 @@ export class CoinManager {
         );
     }
 
+    /** Includes drops carried by rats, which remain unresolved until collected or stolen. */
+    public get hasUnresolvedRewards(): boolean {
+        return this.getAvailableCoins().length > 0;
+    }
+
     public getAvailableLootGroup(lootGroupId: number): readonly CoinDrop[] {
         return this.getAvailableCoins().filter((coin) => coin.lootGroupId === lootGroupId);
     }

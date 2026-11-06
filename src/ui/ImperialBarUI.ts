@@ -4,9 +4,11 @@ import { IMPERIAL_HEAT_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry'
 import {
     EVENT_HEAT_UPDATED,
     EVENT_NIGHT_FEATURES_CHANGED,
+    EVENT_TUTORIAL_METER_HINT,
     eventBus,
     type HeatUpdatedData,
     type NightFeaturesData,
+    type TutorialMeterHintData,
 } from '../utils/EventBus';
 
 /** Responsive lower-left Imperial alert meter driven by threat events. */
@@ -18,8 +20,17 @@ export class ImperialBarUI {
     private readonly labelText: GameObjects.Text;
     private readonly config = GAME_REGISTRY.ui;
     private heatTween: Tweens.Tween | null = null;
+    private hintTween: Tweens.Tween | null = null;
+    private heatHintActive = false;
     private readonly handleFeaturesChanged = (data: NightFeaturesData): void => {
         this.container.setVisible(data.advancedSystemsEnabled);
+        this.refreshHintAnimation();
+    };
+
+    private readonly handleMeterHint = (data: TutorialMeterHintData): void => {
+        if (data.meter !== 'IMPERIAL_HEAT') return;
+        this.heatHintActive = data.active;
+        this.refreshHintAnimation();
     };
 
     private readonly handleHeatUpdated = (data: HeatUpdatedData): void => {
@@ -71,6 +82,7 @@ export class ImperialBarUI {
 
         eventBus.on(EVENT_HEAT_UPDATED, this.handleHeatUpdated);
         eventBus.on(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
+        eventBus.on(EVENT_TUTORIAL_METER_HINT, this.handleMeterHint);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
         scene.events.once('destroy', this.destroy, this);
@@ -85,10 +97,32 @@ export class ImperialBarUI {
     public destroy(): void {
         eventBus.off(EVENT_HEAT_UPDATED, this.handleHeatUpdated);
         eventBus.off(EVENT_NIGHT_FEATURES_CHANGED, this.handleFeaturesChanged);
+        eventBus.off(EVENT_TUTORIAL_METER_HINT, this.handleMeterHint);
         this.scene.scale.off('resize', this.reposition, this);
         this.heatTween?.stop();
         this.heatTween = null;
+        this.hintTween?.stop();
+        this.hintTween = null;
         this.container.destroy(true);
+    }
+
+    private refreshHintAnimation(): void {
+        if (!this.heatHintActive || !this.container.visible) {
+            this.hintTween?.stop();
+            this.hintTween = null;
+            this.container.setAlpha(1);
+            return;
+        }
+        if (this.hintTween !== null) return;
+
+        this.hintTween = this.scene.tweens.add({
+            targets: this.container,
+            alpha: this.config.tutorialMeterMinimumAlpha,
+            duration: this.config.tutorialMeterPulseDurationMs,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.InOut',
+        });
     }
 
     private reposition(): void {

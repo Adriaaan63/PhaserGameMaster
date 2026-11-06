@@ -30,7 +30,7 @@ export class BandManager {
         return this.playing;
     }
 
-    /** Returns true when the player's facing tile is in or next to the stage zone. */
+    /** Returns true only when the player's facing tile belongs to the stage zone. */
     public isInteractionTile(tileX: number, tileY: number): boolean {
         return this.bandTiles.some((tile) => (
             Math.abs(tile.tileX - tileX) + Math.abs(tile.tileY - tileY)

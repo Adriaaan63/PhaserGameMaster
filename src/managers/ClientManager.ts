@@ -1,4 +1,4 @@
-import { Physics, Scene } from 'phaser';
+import { Physics, Scene, Time } from 'phaser';
 import {
     BAND_PLAYING_DURATION_MS,
     ClientRace,
@@ -37,7 +37,8 @@ export class ClientManager {
     private queueIndex = 0;
     private nextClientId = 1;
     private enabled = false;
-    private wantedAssigned = false;
+    private wantedSpawned = false;
+    private wantedSpawnTimer: Time.TimerEvent | null = null;
     private spawnIntervalMs: number = GAME_REGISTRY.clients.spawnIntervalMs;
     private patienceMultiplier = 1;
     private forcedRace: ClientRace | null = null;
@@ -60,7 +61,15 @@ export class ClientManager {
         eventBus.on(EVENT_BAND_STARTED, this.onBandStartedBound);
     }
 
-    public setEnabled(enabled: boolean): void { this.enabled = enabled; }
+    public setEnabled(enabled: boolean): void {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.wantedSpawnTimer?.remove(false);
+            this.wantedSpawnTimer = null;
+            return;
+        }
+        this.scheduleWantedSpawn();
+    }
 
     public configureNight(
         difficulty: NightDifficulty,
@@ -78,7 +87,9 @@ export class ClientManager {
         this.wantedEnabled = options.wantedEnabled ?? true;
         this.spawnAfterBand = options.spawnAfterBand ?? false;
         this.bandActivated = !this.spawnAfterBand;
-        this.wantedAssigned = false;
+        this.wantedSpawnTimer?.remove(false);
+        this.wantedSpawnTimer = null;
+        this.wantedSpawned = false;
         this.elapsedMs = 0;
     }
 
@@ -135,70 +146,7 @@ export class ClientManager {
         if (waiting >= GAME_REGISTRY.clients.maxWaiting) return;
         const position = this.queueTiles[this.queueIndex];
         this.queueIndex = (this.queueIndex + 1) % this.queueTiles.length;
-        const clientId = this.nextClientId++;
-        const wantedProfile = this.wantedEnabled
-            && !this.wantedAssigned
-            && clientId === GAME_REGISTRY.wanted.targetClientId
-            ? this.getWantedProfile()
-            : null;
-        if (wantedProfile !== null) this.wantedAssigned = true;
-        const client = new Client(
-            this.scene,
-            clientId,
-            position,
-            samplePatienceDuration(GAME_REGISTRY.patience.queue),
-            this.coinManager,
-            this.grid,
-            this.seating,
-            this.pathfinding,
-            GAME_REGISTRY,
-            this.isBandPlaying,
-            wantedProfile,
-            this.patienceMultiplier,
-            this.forcedRace,
-            this.allowedOrderItems,
-        );
-        client.setData('clientId', clientId);
-        this.clients.add(client);
-        this.collisionGroup.add(client);
-        eventBus.emit(EVENT_CLIENT_SPAWNED, { clientId: client.clientId });
-        client.once('queue-abandoned', () => this.fadeClientOut(client));
-        client.once('queue-abandoned', () => {
-            eventBus.emit(EVENT_CLIENT_LEAVING, { clientId: client.clientId });
-        });
-        client.once('exited', () => this.fadeClientOut(client));
-        client.once('leaving', () => {
-            const data: ClientLeavingData = { clientId: client.clientId };
-            eventBus.emit(EVENT_CLIENT_LEAVING, data);
-        });
-        client.on('exit-path-failed', (data: ClientExitPathFailedData) => {
-            console.error('No existe una ruta transitable hasta la salida para el cliente.', data);
-            eventBus.emit(EVENT_CLIENT_EXIT_PATH_FAILED, data);
-        });
-        client.once('seated', () => {
-            const seat = client.assignedSeat;
-            if (seat === null) return;
-            const data: ClientSeatedData = {
-                clientId: client.clientId,
-                race: client.race,
-                tileX: seat.tileX,
-                tileY: seat.tileY,
-                isWanted: client.isWanted,
-            };
-            eventBus.emit(EVENT_CLIENT_SEATED, data);
-        });
-        client.once('satisfied', () => {
-            const seat = client.assignedSeat;
-            const itemId = client.orderItemId;
-            if (seat === null || itemId === null) return;
-            const data: ClientSatisfiedData = {
-                clientId: client.getData('clientId') as number,
-                orderItemId: itemId,
-                seatTileX: seat.tileX,
-                seatTileY: seat.tileY,
-            };
-            eventBus.emit(EVENT_CLIENT_SATISFIED, data);
-        });
+        this.spawnClient(position, null);
     }
 
     public getWaitingClients(): readonly Client[] {
@@ -207,6 +155,11 @@ export class ClientManager {
 
     public getClients(): readonly Client[] {
         return [...this.clients];
+    }
+
+    /** True while any spawned client still needs to finish its cantina lifecycle. */
+    public get hasClientsInCantina(): boolean {
+        return this.clients.size > 0;
     }
 
     public getClientById(clientId: number): Client | null {
@@ -277,9 +230,99 @@ export class ClientManager {
 
     public destroy(): void {
         eventBus.off(EVENT_BAND_STARTED, this.onBandStartedBound);
+        this.wantedSpawnTimer?.remove(false);
+        this.wantedSpawnTimer = null;
         this.collisionGroup.clear(false, false);
         for (const client of this.clients) client.destroy();
         this.clients.clear();
+    }
+
+    /** Starts the per-night wanted-client timer when customer spawning is enabled. */
+    private scheduleWantedSpawn(): void {
+        if (!this.wantedEnabled || this.wantedSpawned || this.wantedSpawnTimer !== null) return;
+        this.wantedSpawnTimer = this.scene.time.delayedCall(
+            GAME_REGISTRY.wanted.spawnAtMs,
+            () => {
+                this.wantedSpawnTimer = null;
+                this.spawnWantedClient();
+            },
+        );
+    }
+
+    /** Spawns the wanted customer at the map entrance, independent of queue capacity. */
+    private spawnWantedClient(): void {
+        if (!this.enabled || !this.wantedEnabled || this.wantedSpawned) return;
+        const entryPosition = this.grid.getObjectZoneCenterTiles('cantina_entrada')[0]
+            ?? this.queueTiles[0];
+        const wantedProfile = this.getWantedProfile();
+        if (entryPosition === undefined || wantedProfile === null) {
+            console.error('No se pudo crear el cliente buscado: falta una entrada válida o su perfil.');
+            return;
+        }
+
+        this.wantedSpawned = true;
+        this.spawnClient(entryPosition, wantedProfile);
+    }
+
+    private spawnClient(position: ClientPosition, wantedProfile: WantedProfile | null): void {
+        const clientId = this.nextClientId++;
+        const client = new Client(
+            this.scene,
+            clientId,
+            position,
+            samplePatienceDuration(GAME_REGISTRY.patience.queue),
+            this.coinManager,
+            this.grid,
+            this.seating,
+            this.pathfinding,
+            GAME_REGISTRY,
+            this.isBandPlaying,
+            wantedProfile,
+            this.patienceMultiplier,
+            this.forcedRace,
+            this.allowedOrderItems,
+        );
+        client.setData('clientId', clientId);
+        this.clients.add(client);
+        this.collisionGroup.add(client);
+        eventBus.emit(EVENT_CLIENT_SPAWNED, { clientId: client.clientId });
+        client.once('queue-abandoned', () => this.fadeClientOut(client));
+        client.once('queue-abandoned', () => {
+            eventBus.emit(EVENT_CLIENT_LEAVING, { clientId: client.clientId });
+        });
+        client.once('exited', () => this.fadeClientOut(client));
+        client.once('leaving', () => {
+            const data: ClientLeavingData = { clientId: client.clientId };
+            eventBus.emit(EVENT_CLIENT_LEAVING, data);
+        });
+        client.on('exit-path-failed', (data: ClientExitPathFailedData) => {
+            console.error('No existe una ruta transitable hasta la salida para el cliente.', data);
+            eventBus.emit(EVENT_CLIENT_EXIT_PATH_FAILED, data);
+        });
+        client.once('seated', () => {
+            const seat = client.assignedSeat;
+            if (seat === null) return;
+            const data: ClientSeatedData = {
+                clientId: client.clientId,
+                race: client.race,
+                tileX: seat.tileX,
+                tileY: seat.tileY,
+                isWanted: client.isWanted,
+            };
+            eventBus.emit(EVENT_CLIENT_SEATED, data);
+        });
+        client.once('satisfied', () => {
+            const seat = client.assignedSeat;
+            const itemId = client.orderItemId;
+            if (seat === null || itemId === null) return;
+            const data: ClientSatisfiedData = {
+                clientId: client.getData('clientId') as number,
+                orderItemId: itemId,
+                seatTileX: seat.tileX,
+                seatTileY: seat.tileY,
+            };
+            eventBus.emit(EVENT_CLIENT_SATISFIED, data);
+        });
     }
 
     private fadeClientOut(client: Client): void {

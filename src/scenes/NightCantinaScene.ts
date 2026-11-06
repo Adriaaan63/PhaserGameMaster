@@ -6,10 +6,10 @@ import {
     GAME_REGISTRY,
     SCRAPS_REGISTRY_KEY,
 } from '../data/GameRegistry';
-import { Player } from '../entities/Player';
+import { Player, type GlassStorageInteraction } from '../entities/Player';
 import { InteractableObject } from '../entities/InteractableObject';
 import { WantedPoster } from '../entities/WantedPoster';
-import { InventoryCrate } from '../entities/InventoryCrate';
+import { GlassStorageIndicator } from '../ui/GlassStorageIndicator';
 import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
 import { GridManager, TILE_TYPE_TABLE } from '../managers/GridManager';
@@ -138,7 +138,7 @@ export class NightCantinaScene extends Scene {
     private jabbaRaidManager!: JabbaRaidManager;
     private wantedManager!: WantedManager;
     private wantedPoster: WantedPoster | null = null;
-    private inventoryCrate: InventoryCrate | null = null;
+    private glassStorageIndicator: GlassStorageIndicator | null = null;
     private bandManager!: BandManager;
     private audioManager!: AudioManager;
     private ratManager!: RatManager;
@@ -236,7 +236,15 @@ export class NightCantinaScene extends Scene {
 
         // Spawn the player at the Wuher spawn point (object layer) or map center.
         const spawnPoint = this.findSpawnPoint(map);
-        this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager);
+        const glassStorage = this.findGlassStorageInteraction(map);
+        this.player = new Player(this, spawnPoint.x, spawnPoint.y, this.gridManager, glassStorage);
+        if (glassStorage !== null) {
+            this.glassStorageIndicator = new GlassStorageIndicator(
+                this,
+                (glassStorage.tileX + 0.5) * TILE,
+                (glassStorage.tileY + 0.5) * TILE,
+            );
+        }
         const keyboard = this.input.keyboard;
         if (keyboard === null) {
             throw new Error('No se encontró el teclado para cancelar la asignación de clientes.');
@@ -250,7 +258,6 @@ export class NightCantinaScene extends Scene {
         this.createTestInteractableObjects();
         this.createServiceStations(map);
         this.createWantedPoster();
-        this.createInventoryCrate(map);
 
         this.seatingManager = new SeatingManager(this, this.gridManager);
         // Placement receives seating state so it cannot remove reserved chairs.
@@ -561,22 +568,30 @@ export class NightCantinaScene extends Scene {
         return (baseTileY + 1) * TILE + 1.5;
     }
 
-    private createInventoryCrate(map: Phaser.Tilemaps.Tilemap): void {
+    private findGlassStorageInteraction(map: Phaser.Tilemaps.Tilemap): GlassStorageInteraction | null {
         const objectLayer = map.getObjectLayer('Objetos') ?? map.getObjectLayer('objetos');
-        const crateObject = objectLayer?.objects.find((object) =>
-            object.name?.toLowerCase() === 'caja_inventario'
+        const storageObject = objectLayer?.objects.find((object) =>
+            object.name?.toLowerCase() === 'caja'
             || object.type?.toLowerCase() === 'caja_inventario',
         );
         if (
-            crateObject === undefined
-            || crateObject.x === undefined
-            || crateObject.y === undefined
-        ) return;
-        this.inventoryCrate = new InventoryCrate(
-            this,
-            crateObject.x + (crateObject.width ?? TILE) / 2,
-            crateObject.y + (crateObject.height ?? TILE) / 2,
-        );
+            storageObject === undefined
+            || storageObject.x === undefined
+            || storageObject.y === undefined
+        ) return null;
+
+        const centerX = storageObject.x + (storageObject.width ?? TILE) / 2;
+        const centerY = storageObject.y + (storageObject.height ?? TILE) / 2;
+        return {
+            tileX: Math.floor(centerX / TILE),
+            tileY: Math.floor(centerY / TILE),
+            takeOne: () => {
+                const stock = this.registry.get(EMPTY_GLASSES_REGISTRY_KEY);
+                if (typeof stock !== 'number' || stock <= 0) return false;
+                this.registry.set(EMPTY_GLASSES_REGISTRY_KEY, stock - 1);
+                return true;
+            },
+        };
     }
 
     private createServiceStations(map: Phaser.Tilemaps.Tilemap): void {
@@ -679,6 +694,23 @@ export class NightCantinaScene extends Scene {
 
         if (this.ratManager.scareAt(tileX, tileY)) return true;
 
+        // Serving the customer under the cursor takes precedence if interaction zones overlap.
+        const orderClient = this.clientManager.getClientWaitingForOrderAt(tileX, tileY);
+        const heldItemType = this.player.getHeldObjectType();
+        if (orderClient !== null && heldItemType !== null) {
+            if (orderClient.orderItemId !== heldItemType) {
+                eventBus.emit(EVENT_GAME_WARNING, { message: 'That client asked for something else.' });
+                return true;
+            }
+
+            if (this.player.consumeHeldObject(heldItemType) && orderClient.receiveOrder(heldItemType)) {
+                return true;
+            }
+
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Order could not be delivered.' });
+            return true;
+        }
+
         if (this.bandManager.isInteractionTile(tileX, tileY)) {
             if (this.player.getHeldObjectType() !== null) {
                 eventBus.emit(EVENT_GAME_WARNING, { message: 'Leave the object to give the signal to the band.' });
@@ -712,22 +744,6 @@ export class NightCantinaScene extends Scene {
                 return true;
             }
             return this.fightManager.intervene(fightingClient.clientId);
-        }
-
-        const orderClient = this.clientManager.getClientWaitingForOrderAt(tileX, tileY);
-        const heldItemType = this.player.getHeldObjectType();
-        if (orderClient !== null && heldItemType !== null) {
-            if (orderClient.orderItemId !== heldItemType) {
-                eventBus.emit(EVENT_GAME_WARNING, { message: 'That client asked for something else.' });
-                return true;
-            }
-
-            if (this.player.consumeHeldObject(heldItemType) && orderClient.receiveOrder(heldItemType)) {
-                return true;
-            }
-
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'Order could not be delivered.' });
-            return true;
         }
 
         if (this.selectedClient !== null) return this.assignSelectedClient(tileX, tileY);
@@ -868,8 +884,8 @@ export class NightCantinaScene extends Scene {
         this.wantedManager?.destroy();
         this.wantedPoster?.destroy();
         this.wantedPoster = null;
-        this.inventoryCrate?.destroy();
-        this.inventoryCrate = null;
+        this.glassStorageIndicator?.destroy();
+        this.glassStorageIndicator = null;
         this.reputationManager?.destroy();
         this.hazardManager?.destroy();
         this.affinityManager?.destroy();
@@ -933,10 +949,8 @@ export class NightCantinaScene extends Scene {
 
     private checkNightEndReady(): void {
         if (this.bandManager.isBandPlaying) return;
-        const pendingMusicRewards = this.clientManager.getClients().some((client) => (
-            client.clientState === 'SATISFIED' && client.orderItemId === 'MUSIC'
-        ));
-        if (pendingMusicRewards) return;
+        if (this.clientManager.hasClientsInCantina) return;
+        if (this.coinManager.hasUnresolvedRewards) return;
         this.nightEnding = false;
         this.progressionManager.completeSafeNightEnd();
     }
@@ -963,8 +977,10 @@ export class NightCantinaScene extends Scene {
         const posterTile = this.wantedPoster?.tilePosition
             ?? this.gridManager.getObjectZoneCenterTiles('cartel')[0]
             ?? { tileX: 4, tileY: 7 };
+        const grillTile = this.gridManager.getObjectZoneCenterTiles('parrilla')[0] ?? null;
         this.night2Script = new Night2Script(this, this.tutorialManager, {
             wantedPoster: posterTile,
+            grill: grillTile,
         });
     }
 

@@ -11,6 +11,7 @@ import {
     EVENT_FURNITURE_REMOVED,
     EVENT_FURNITURE_REPAIRED,
     EVENT_GAME_WARNING,
+    EVENT_SCRAPS_UPDATED,
     EVENT_START_PLACEMENT,
     EVENT_TOGGLE_BUILD_MODE,
     eventBus,
@@ -19,6 +20,7 @@ import {
     type PlacementMoveData,
     type PlacementStartData,
     GAME_MODE_DAY,
+    GAME_MODE_PRE_OPENING,
 } from '../utils/EventBus';
 import { GridManager, TILE_TYPE_CHAIR, TILE_TYPE_TABLE, type FurnitureTileType } from './GridManager';
 import type { SeatingManager } from './SeatingManager';
@@ -157,8 +159,7 @@ export class PlacementManager {
      */
     public removeFurnitureAt(tileX: number, tileY: number): boolean {
         if (this.gridManager.isFurnitureDestroyed(tileX, tileY)) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'The furniture is destroyed and requires daytime repair.' });
-            return false;
+            return this.repairFurnitureAt(tileX, tileY);
         }
         // The GridManager entry knows the root tile; look it up.
         const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
@@ -231,8 +232,9 @@ export class PlacementManager {
 
     /** Repairs furniture during the day by spending the configured scrap cost. */
     public repairFurnitureAt(tileX: number, tileY: number): boolean {
-        if (this.scene.registry.get('gameMode') !== GAME_MODE_DAY) {
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'Furniture can only be repaired during the day.' });
+        const gameMode = this.scene.registry.get('gameMode');
+        if (gameMode !== GAME_MODE_DAY && gameMode !== GAME_MODE_PRE_OPENING) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Furniture can only be repaired during pre-opening.' });
             return false;
         }
         if (!this.gridManager.isFurnitureDestroyed(tileX, tileY)) return false;
@@ -247,6 +249,7 @@ export class PlacementManager {
         if (!this.gridManager.repairFurniture(tileX, tileY)) return false;
 
         this.scene.registry.set(SCRAPS_REGISTRY_KEY, scraps - cost);
+        eventBus.emit(EVENT_SCRAPS_UPDATED, { stock: scraps - cost });
         const gridEntry = this.gridManager.getFurnitureAt(tileX, tileY);
         if (gridEntry !== null) {
             const rootKey = this.getTileKey(gridEntry.rootX, gridEntry.rootY);

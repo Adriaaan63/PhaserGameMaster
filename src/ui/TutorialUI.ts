@@ -27,6 +27,7 @@ export class TutorialUI {
     private dragPulse: Tweens.Tween | null = null;
     private readonly closeKey: Input.Keyboard.Key;
     private isOpen = false;
+    private ignoreEscapeUntilReleased = false;
     private readonly handlePointerDown = (pointer: Input.Pointer): void => {
         // Only advance tutorial if clicking on the dialog itself
         if (!this.isOpen) return;
@@ -49,6 +50,7 @@ export class TutorialUI {
         this.dialog.setVisible(true);
         this.overlay.setVisible(true);
         this.isOpen = true;
+        this.ignoreEscapeUntilReleased = this.closeKey.isDown;
     };
 
     private readonly handleClosed = (): void => {
@@ -187,9 +189,12 @@ export class TutorialUI {
     }
 
     public update(): void {
-        if (this.isOpen && Input.Keyboard.JustDown(this.closeKey)) {
-            eventBus.emit(EVENT_TUTORIAL_CLOSED);
+        if (!this.isOpen) return;
+        if (this.ignoreEscapeUntilReleased) {
+            if (this.closeKey.isDown) return;
+            this.ignoreEscapeUntilReleased = false;
         }
+        if (Input.Keyboard.JustDown(this.closeKey)) eventBus.emit(EVENT_TUTORIAL_CLOSED);
     }
 
     public destroy(): void {

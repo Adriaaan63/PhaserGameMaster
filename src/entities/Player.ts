@@ -6,7 +6,7 @@ import {
     PLAYER_HAND_OFFSET_Y,
     PLAYER_SPRITESHEET_KEY,
 } from '../data/constants';
-import { GAME_REGISTRY } from '../data/GameRegistry';
+import { EMPTY_GLASSES_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
 import { InteractableObject } from './InteractableObject';
 import type { InteractableObjectType } from './InteractableObject';
 import type { ClientPosition } from './Client';
@@ -23,11 +23,19 @@ import {
     EVENT_GAME_WARNING,
     EVENT_PLAYER_ACTION_PROGRESS,
     EVENT_BEVERAGE_FILLED,
+    EVENT_FOOD_COOKING_STARTED,
+    EVENT_GLASSES_UPDATED,
     EVENT_INTERACTABLE_PICKED,
     GAME_MODE_NIGHT,
     eventBus,
     type PlayerActionProgressData,
 } from '../utils/EventBus';
+
+export interface GlassStorageInteraction {
+    readonly tileX: number;
+    readonly tileY: number;
+    takeOne: () => boolean;
+}
 
 /**
  * Claves de animación registradas en el gestor global de animaciones de Phaser.
@@ -75,6 +83,7 @@ export class Player extends Physics.Arcade.Sprite {
         readonly right: Input.Keyboard.Key;
     };
     private readonly interactionKey: Input.Keyboard.Key;
+    private readonly glassStorage: GlassStorageInteraction | null;
     private heldObject: InteractableObject | null = null;
     private fillingStation: BeverageTower | null = null;
     private readonly actionProgressBackground: GameObjects.Rectangle;
@@ -92,10 +101,17 @@ export class Player extends Physics.Arcade.Sprite {
     ) => boolean = () => false;
     private movementEnabled = true;
 
-    public constructor(scene: Scene, x: number, y: number, gridManager: GridManager) {
+    public constructor(
+        scene: Scene,
+        x: number,
+        y: number,
+        gridManager: GridManager,
+        glassStorage: GlassStorageInteraction | null = null,
+    ) {
         super(scene, x, y, PLAYER_SPRITESHEET_KEY, 0);
 
         this.gridManager = gridManager;
+        this.glassStorage = glassStorage;
 
         // Registro de animaciones globales de forma idempotente
         Player.initAnimations(scene);
@@ -509,6 +525,11 @@ export class Player extends Physics.Arcade.Sprite {
             ?? this.gridManager.getStationAt(tileX, tileY)
             ?? this.gridManager.getStationAt(targetTileX, targetTileY);
 
+        if (this.isFacingGlassStorage(targetTileX, targetTileY)) {
+            this.takeGlassFromStorage();
+            return;
+        }
+
         // Interacción con Parrilla
         if (resolvedStation instanceof Grill) {
             if (resolvedStation.isCooking()) {
@@ -540,7 +561,12 @@ export class Player extends Physics.Arcade.Sprite {
                 return;
             }
 
-            resolvedStation.startCooking();
+            if (resolvedStation.startCooking()) {
+                eventBus.emit(EVENT_FOOD_COOKING_STARTED, {
+                    tileX: resolvedStation.tileX,
+                    tileY: resolvedStation.tileY,
+                });
+            }
             return;
         }
 
@@ -600,6 +626,40 @@ export class Player extends Physics.Arcade.Sprite {
                 this.heldObject = null;
             }
         }
+    }
+
+    private isFacingGlassStorage(tileX: number, tileY: number): boolean {
+        return this.glassStorage !== null
+            && this.glassStorage.tileX === tileX
+            && this.glassStorage.tileY === tileY;
+    }
+
+    private takeGlassFromStorage(): void {
+        if (this.heldObject !== null) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'Your hands are full.' });
+            return;
+        }
+
+        if (this.glassStorage === null || !this.glassStorage.takeOne()) {
+            eventBus.emit(EVENT_GAME_WARNING, { message: 'There are no clean glasses in the crate.' });
+            return;
+        }
+
+        this.heldObject = InteractableObject.createDrink(this.scene, false);
+        this.heldObject.pickUp();
+        eventBus.emit(EVENT_GLASSES_UPDATED, {
+            stock: this.readGlassStock(),
+        });
+        eventBus.emit(EVENT_INTERACTABLE_PICKED, {
+            objectType: 'EMPTY_CUP',
+            tileX: this.glassStorage.tileX,
+            tileY: this.glassStorage.tileY,
+        });
+    }
+
+    private readGlassStock(): number {
+        const stock = this.scene.registry.get(EMPTY_GLASSES_REGISTRY_KEY);
+        return typeof stock === 'number' ? stock : 0;
     }
 
     /** Uses a table or bar from the far side of one chair tile. */

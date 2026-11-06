@@ -564,7 +564,7 @@
                          "value":"Punto de aparici\u00f3n de Wuher (dentro de la U de la barra)"
                         }],
                  "rotation":0,
-                 "type":"spawn",
+                 "type":"caja_inventario",
                  "visible":true,
                  "width":28.375,
                  "x":322,

@@ -25,12 +25,19 @@ import {
 } from '../utils/EventBus';
 import { InventoryUI } from './InventoryUI';
 
+interface ShopSlotElements {
+    readonly item: ShopItem;
+    readonly container: GameObjects.Container;
+    readonly buyButton: GameObjects.Text;
+}
+
 /** Pre-opening shop overlay that routes each purchase to its inventory system. */
 export class ShopUI {
     private readonly overlay: GameObjects.Container;
     private readonly panel: GameObjects.Rectangle;
     private readonly closeKey: Input.Keyboard.Key;
     private readonly tooltip: GameObjects.Container;
+    private readonly slots = new Map<string, ShopSlotElements>();
     private isOpen = false;
     private readonly config = GAME_REGISTRY.ui;
 
@@ -91,6 +98,7 @@ export class ShopUI {
         this.scene.scale.off('resize', this.reposition, this);
         this.closeKey.destroy();
         this.overlay.destroy(true);
+        this.slots.clear();
     }
 
     private createSlot(item: ShopItem, index: number): GameObjects.Container {
@@ -124,6 +132,7 @@ export class ShopUI {
             pointer.event.stopPropagation();
             this.purchase(item);
         });
+        this.slots.set(item.id, { item, container: slot, buyButton: buy });
         slot.add([background, icon, name, price, buy]);
         slot.setSize(this.config.shopSlotWidth, this.config.shopSlotHeight);
         slot.setInteractive(new Geom.Rectangle(
@@ -138,6 +147,13 @@ export class ShopUI {
     }
 
     private purchase(item: ShopItem): void {
+        if (
+            this.scene.registry.get('requireFoodPurchase') === true
+            && item.type !== 'FOOD'
+        ) {
+            return;
+        }
+
         const credits = this.readNumber(CREDITS_REGISTRY_KEY, 0);
         if (credits < item.price) {
             eventBus.emit(EVENT_GAME_WARNING, { message: 'You don\'t have enough credits.' });
@@ -148,6 +164,7 @@ export class ShopUI {
         this.scene.registry.set(CREDITS_REGISTRY_KEY, totalCredits);
         eventBus.emit(EVENT_CREDITS_UPDATED, { totalCredits });
         eventBus.emit(EVENT_GAME_WARNING, { message: `${item.name} Purchased.` });
+        this.refreshTutorialPurchaseLock();
     }
 
     private routePurchase(item: ShopItem): boolean {
@@ -204,8 +221,31 @@ export class ShopUI {
 
     private setOpen(enabled: boolean): void {
         this.isOpen = enabled;
+        this.refreshTutorialPurchaseLock();
         this.overlay.setVisible(enabled);
         if (!enabled) this.tooltip.setVisible(false);
+    }
+
+    private refreshTutorialPurchaseLock(): void {
+        const foodPurchaseRequired = this.scene.registry.get('requireFoodPurchase') === true;
+
+        for (const { item, container, buyButton } of this.slots.values()) {
+            const isLocked = foodPurchaseRequired && item.type !== 'FOOD';
+            container.setAlpha(isLocked ? this.config.shopLockedSlotAlpha : 1);
+            if (isLocked) {
+                container.disableInteractive();
+                buyButton.disableInteractive();
+                continue;
+            }
+
+            container.setInteractive(new Geom.Rectangle(
+                -this.config.shopSlotWidth / 2,
+                -this.config.shopSlotHeight / 2,
+                this.config.shopSlotWidth,
+                this.config.shopSlotHeight,
+            ), Geom.Rectangle.Contains);
+            buyButton.setInteractive({ useHandCursor: true });
+        }
     }
 
     private close(): void {

@@ -1,6 +1,6 @@
 import { GameObjects, Geom, Input, Scene, Tweens } from 'phaser';
 
-import { CREDITS_REGISTRY_KEY, GAME_REGISTRY } from '../data/GameRegistry';
+import { CREDITS_REGISTRY_KEY, GAME_REGISTRY, SCRAPS_REGISTRY_KEY } from '../data/GameRegistry';
 import {
     TEXTURE_FOOD,
     UI_BUILD_ICON_KEY,
@@ -16,6 +16,7 @@ import {
     EVENT_CREDITS_UPDATED,
     EVENT_WANTED_REWARD_GRANTED,
     EVENT_FOOD_STOCK_UPDATED,
+    EVENT_SCRAPS_UPDATED,
     EVENT_GAME_MODE_CHANGED,
     EVENT_GAME_WARNING,
     EVENT_NIGHT_TIMER_UPDATED,
@@ -34,6 +35,7 @@ import {
     type CreditsUpdatedData,
     type WantedRewardData,
     type FoodStockUpdatedData,
+    type ScrapsUpdatedData,
     type GameModeChangedData,
     type GameWarningData,
     type NightTimerUpdatedData,
@@ -50,6 +52,8 @@ interface HudSlot {
     readonly container: GameObjects.Container;
     readonly icon: GameObjects.Image | GameObjects.Ellipse | null;
     readonly value: GameObjects.Text;
+    readonly secondaryIcon: GameObjects.Image | null;
+    readonly secondaryValue: GameObjects.Text | null;
     readonly hitArea: GameObjects.Rectangle | null;
 }
 
@@ -78,6 +82,9 @@ export class HUD {
 
     private readonly onFoodStockUpdatedBound = (data: FoodStockUpdatedData): void => {
         this.setSlotValue('food', `x${data.stock}`);
+    };
+    private readonly onScrapsUpdatedBound = (data: ScrapsUpdatedData): void => {
+        this.setScrapStockValue(data.stock);
     };
     private readonly onGameModeChangedBound = (data: GameModeChangedData): void => {
         this.updatePhase(data.mode);
@@ -163,6 +170,7 @@ export class HUD {
         this.createFeedbackText();
         this.updatePhaseFromRegistry();
         this.setSlotValue('food', `x${this.readRegistryNumber('foodStock', 0)}`);
+        this.setScrapStockValue(this.readRegistryNumber(SCRAPS_REGISTRY_KEY, 0));
         this.setSlotValue('credits', `${this.readRegistryNumber(
             CREDITS_REGISTRY_KEY,
             GAME_REGISTRY.economy.startingCredits,
@@ -173,6 +181,7 @@ export class HUD {
         this.reposition();
 
         eventBus.on(EVENT_FOOD_STOCK_UPDATED, this.onFoodStockUpdatedBound);
+        eventBus.on(EVENT_SCRAPS_UPDATED, this.onScrapsUpdatedBound);
         eventBus.on(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.on(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.on(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
@@ -194,6 +203,7 @@ export class HUD {
 
     public destroy(): void {
         eventBus.off(EVENT_FOOD_STOCK_UPDATED, this.onFoodStockUpdatedBound);
+        eventBus.off(EVENT_SCRAPS_UPDATED, this.onScrapsUpdatedBound);
         eventBus.off(EVENT_GAME_MODE_CHANGED, this.onGameModeChangedBound);
         eventBus.off(EVENT_GAME_WARNING, this.onWarningBound);
         eventBus.off(EVENT_COIN_COLLECTED, this.onCoinCollectedBound);
@@ -241,7 +251,24 @@ export class HUD {
             strokeThickness: 2,
             align: 'center',
         }).setOrigin(0.5);
-        container.add(icon === null ? [frame, value] : [frame, icon, value]);
+        const secondaryIcon = id === 'food'
+            ? this.scene.add.image(0, 0, UI_MATERIALS_ICON_KEY)
+            : null;
+        const secondaryValue = id === 'food'
+            ? this.scene.add.text(0, 0, '', {
+                fontFamily: 'monospace',
+                fontSize: `${this.getValueFontSize(id)}px`,
+                color: HUD_TEXT_COLOR,
+                stroke: '#10151b',
+                strokeThickness: 2,
+                align: 'center',
+            }).setOrigin(0.5)
+            : null;
+        container.add(frame);
+        if (icon !== null) container.add(icon);
+        container.add(value);
+        if (secondaryIcon !== null) container.add(secondaryIcon);
+        if (secondaryValue !== null) container.add(secondaryValue);
 
         const interactive = id === 'guide' || id === 'materials' || id === 'build' || id === 'open';
         let hitArea: GameObjects.Rectangle | null = null;
@@ -262,7 +289,7 @@ export class HUD {
             });
         }
 
-        return { container, icon, value, hitArea };
+        return { container, icon, value, secondaryIcon, secondaryValue, hitArea };
     }
 
     private createIcon(id: HudSlotId): GameObjects.Image | GameObjects.Ellipse | null {
@@ -459,7 +486,7 @@ export class HUD {
         const barHeight = this.feedbackConfig.topBarHeight;
         const margin = this.feedbackConfig.topBarMargin;
         const usableWidth = Math.max(0, width - margin * 2);
-        const slotWidth = usableWidth / HUD_SLOT_IDS.length;
+        const slotWidth = usableWidth / this.feedbackConfig.topBarSlotCount;
         const y = barHeight / 2;
 
         this.barContainer.setPosition(width / 2, y).setScrollFactor(0);
@@ -489,7 +516,17 @@ export class HUD {
                         -transparentCenterOffsetY * frameHeight / bounds.sourceHeight,
                     );
             }
-            const hasSideBySideValue = id === 'food' || id === 'credits';
+            if (id === 'food') {
+                this.positionFoodStockRows(slot, slotWidth, barHeight);
+                slot.hitArea
+                    ?.setSize(Math.max(1, slotWidth), barHeight)
+                    .setInteractive(
+                        new Geom.Rectangle(-slotWidth / 2, -barHeight / 2, slotWidth, barHeight),
+                        Geom.Rectangle.Contains,
+                    );
+                continue;
+            }
+            const hasSideBySideValue = id === 'credits';
             const iconX = hasSideBySideValue
                 ? -slotWidth * this.feedbackConfig.sideBySideIconOffsetRatio
                 : 0;
@@ -524,6 +561,30 @@ export class HUD {
                 );
         }
         this.feedbackText.setPosition(width / 2, this.feedbackConfig.feedbackOffsetY);
+    }
+
+    private positionFoodStockRows(slot: HudSlot, slotWidth: number, barHeight: number): void {
+        const config = this.feedbackConfig;
+        const rowOffset = barHeight * config.stockRowOffsetRatio;
+        const iconX = -slotWidth * config.stockRowIconOffsetRatio;
+        const valueX = slotWidth * config.stockRowValueOffsetRatio;
+        const iconSize = Math.min(
+            config.slotIconSize,
+            slotWidth * config.stockRowIconWidthRatio,
+            barHeight * config.stockRowIconHeightRatio,
+        );
+        const fontSize = `${this.getResponsiveValueFontSize('food', slotWidth)}px`;
+
+        slot.icon?.setPosition(iconX, -rowOffset);
+        if (slot.icon instanceof GameObjects.Image) slot.icon.setDisplaySize(iconSize, iconSize);
+        slot.value.setPosition(valueX, -rowOffset).setFontSize(fontSize);
+
+        slot.secondaryIcon?.setPosition(iconX, rowOffset).setDisplaySize(iconSize, iconSize);
+        slot.secondaryValue?.setPosition(valueX, rowOffset).setFontSize(fontSize);
+    }
+
+    private setScrapStockValue(stock: number): void {
+        this.slots.get('food')?.secondaryValue?.setText(`x${stock}`);
     }
 
     private getValueFontSize(id: HudSlotId): number {

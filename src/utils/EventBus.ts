@@ -33,10 +33,12 @@ export const EVENT_TUTORIAL_POINTER = 'tutorial:pointer';
 export const EVENT_TUTORIAL_DRAG = 'tutorial:drag';
 export const EVENT_TUTORIAL_DRAG_COMPLETED = 'tutorial:drag-completed';
 export const EVENT_TUTORIAL_BUTTON_HINT = 'tutorial:button-hint';
+export const EVENT_TUTORIAL_METER_HINT = 'tutorial:meter-hint';
 export const EVENT_TUTORIAL_PAUSE_CHANGED = 'tutorial:pause-changed';
 export const EVENT_NIGHT_FEATURES_CHANGED = 'game:night-features-changed';
 export const EVENT_PLAYER_ACTION_PROGRESS = 'player:action-progress';
 export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
+export const EVENT_FOOD_COOKING_STARTED = 'station:food-cooking-started';
 export const EVENT_SHOP_FOOD_PURCHASED = 'shop:food-purchased';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
@@ -79,6 +81,10 @@ export interface BuildModeToggledData { readonly enabled: boolean; }
 export interface TutorialButtonHintData {
     readonly button: 'open' | 'materials' | 'guide';
     readonly visible: boolean;
+}
+export interface TutorialMeterHintData {
+    readonly meter: 'IMPERIAL_HEAT' | 'CRIMINAL_REPUTATION';
+    readonly active: boolean;
 }
 export interface ToggleClientGuideData { readonly enabled: boolean; }
 export interface ToggleMaterialsData { readonly enabled: boolean; }
@@ -274,6 +280,10 @@ export interface FurnitureRemovedData {
 
 export interface FoodStockUpdatedData {
     readonly stock: number;
+}
+export interface FoodCookingStartedData {
+    readonly tileX: number;
+    readonly tileY: number;
 }
 
 export class EventBus extends Events.EventEmitter {}

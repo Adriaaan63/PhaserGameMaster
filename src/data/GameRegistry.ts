@@ -66,7 +66,7 @@ export interface WantedProfile {
 }
 
 export interface WantedConfig {
-    readonly targetClientId: number;
+    readonly spawnAtMs: number;
     readonly inspectionDelayMs: number;
     readonly detectionRadiusTiles: number;
     readonly patrolPointCount: number;
@@ -247,12 +247,27 @@ export interface RepairConfig {
     readonly scrapsPerFurniture: number;
 }
 
+export interface TutorialConfig {
+    readonly night2FoodPurchaseCreditThreshold: number;
+    readonly night2CourtesyCredits: number;
+    readonly night2HintDelayMs: number;
+    readonly night2MeterHintDurationMs: number;
+}
+
 export interface UiConfig {
     readonly topBarHeight: number;
     readonly topBarMargin: number;
+    readonly topBarSlotCount: number;
+    readonly guideButtonSlotIndex: number;
+    readonly materialsButtonSlotIndex: number;
     readonly topBarDepth: number;
     readonly slotPadding: number;
     readonly slotIconSize: number;
+    readonly stockRowOffsetRatio: number;
+    readonly stockRowIconOffsetRatio: number;
+    readonly stockRowValueOffsetRatio: number;
+    readonly stockRowIconWidthRatio: number;
+    readonly stockRowIconHeightRatio: number;
     readonly coinIconBaseSize: number;
     readonly phaseFontSize: number;
     readonly timeFontSize: number;
@@ -300,6 +315,8 @@ export interface UiConfig {
     readonly imperialBarTrackColor: number;
     readonly imperialBarFillColor: number;
     readonly imperialBarTextColor: number;
+    readonly tutorialMeterPulseDurationMs: number;
+    readonly tutorialMeterMinimumAlpha: number;
     readonly reputationBarWidth: number;
     readonly reputationBarHeight: number;
     readonly reputationBarMargin: number;
@@ -323,10 +340,24 @@ export interface UiConfig {
     readonly shopDepth: number;
     readonly shopPanelColor: number;
     readonly shopPanelBorderColor: number;
+    readonly shopLockedSlotAlpha: number;
     readonly shopTextColor: number;
     readonly shopPriceColor: number;
     readonly shopButtonColor: number;
     readonly shopTooltipColor: number;
+    readonly glassStorageBubbleWidth: number;
+    readonly glassStorageBubbleHeight: number;
+    readonly glassStorageBubbleOffsetY: number;
+    readonly glassStoragePointerHeight: number;
+    readonly glassStorageIconSize: number;
+    readonly glassStorageIconOffsetX: number;
+    readonly glassStorageCountOffsetX: number;
+    readonly glassStorageCountFontSize: number;
+    readonly glassStorageDepthOffset: number;
+    readonly glassStorageBubbleColor: number;
+    readonly glassStorageBubbleBorderColor: number;
+    readonly glassStorageBubbleBorderWidth: number;
+    readonly glassStorageBubbleCornerRadius: number;
 }
 
 export interface GameRegistry {
@@ -344,6 +375,7 @@ export interface GameRegistry {
     readonly jabbaRaid: JabbaRaidConfig;
     readonly aftermath: AftermathConfig;
     readonly repairs: RepairConfig;
+    readonly tutorial: TutorialConfig;
     readonly ui: UiConfig;
     readonly clients: {
         readonly spawnIntervalMs: number;
@@ -437,7 +469,7 @@ export const GAME_REGISTRY = {
         instrumentHeight: 4,
         playingBobOffset: 3,
         playingAnimationDurationMs: 260,
-        interactionRadiusTiles: 1,
+        interactionRadiusTiles: 0,
     },
     economy: {
         startingCredits: 0,
@@ -510,7 +542,7 @@ export const GAME_REGISTRY = {
         maxReputation: 100,
     },
     wanted: {
-        targetClientId: 5,
+        spawnAtMs: 45_000,
         inspectionDelayMs: 5_000,
         detectionRadiusTiles: 3,
         patrolPointCount: 4,
@@ -557,12 +589,26 @@ export const GAME_REGISTRY = {
         startingScraps: 4,
         scrapsPerFurniture: 2,
     },
+    tutorial: {
+        night2FoodPurchaseCreditThreshold: 8,
+        night2CourtesyCredits: 15,
+        night2HintDelayMs: 800,
+        night2MeterHintDurationMs: 1_800,
+    },
     ui: {
         topBarHeight: 64,
         topBarMargin: 4,
+        topBarSlotCount: 8,
+        guideButtonSlotIndex: 4,
+        materialsButtonSlotIndex: 5,
         topBarDepth: 20_000,
         slotPadding: 3,
         slotIconSize: 48,
+        stockRowOffsetRatio: 0.23,
+        stockRowIconOffsetRatio: 0.22,
+        stockRowValueOffsetRatio: 0.17,
+        stockRowIconWidthRatio: 0.28,
+        stockRowIconHeightRatio: 0.32,
         coinIconBaseSize: 20,
         phaseFontSize: 12,
         timeFontSize: 18,
@@ -610,6 +656,8 @@ export const GAME_REGISTRY = {
         imperialBarTrackColor: 0x171b21,
         imperialBarFillColor: 0xd93636,
         imperialBarTextColor: 0xf4ede2,
+        tutorialMeterPulseDurationMs: 540,
+        tutorialMeterMinimumAlpha: 0.24,
         reputationBarWidth: 220,
         reputationBarHeight: 22,
         reputationBarMargin: 12,
@@ -633,10 +681,24 @@ export const GAME_REGISTRY = {
         shopDepth: 2_000,
         shopPanelColor: 0x18202b,
         shopPanelBorderColor: 0xc49a61,
+        shopLockedSlotAlpha: 0.38,
         shopTextColor: 0xf4ede2,
         shopPriceColor: 0xf6c453,
         shopButtonColor: 0xd5a62a,
         shopTooltipColor: 0x0b0f14,
+        glassStorageBubbleWidth: 48,
+        glassStorageBubbleHeight: 28,
+        glassStorageBubbleOffsetY: -38,
+        glassStoragePointerHeight: 5,
+        glassStorageIconSize: 30,
+        glassStorageIconOffsetX: -9,
+        glassStorageCountOffsetX: 10,
+        glassStorageCountFontSize: 10,
+        glassStorageDepthOffset: 10_000,
+        glassStorageBubbleColor: 0xf5ead4,
+        glassStorageBubbleBorderColor: 0x3b3025,
+        glassStorageBubbleBorderWidth: 2,
+        glassStorageBubbleCornerRadius: 4,
     },
     clients: {
         spawnIntervalMs: 8_000,
