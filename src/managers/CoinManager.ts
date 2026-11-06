@@ -22,6 +22,7 @@ import {
 /** Owns persistent coin drops and arbitrates collection versus future rat theft. */
 export class CoinManager {
     private readonly coins: Physics.Arcade.Group;
+    private readonly ownedCoins = new Set<CoinDrop>();
     private getBlockedPositions: () => readonly ClientPosition[] = () => [];
 
     public constructor(
@@ -65,6 +66,8 @@ export class CoinManager {
                 economy,
             );
             this.coins.add(coin);
+            this.ownedCoins.add(coin);
+            coin.once('destroy', () => this.ownedCoins.delete(coin));
         }
     }
 
@@ -107,7 +110,8 @@ export class CoinManager {
     }
 
     public destroy(): void {
-        this.coins.clear(true, true);
+        for (const coin of this.ownedCoins) coin.destroy();
+        this.ownedCoins.clear();
     }
 
     private handlePlayerOverlap(_player: unknown, candidate: unknown): void {

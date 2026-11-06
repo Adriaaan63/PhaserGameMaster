@@ -14,7 +14,7 @@ import { BeverageTower } from '../entities/stations/BeverageTower';
 import { Grill } from '../entities/stations/Grill';
 import { GridManager, TILE_TYPE_TABLE } from '../managers/GridManager';
 import { PlacementManager } from '../managers/PlacementManager';
-import { ROOM_H, ROOM_SCALE, ROOM_W, TILE, VIEW_Y } from '../data/constants';
+import { ROOM_H, ROOM_SCALE, ROOM_W, STARTING_FOOD_STOCK, TILE, VIEW_Y } from '../data/constants';
 import { Client } from '../entities/Client';
 import { ClientManager } from '../managers/ClientManager';
 import { AffinityManager } from '../managers/AffinityManager';
@@ -44,6 +44,8 @@ import {
     EVENT_FURNITURE_REMOVED,
     EVENT_FURNITURE_REPAIRED,
     EVENT_CLIENT_SELECTED,
+    EVENT_CLIENT_SELECTION_CLEARED,
+    EVENT_CANCEL_CLIENT_SELECTION,
     EVENT_CHAIR_ASSIGNED,
     EVENT_TOGGLE_BUILD_MODE,
     EVENT_TOGGLE_CLIENT_GUIDE,
@@ -145,7 +147,6 @@ export class NightCantinaScene extends Scene {
     private deadBodyManager!: DeadBodyManager;
     private hazardManager!: HazardManager;
     private selectedClient: Client | null = null;
-    private cancelAssignmentKey!: Input.Keyboard.Key;
     private debugNight2Key: Input.Keyboard.Key | null = null;
     private debugF2Key: Input.Keyboard.Key | null = null;
     private buildModeEnabled = true;
@@ -180,6 +181,19 @@ export class NightCantinaScene extends Scene {
     }
 
     public create(): void {
+        // Phaser reuses this Scene instance after stop/start. Reset transient modal
+        // state before creating tutorial managers or scheduling their first steps.
+        this.buildModeEnabled = true;
+        this.isClientGuideOpen = false;
+        this.isWantedPosterOpen = false;
+        this.isNightGameplayPaused = false;
+        this.isTutorialPaused = false;
+        this.nightEnding = false;
+        this.selectedClient = null;
+        this.physics.world.resume();
+        this.time.paused = false;
+        this.tweens.paused = false;
+
         this.registry.set('gameMode', GAME_MODE_PRE_OPENING);
         if (typeof this.registry.get(CREDITS_REGISTRY_KEY) !== 'number') {
             this.registry.set(CREDITS_REGISTRY_KEY, GAME_REGISTRY.economy.startingCredits);
@@ -188,7 +202,7 @@ export class NightCantinaScene extends Scene {
             this.registry.set(SCRAPS_REGISTRY_KEY, GAME_REGISTRY.repairs.startingScraps);
         }
         if (typeof this.registry.get(EMPTY_GLASSES_REGISTRY_KEY) !== 'number') {
-            this.registry.set(EMPTY_GLASSES_REGISTRY_KEY, 0);
+            this.registry.set(EMPTY_GLASSES_REGISTRY_KEY, GAME_REGISTRY.economy.startingEmptyGlasses);
         }
         eventBus.on(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
         this.events.once('shutdown', this.cleanupModeEvents, this);
@@ -230,7 +244,7 @@ export class NightCantinaScene extends Scene {
         this.gridManager = new GridManager(map);
         this.bandManager = new BandManager(this, this.gridManager, GAME_REGISTRY.band);
         this.audioManager = new AudioManager(this, GAME_REGISTRY.audio);
-        this.registry.set('foodStock', 5);
+        this.registry.set('foodStock', STARTING_FOOD_STOCK);
         this.progressionManager = new ProgressionManager(this);
         this.tutorialManager = new TutorialManager(this);
 
@@ -247,9 +261,8 @@ export class NightCantinaScene extends Scene {
         }
         const keyboard = this.input.keyboard;
         if (keyboard === null) {
-            throw new Error('No se encontró el teclado para cancelar la asignación de clientes.');
+            throw new Error('No se encontró el teclado para los controles de depuración.');
         }
-        this.cancelAssignmentKey = keyboard.addKey(Input.Keyboard.KeyCodes.ESC);
         this.debugNight2Key = keyboard.addKey(Input.Keyboard.KeyCodes.TWO);
         this.debugF2Key = keyboard.addKey(Input.Keyboard.KeyCodes.F2);
         this.debugNight2Key.on('down', () => this.debugJumpToNight(2));
@@ -338,6 +351,7 @@ export class NightCantinaScene extends Scene {
         this.player.setNightHoldInteractionHandler(this.handleNightHoldInteraction);
         eventBus.on(EVENT_TOGGLE_BUILD_MODE, this.handleBuildModeToggled, this);
         eventBus.on(EVENT_TOGGLE_CLIENT_GUIDE, this.handleClientGuideToggled, this);
+        eventBus.on(EVENT_CANCEL_CLIENT_SELECTION, this.handleCancelClientSelection, this);
         eventBus.on(EVENT_FURNITURE_PLACED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REMOVED, this.handleFurnitureLayoutChanged, this);
         eventBus.on(EVENT_FURNITURE_REPAIRED, this.handleFurnitureLayoutChanged, this);
@@ -380,13 +394,8 @@ export class NightCantinaScene extends Scene {
             if (this.buildModeEnabled) this.placementManager.update();
             return;
         }
-        const cancelSelectionPressed = Input.Keyboard.JustDown(this.cancelAssignmentKey);
         if (this.selectedClient !== null && this.selectedClient.clientState !== 'WAITING_IN_LINE') {
             this.clearClientSelection();
-        }
-        if (this.selectedClient !== null && cancelSelectionPressed) {
-            this.clearClientSelection();
-            eventBus.emit(EVENT_GAME_WARNING, { message: 'Assignment cancelled.' });
         }
         this.player.update(delta);
         this.updatePlayerDepth();
@@ -682,6 +691,7 @@ export class NightCantinaScene extends Scene {
 
     private cleanupModeEvents(): void {
         eventBus.off(EVENT_CANTINA_OPEN, this.handleOpenCantina, this);
+        eventBus.off(EVENT_CANCEL_CLIENT_SELECTION, this.handleCancelClientSelection, this);
         eventBus.off(EVENT_TUTORIAL_PAUSE_CHANGED, this.handleTutorialPauseChanged, this);
         eventBus.off(EVENT_NIGHT_ENDED, this.handleNightEnded, this);
         eventBus.off(EVENT_NIGHT_END_REQUESTED, this.handleNightEndRequested, this);
@@ -844,9 +854,11 @@ export class NightCantinaScene extends Scene {
     }
 
     private clearClientSelection(): void {
+        const hadSelection = this.selectedClient !== null;
         this.selectedClient?.setSelected(false);
         this.selectedClient = null;
         this.seatingManager?.setHighlightsEnabled(false);
+        if (hadSelection) eventBus.emit(EVENT_CLIENT_SELECTION_CLEARED);
     }
 
     private cleanupClientSystems(): void {
@@ -864,9 +876,6 @@ export class NightCantinaScene extends Scene {
         this.input.off('pointerdown', this.handlePointerDown, this);
         this.player?.setNightInteractionHandler(null);
         this.player?.setNightHoldInteractionHandler(null);
-        if (this.cancelAssignmentKey !== undefined) {
-            this.input.keyboard?.removeKey(this.cancelAssignmentKey);
-        }
         if (this.debugNight2Key !== null) {
             this.input.keyboard?.removeKey(this.debugNight2Key);
             this.debugNight2Key = null;
@@ -909,6 +918,12 @@ export class NightCantinaScene extends Scene {
     private handleClientGuideToggled(data: ToggleClientGuideData): void {
         this.isClientGuideOpen = data.enabled;
         this.updateNightGameplayPause();
+    }
+
+    private handleCancelClientSelection(): void {
+        if (this.selectedClient === null) return;
+        this.clearClientSelection();
+        eventBus.emit(EVENT_GAME_WARNING, { message: 'Assignment cancelled.' });
     }
 
     private updateNightGameplayPause(): void {

@@ -3,6 +3,9 @@ import { AUTO, Game, Scale, type Types } from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../data/constants';
 import { BootScene } from '../scenes/BootScene';
 import { NightCantinaScene } from '../scenes/NightCantinaScene';
+import { MainMenuScene } from '../scenes/MainMenuScene';
+import { OptionsMenuScene } from '../scenes/OptionsMenuScene';
+import { PauseMenuScene } from '../scenes/PauseMenuScene';
 import { PreloadScene } from '../scenes/PreloadScene';
 import { UIScene } from '../scenes/UIScene';
 
@@ -28,7 +31,7 @@ const gameConfig: Types.Core.GameConfig = {
             debug: false
         }
     },
-    scene: [BootScene, PreloadScene, NightCantinaScene, UIScene]
+    scene: [BootScene, PreloadScene, MainMenuScene, OptionsMenuScene, PauseMenuScene, NightCantinaScene, UIScene]
 };
 
 new Game(gameConfig);

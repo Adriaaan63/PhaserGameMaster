@@ -122,9 +122,75 @@ export type AudioBus = 'BGM' | 'SFX' | 'UI';
 
 export interface AudioConfig {
     readonly busVolumes: Readonly<Record<AudioBus, number>>;
+    readonly defaultMasterVolume: number;
+    readonly defaultMuted: boolean;
     readonly maxConcurrentOneShotsPerBus: number;
     readonly bandFadeOutMs: number;
 }
+
+export interface MenuConfig {
+    readonly panelWidth: number;
+    readonly panelHeight: number;
+    readonly panelColor: number;
+    readonly overlayColor: number;
+    readonly overlayAlpha: number;
+    readonly borderColor: number;
+    readonly accentColor: number;
+    readonly textColor: number;
+    readonly mutedTextColor: number;
+    readonly focusColor: number;
+    readonly buttonWidth: number;
+    readonly buttonHeight: number;
+    readonly buttonGap: number;
+    readonly titleFontSize: number;
+    readonly buttonFontSize: number;
+    readonly bodyFontSize: number;
+    readonly sliderWidth: number;
+    readonly sliderHeight: number;
+    readonly sliderKnobRadius: number;
+    readonly focusPulseMs: number;
+    readonly volumeStep: number;
+    readonly backgroundColor: number;
+    readonly horizonColor: number;
+    readonly silhouetteColor: number;
+    readonly windowGlowColor: number;
+    readonly backgroundStarCount: number;
+    readonly backgroundStarXStep: number;
+    readonly backgroundStarYStep: number;
+    readonly backgroundStarSmallRadius: number;
+    readonly backgroundStarLargeRadius: number;
+    readonly backgroundSkyHeightRatio: number;
+    readonly horizonStartRatio: number;
+    readonly primarySilhouette: Readonly<{ readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly radius: number }>;
+    readonly upperSilhouette: Readonly<{ readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly radius: number }>;
+    readonly windowLeft: Readonly<{ readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly radius: number }>;
+    readonly windowRight: Readonly<{ readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly radius: number }>;
+    readonly panelPadding: number;
+    readonly panelFillAlpha: number;
+    readonly panelDepth: number;
+    readonly headingOffsetRatio: number;
+    readonly subtitleOffsetRatio: number;
+    readonly mainButtonIndexCenter: number;
+    readonly mainFooterOffsetRatio: number;
+    readonly pauseButtonIndexCenter: number;
+    readonly optionsSliderY: number;
+    readonly optionsVolumeLabelY: number;
+    readonly optionsMuteButtonY: number;
+    readonly optionsBackButtonY: number;
+    readonly focusedScale: number;
+    readonly windowAlpha: number;
+    readonly starAlpha: number;
+    readonly largeStarEvery: number;
+    readonly panelBorderWidth: number;
+}
+
+export interface AudioSettings {
+    readonly masterVolume: number;
+    readonly muted: boolean;
+}
+
+export const AUDIO_MASTER_VOLUME_REGISTRY_KEY = 'audioMasterVolume';
+export const AUDIO_MUTED_REGISTRY_KEY = 'audioMuted';
 
 export interface BandConfig {
     readonly memberCount: number;
@@ -163,6 +229,7 @@ export interface OrderConfig {
 
 export interface EconomyConfig {
     readonly startingCredits: number;
+    readonly startingEmptyGlasses: number;
     readonly coinsPerSatisfiedClient: number;
     readonly valuePerCoin: number;
     readonly coinRadius: number;
@@ -261,6 +328,8 @@ export interface UiConfig {
     readonly guideButtonSlotIndex: number;
     readonly materialsButtonSlotIndex: number;
     readonly topBarDepth: number;
+    readonly tutorialOverlayDepth: number;
+    readonly tutorialBlockerDepth: number;
     readonly slotPadding: number;
     readonly slotIconSize: number;
     readonly stockRowOffsetRatio: number;
@@ -365,6 +434,7 @@ export interface GameRegistry {
     readonly patience: PatienceConfig;
     readonly orders: OrderConfig;
     readonly audio: AudioConfig;
+    readonly menus: MenuConfig;
     readonly band: BandConfig;
     readonly rats: RatConfig;
     readonly economy: EconomyConfig;
@@ -455,8 +525,65 @@ export const GAME_REGISTRY = {
     },
     audio: {
         busVolumes: { BGM: 0.65, SFX: 0.8, UI: 0.75 },
+        defaultMasterVolume: 1,
+        defaultMuted: false,
         maxConcurrentOneShotsPerBus: 5,
         bandFadeOutMs: 700,
+    },
+    menus: {
+        panelWidth: 500,
+        panelHeight: 440,
+        panelColor: 0x211b18,
+        overlayColor: 0x090d12,
+        overlayAlpha: 0.78,
+        borderColor: 0xc49352,
+        accentColor: 0xe8b75b,
+        textColor: 0xf4ead7,
+        mutedTextColor: 0xb5a58e,
+        focusColor: 0xe68a43,
+        buttonWidth: 280,
+        buttonHeight: 54,
+        buttonGap: 16,
+        titleFontSize: 28,
+        buttonFontSize: 18,
+        bodyFontSize: 15,
+        sliderWidth: 240,
+        sliderHeight: 12,
+        sliderKnobRadius: 11,
+        focusPulseMs: 180,
+        volumeStep: 0.05,
+        backgroundColor: 0x11191b,
+        horizonColor: 0x3a3025,
+        silhouetteColor: 0x171715,
+        windowGlowColor: 0xc88948,
+        backgroundStarCount: 32,
+        backgroundStarXStep: 37,
+        backgroundStarYStep: 19,
+        backgroundStarSmallRadius: 1,
+        backgroundStarLargeRadius: 2,
+        backgroundSkyHeightRatio: 0.55,
+        horizonStartRatio: 0.68,
+        primarySilhouette: { x: 0.08, y: 0.52, width: 0.84, height: 0.22, radius: 0.025 },
+        upperSilhouette: { x: 0.2, y: 0.43, width: 0.6, height: 0.12, radius: 0.02 },
+        windowLeft: { x: 0.28, y: 0.48, width: 0.08, height: 0.13, radius: 0.015 },
+        windowRight: { x: 0.64, y: 0.48, width: 0.08, height: 0.13, radius: 0.015 },
+        panelPadding: 20,
+        panelFillAlpha: 0.98,
+        panelDepth: 30_000,
+        headingOffsetRatio: 0.36,
+        subtitleOffsetRatio: 0.25,
+        mainButtonIndexCenter: 0.5,
+        mainFooterOffsetRatio: 0.36,
+        pauseButtonIndexCenter: 1,
+        optionsSliderY: -24,
+        optionsVolumeLabelY: 8,
+        optionsMuteButtonY: 66,
+        optionsBackButtonY: 144,
+        focusedScale: 1.035,
+        windowAlpha: 0.78,
+        starAlpha: 0.7,
+        largeStarEvery: 4,
+        panelBorderWidth: 2,
     },
     band: {
         memberCount: 4,
@@ -473,6 +600,7 @@ export const GAME_REGISTRY = {
     },
     economy: {
         startingCredits: 0,
+        startingEmptyGlasses: 0,
         coinsPerSatisfiedClient: 3,
         valuePerCoin: 5,
         coinRadius: 8,
@@ -602,6 +730,8 @@ export const GAME_REGISTRY = {
         guideButtonSlotIndex: 4,
         materialsButtonSlotIndex: 5,
         topBarDepth: 20_000,
+        tutorialOverlayDepth: 40_000,
+        tutorialBlockerDepth: 39_999,
         slotPadding: 3,
         slotIconSize: 48,
         stockRowOffsetRatio: 0.23,

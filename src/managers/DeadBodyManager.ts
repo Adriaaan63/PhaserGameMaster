@@ -81,12 +81,11 @@ export class DeadBodyManager {
     public destroy(): void {
         eventBus.off(EVENT_CLIENT_MURDERED, this.handleClientMurdered);
         this.cancelCleaning();
-        for (const [key, body] of this.bodies) {
+        for (const [key, body] of [...this.bodies]) {
             this.grid.clearDeadBodyAt(body.tileX, body.tileY);
             body.destroy();
             this.bodies.delete(key);
         }
-        this.collisionGroup.clear(false, false);
     }
 
     private createBody(tileX: number, tileY: number): void {

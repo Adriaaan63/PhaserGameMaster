@@ -35,7 +35,6 @@ interface ShopSlotElements {
 export class ShopUI {
     private readonly overlay: GameObjects.Container;
     private readonly panel: GameObjects.Rectangle;
-    private readonly closeKey: Input.Keyboard.Key;
     private readonly tooltip: GameObjects.Container;
     private readonly slots = new Map<string, ShopSlotElements>();
     private isOpen = false;
@@ -81,7 +80,6 @@ export class ShopUI {
 
         const keyboard = scene.input.keyboard;
         if (keyboard === null) throw new Error('No se encontró el teclado para cerrar la tienda.');
-        this.closeKey = keyboard.addKey(Input.Keyboard.KeyCodes.ESC);
         eventBus.on(EVENT_TOGGLE_MATERIALS, this.handleToggle);
         scene.scale.on('resize', this.reposition, this);
         scene.events.once('shutdown', this.destroy, this);
@@ -89,14 +87,13 @@ export class ShopUI {
         this.reposition();
     }
 
-    public update(): void {
-        if (this.isOpen && Input.Keyboard.JustDown(this.closeKey)) this.close();
-    }
+    public get isVisible(): boolean { return this.isOpen; }
+
+    public requestClose(): void { this.close(); }
 
     public destroy(): void {
         eventBus.off(EVENT_TOGGLE_MATERIALS, this.handleToggle);
         this.scene.scale.off('resize', this.reposition, this);
-        this.closeKey.destroy();
         this.overlay.destroy(true);
         this.slots.clear();
     }

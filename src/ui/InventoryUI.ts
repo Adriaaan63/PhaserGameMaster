@@ -136,11 +136,9 @@ export class InventoryUI {
         this.isGuideOpen = data.enabled;
         this.guidePanelContainer.setVisible(data.enabled);
     };
-    private readonly onGuideEscapeBound = (): void => {
-        if (!this.isGuideOpen) return;
-        const data: ToggleClientGuideData = { enabled: false };
-        eventBus.emit(EVENT_TOGGLE_CLIENT_GUIDE, data);
-    };
+    public get isGuideVisible(): boolean {
+        return this.isGuideOpen;
+    }
 
     public constructor(private readonly scene: Scene) {
         for (const [id, quantity] of Object.entries(INITIAL_STOCK)) this.stock.set(id, quantity);
@@ -265,7 +263,6 @@ export class InventoryUI {
         this.scene.input.off('pointermove', this.handleScenePointerMove, this);
         this.scene.input.off('pointerup', this.handleScenePointerUp, this);
         this.scene.input.off('wheel', this.handleSceneWheel, this);
-        this.scene.input.keyboard?.off('keydown-ESC', this.onGuideEscapeBound, this);
         this.carouselTween?.stop();
         this.carouselTween = null;
         this.slotsContainer.clearMask();
@@ -591,7 +588,6 @@ export class InventoryUI {
         this.scene.input.on('pointermove', this.handleScenePointerMove, this);
         this.scene.input.on('pointerup', this.handleScenePointerUp, this);
         this.scene.input.on('wheel', this.handleSceneWheel, this);
-        this.scene.input.keyboard?.on('keydown-ESC', this.onGuideEscapeBound, this);
     }
 
     private refreshInteractionState(): void {

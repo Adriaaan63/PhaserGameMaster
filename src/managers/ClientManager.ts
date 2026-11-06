@@ -232,7 +232,6 @@ export class ClientManager {
         eventBus.off(EVENT_BAND_STARTED, this.onBandStartedBound);
         this.wantedSpawnTimer?.remove(false);
         this.wantedSpawnTimer = null;
-        this.collisionGroup.clear(false, false);
         for (const client of this.clients) client.destroy();
         this.clients.clear();
     }

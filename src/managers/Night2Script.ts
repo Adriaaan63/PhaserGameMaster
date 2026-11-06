@@ -19,6 +19,7 @@ import {
     GAME_MODE_NIGHT,
     type GameModeChangedData,
     type ClientOrderStartedData,
+    type TutorialClosedData,
     type FoodCookingStartedData,
     type ToggleClientGuideData,
     type ToggleMaterialsData,
@@ -55,6 +56,7 @@ interface Night2Targets {
 export class Night2Script {
     private stage: Night2Stage = 'SHOP_DIALOG';
     private started = false;
+    private destroyed = false;
     private foodPurchased = false;
     private startupTimer: Time.TimerEvent | null = null;
     private shopReopenTimer: Time.TimerEvent | null = null;
@@ -92,7 +94,8 @@ export class Night2Script {
         this.tutorial.showPointers([]);
     };
 
-    private readonly handleTutorialClosed = (): void => {
+    private readonly handleTutorialClosed = (data: TutorialClosedData): void => {
+        if (this.destroyed || data.reason === 'DESTROYED') return;
         switch (this.stage) {
             case 'SHOP_DIALOG':
                 this.stage = 'SHOP_HINT';
@@ -280,6 +283,8 @@ export class Night2Script {
     }
 
     public destroy(): void {
+        if (this.destroyed) return;
+        this.destroyed = true;
         this.tutorial.hideButtonHint('materials');
         this.tutorial.hideButtonHint('guide');
         this.scene.registry.set('requireFoodPurchase', false);

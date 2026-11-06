@@ -21,6 +21,18 @@ Sigue estrictamente esta estructura de directorios y modularización para separa
   * `ui/`: Componentes de interfaz gráfica instanciados en la `UIScene` (botones, diálogos, barras de paciencia).
   * `utils/`: Herramientas auxiliares (`EventBus.ts`, utilidades matemáticas).
 
+### Arquitectura de menús y navegación
+
+* El ciclo de aplicación se organiza en escenas con responsabilidades diferenciadas: `BootScene` → `PreloadScene` → `MainMenuScene`; al iniciar una partida se activa `NightCantinaScene` junto con `UIScene`.
+* `MainMenuScene`, `PauseMenuScene` y `OptionsMenuScene` representan pantallas distintas. Las dos últimas pueden mostrarse como overlays transparentes sobre la escena llamadora; `OptionsMenuScene` recibe y conserva un contexto de retorno para regresar al menú principal o al menú de pausa.
+* `MenuFlowManager` centraliza transiciones, contexto de retorno, pausa/reanudación y salida de la partida. Los componentes visuales de `src/ui/` emiten acciones tipadas; no deben iniciar, detener o pausar escenas por su cuenta.
+* `PauseMenuScene` debe congelar el mundo de juego y el HUD de gameplay, incluidos física, temporizadores, IA, tweens y entradas de gameplay. El overlay de pausa y sus opciones permanecen interactivos. Al reanudar se recupera el mismo estado de escena, sin reinicializar la noche.
+* La tecla `Escape` respeta una prioridad modal: primero cierra el overlay modal superior que admita cierre; si no hay otro modal abierto durante gameplay, abre la pausa. Desde pausa, `Escape` reanuda. No se deben registrar manejadores de `Escape` competidores en varias escenas.
+* `AudioSettingsManager` conserva las preferencias de audio independientemente de las escenas de gameplay. El control de volumen maestro y el mute afectan a los buses existentes; `AudioManager` aplica esos valores al audio activo y futuro. Las opciones deben poder abrirse tanto desde el menú principal como desde pausa.
+* Los cambios de volumen y mute se comunican con eventos tipados del `EventBus` cuando afectan a varias escenas. La navegación visual se mantiene desacoplada de la lógica del juego.
+* Todos los menús deben ser responsivos, admitir ratón y navegación por teclado, mostrar un estado de foco visible y limpiar listeners/tweens al cerrarse.
+* Los parámetros de layout, opacidad, escala, volumen y tiempos de transición se centralizan en configuración; no se dispersan como valores numéricos dentro de las escenas.
+
 
 ## 3. Convenciones de Código (TypeScript)
 * **Tipado Estricto:** Prohibido el uso de `any`. Usa interfaces y *types* para estructurar datos (ej. configuraciones de clientes, stats de combate).

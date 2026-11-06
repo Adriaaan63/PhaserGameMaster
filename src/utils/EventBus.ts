@@ -4,6 +4,7 @@ import type { OrderItemId } from '../data/GameRegistry';
 import type { ClientRace } from '../data/GameRegistry';
 import type { WantedProfile } from '../data/GameRegistry';
 import type { FurnitureCategory } from '../data/FurnitureRegistry';
+import type { AudioSettings } from '../data/GameRegistry';
 
 export const EVENT_GAME_READY = 'game-ready';
 
@@ -28,6 +29,7 @@ export const EVENT_NIGHT_END_READY = 'game:night-end-ready';
 export const EVENT_NIGHT_TRANSITION_COMPLETE = 'game:night-transition-complete';
 export const EVENT_TUTORIAL_STARTED = 'tutorial:started';
 export const EVENT_TUTORIAL_ADVANCE = 'tutorial:advance';
+export const EVENT_TUTORIAL_CLOSE_REQUESTED = 'tutorial:close-requested';
 export const EVENT_TUTORIAL_CLOSED = 'tutorial:closed';
 export const EVENT_TUTORIAL_POINTER = 'tutorial:pointer';
 export const EVENT_TUTORIAL_DRAG = 'tutorial:drag';
@@ -41,6 +43,8 @@ export const EVENT_FOOD_STOCK_UPDATED = 'station:food-stock-updated';
 export const EVENT_FOOD_COOKING_STARTED = 'station:food-cooking-started';
 export const EVENT_SHOP_FOOD_PURCHASED = 'shop:food-purchased';
 export const EVENT_CLIENT_SELECTED = 'client:selected';
+export const EVENT_CLIENT_SELECTION_CLEARED = 'client:selection-cleared';
+export const EVENT_CANCEL_CLIENT_SELECTION = 'client:cancel-selection';
 export const EVENT_CHAIR_ASSIGNED = 'client:chair-assigned';
 export const EVENT_CLIENT_SEATED = 'client:seated';
 export const EVENT_CLIENT_SPAWNED = 'client:spawned';
@@ -69,6 +73,7 @@ export const EVENT_DEAD_BODY_CLEANED = 'aftermath:dead-body-cleaned';
 export const EVENT_FURNITURE_REPAIRED = 'furniture:repaired';
 export const EVENT_TOGGLE_BUILD_MODE = 'build-mode:toggled';
 export const EVENT_BAND_STARTED = 'band:started';
+export const EVENT_AUDIO_SETTINGS_UPDATED = 'audio:settings-updated';
 export const EVENT_OPEN_WANTED_POSTER = 'wanted:poster-open';
 export const EVENT_CLOSE_WANTED_POSTER = 'wanted:poster-close';
 export const EVENT_WANTED_PROFILE_UPDATED = 'wanted:profile-updated';
@@ -92,6 +97,7 @@ export interface CreditsUpdatedData { readonly totalCredits: number; }
 export interface ScrapsUpdatedData { readonly stock: number; }
 export interface GlassesUpdatedData { readonly stock: number; }
 export interface BandStartedData { readonly durationMs: number; }
+export interface AudioSettingsUpdatedData { readonly settings: AudioSettings; }
 export interface WantedProfileData { readonly profile: WantedProfile; }
 export interface WantedClientData { readonly clientId: number; }
 export interface WantedRewardData {
@@ -110,16 +116,23 @@ export interface NightEndRequestedData {
     readonly reason: 'TIME' | 'TUTORIAL_CONDITION';
 }
 export interface TutorialStartedData {
+    readonly tutorialId: number;
     readonly text: string;
     readonly pauseGameplay: boolean;
 }
+export interface TutorialClosedData {
+    readonly tutorialId: number;
+    readonly reason: 'COMPLETED' | 'REQUESTED' | 'HIDDEN' | 'DESTROYED';
+}
 export interface TutorialPointerData {
+    readonly tutorialId: number;
     readonly x: number;
     readonly y: number;
     readonly visible: boolean;
     readonly points?: readonly { readonly x: number; readonly y: number }[];
 }
 export interface TutorialDragData {
+    readonly tutorialId: number;
     readonly sourceX: number;
     readonly sourceY: number;
     readonly targetX: number;

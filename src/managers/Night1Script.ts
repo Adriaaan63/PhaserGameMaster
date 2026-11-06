@@ -1,4 +1,4 @@
-import { Scene } from 'phaser';
+import { Scene, Time } from 'phaser';
 
 import { ClientRace } from '../data/GameRegistry';
 import { TILE } from '../data/constants';
@@ -22,6 +22,7 @@ import {
     type FurniturePlacedData,
     type GameModeChangedData,
     type InteractablePickedData,
+    type TutorialClosedData,
 } from '../utils/EventBus';
 import { TutorialManager } from './TutorialManager';
 
@@ -57,12 +58,15 @@ interface TutorialTargets {
 
 /** Enforces the exact guided sequence for the first tutorial night. */
 export class Night1Script {
+    private startupTimer: Time.TimerEvent | null = null;
     private stage: Night1Stage = 'MOVE_DIALOG';
     private placedTable = false;
     private placedChairs = 0;
     private nightStarted = false;
+    private destroyed = false;
 
-    private readonly handleTutorialClosed = (): void => {
+    private readonly handleTutorialClosed = (data: TutorialClosedData): void => {
+        if (this.destroyed || data.reason === 'DESTROYED') return;
         switch (this.stage) {
             case 'MOVE_DIALOG':
                 this.showBuildDialog();
@@ -210,7 +214,8 @@ export class Night1Script {
         eventBus.on(EVENT_CLIENT_SEATED, this.handleClientSeated);
         eventBus.on(EVENT_CLIENT_SATISFIED, this.handleSatisfied);
         eventBus.on(EVENT_GAME_MODE_CHANGED, this.handleModeChanged);
-        scene.time.delayedCall(0, () => {
+        this.startupTimer = scene.time.delayedCall(0, () => {
+            this.startupTimer = null;
             this.tutorial.showTutorial('Welcome to Chalmun’s Cantina. Move Wuher with WASD.');
         });
         scene.events.once('shutdown', this.destroy, this);
@@ -222,6 +227,10 @@ export class Night1Script {
     }
 
     public destroy(): void {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        this.startupTimer?.remove(false);
+        this.startupTimer = null;
         eventBus.off(EVENT_TUTORIAL_CLOSED, this.handleTutorialClosed);
         eventBus.off(EVENT_TUTORIAL_DRAG_COMPLETED, this.handleDragCompleted);
         eventBus.off(EVENT_FURNITURE_PLACED, this.handleFurniturePlaced);

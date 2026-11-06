@@ -116,6 +116,10 @@ export class WantedUI {
         }
     }
 
+    public get isVisible(): boolean {
+        return this.isOpen;
+    }
+
     public destroy(): void {
         eventBus.off(EVENT_OPEN_WANTED_POSTER, this.handleOpen);
         eventBus.off(EVENT_CLOSE_WANTED_POSTER, this.handleClose);

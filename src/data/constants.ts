@@ -12,6 +12,7 @@ export const PLAYER_FRAME_WIDTH = 150;
 export const PLAYER_FRAME_HEIGHT = 150;
 export const PLAYER_BASE_SPEED = 160;
 export const PLAYER_DASH_SPEED = 240;
+export const STARTING_FOOD_STOCK = 5;
 
 /** Offsets for rendering held objects in the player's right hand. */
 export const PLAYER_HAND_OFFSET_X = 12;

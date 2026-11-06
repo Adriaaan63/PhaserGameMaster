@@ -69,6 +69,10 @@ export class NightTransitionUI {
         this.overlay.destroy(true);
     }
 
+    public get isVisible(): boolean {
+        return this.overlay.visible;
+    }
+
     private reposition(): void {
         this.backdrop.setSize(this.scene.scale.width, this.scene.scale.height);
         this.title.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2);

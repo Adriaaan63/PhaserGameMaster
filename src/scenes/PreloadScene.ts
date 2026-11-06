@@ -67,8 +67,7 @@ export class PreloadScene extends Scene {
     }
 
     public create(): void {
-        this.scene.start('NightCantinaScene');
-        this.scene.launch('UIScene');
+        this.scene.start('MainMenuScene');
     }
 
     public update(): void {

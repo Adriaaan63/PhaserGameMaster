@@ -1,4 +1,5 @@
 import { GameObjects, Input, Scene, Tweens, Types } from 'phaser';
+import { GAME_REGISTRY } from '../data/GameRegistry';
 
 import {
     eventBus,
@@ -11,6 +12,7 @@ import {
     type TutorialPointerData,
     type TutorialDragData,
     type TutorialStartedData,
+    type TutorialClosedData,
 } from '../utils/EventBus';
 
 /** Renders the tutorial dialog and the animated world/UI pointer. */
@@ -25,9 +27,8 @@ export class TutorialUI {
     private readonly interactionBlocker: GameObjects.Rectangle;
     private dragTween: Tweens.Tween | null = null;
     private dragPulse: Tweens.Tween | null = null;
-    private readonly closeKey: Input.Keyboard.Key;
     private isOpen = false;
-    private ignoreEscapeUntilReleased = false;
+    private activeTutorialId: number | null = null;
     private readonly handlePointerDown = (pointer: Input.Pointer): void => {
         // Only advance tutorial if clicking on the dialog itself
         if (!this.isOpen) return;
@@ -45,26 +46,32 @@ export class TutorialUI {
     };
 
     private readonly handleStarted = (data: TutorialStartedData): void => {
+        this.activeTutorialId = data.tutorialId;
         this.dialogText.setText(data.text);
         this.dialog.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2);
         this.dialog.setVisible(true);
         this.overlay.setVisible(true);
         this.isOpen = true;
-        this.ignoreEscapeUntilReleased = this.closeKey.isDown;
     };
 
-    private readonly handleClosed = (): void => {
+    private readonly handleClosed = (data: TutorialClosedData): void => {
+        if (this.activeTutorialId !== data.tutorialId) return;
         this.stopDragAnimation();
         this.isOpen = false;
+        this.activeTutorialId = null;
         this.overlay.setVisible(false);
         this.interactionBlocker.setVisible(false);
     };
 
     private readonly handlePointer = (data: TutorialPointerData): void => {
+        this.activeTutorialId = data.tutorialId;
         this.stopDragAnimation();
         const points = data.points ?? [{ x: data.x, y: data.y }];
         this.overlay.setVisible(data.visible || this.isOpen);
-        if (data.visible) this.dialog.setVisible(false);
+        if (data.visible) {
+            this.dialog.setVisible(false);
+            this.isOpen = false;
+        }
         this.pointers.forEach((pointer, index) => {
             this.pointerTweens[index]?.stop();
             const point = points[index];
@@ -86,6 +93,8 @@ export class TutorialUI {
     };
 
     private readonly handleDrag = (data: TutorialDragData): void => {
+        this.activeTutorialId = data.tutorialId;
+        this.isOpen = false;
         this.pointerTweens.forEach((tween) => tween?.stop());
         this.pointers.forEach((pointer) => pointer.setVisible(false));
         this.dialog.setVisible(false);
@@ -157,12 +166,12 @@ export class TutorialUI {
             this.dragPointer,
         ])
             .setScrollFactor(0)
-            .setDepth(10_000)
+            .setDepth(GAME_REGISTRY.ui.tutorialOverlayDepth)
             .setVisible(false);
         this.interactionBlocker = scene.add.rectangle(0, 0, width, height, 0x000000, 0)
             .setOrigin(0)
             .setInteractive()
-            .setDepth(9_999)
+            .setDepth(GAME_REGISTRY.ui.tutorialBlockerDepth)
             .setVisible(false);
         this.interactionBlocker.on('pointerdown', (
             pointer: Input.Pointer,
@@ -177,7 +186,6 @@ export class TutorialUI {
         scene.input.on('pointerdown', this.handlePointerDown);
         const keyboard = scene.input.keyboard;
         if (keyboard === null) throw new Error('No se encontró el teclado para el tutorial.');
-        this.closeKey = keyboard.addKey(Input.Keyboard.KeyCodes.ESC);
         eventBus.on(EVENT_TUTORIAL_STARTED, this.handleStarted);
         eventBus.on(EVENT_TUTORIAL_CLOSED, this.handleClosed);
         eventBus.on(EVENT_TUTORIAL_POINTER, this.handlePointer);
@@ -188,13 +196,8 @@ export class TutorialUI {
         this.reposition();
     }
 
-    public update(): void {
-        if (!this.isOpen) return;
-        if (this.ignoreEscapeUntilReleased) {
-            if (this.closeKey.isDown) return;
-            this.ignoreEscapeUntilReleased = false;
-        }
-        if (Input.Keyboard.JustDown(this.closeKey)) eventBus.emit(EVENT_TUTORIAL_CLOSED);
+    public get isDialogOpen(): boolean {
+        return this.isOpen;
     }
 
     public destroy(): void {
@@ -206,7 +209,6 @@ export class TutorialUI {
         this.scene.scale.off('resize', this.reposition, this);
         this.pointerTweens.forEach((tween) => tween?.stop());
         this.stopDragAnimation();
-        this.closeKey.destroy();
         this.interactionBlocker.destroy();
         this.overlay.destroy(true);
     }
